@@ -7,7 +7,7 @@ Build an extensible, multi-author blog using Next.js and Supabase. Deliver small
 - Discuss requirements and report progress in Turkish. Use English for code, identifiers, and technical documentation.
 - Inspect the repository and existing instructions before changing code. Preserve established conventions.
 - Implement the requested task through validation; do not stop at a plan.
-- Make reasonable, reversible implementation choices. Ask only when an unresolved product decision materially changes scope, permissions, or the data model.
+- Make reasonable, reversible implementation choices. If a requested slice depends on an undecided item, use the listed provisional default behind a single, clearly marked, easily reversible point, state the assumption explicitly in the Turkish report, and continue. Stop and ask only before irreversible actions such as destructive migrations or public deployment.
 - Do not invent requirements. Distinguish confirmed decisions from provisional defaults below.
 - Consult current official documentation for version-sensitive APIs. Never assume a remembered Next.js, Supabase, or Tiptap API is current.
 - Do not rewrite unrelated code, add speculative abstractions, or introduce dependencies without a concrete need.
@@ -25,15 +25,15 @@ Build an extensible, multi-author blog using Next.js and Supabase. Deliver small
 
 ## Provisional defaults
 
-These are implementation recommendations, not previously approved product requirements. Use them for reversible scaffolding; confirm before implementing dependent permission rules or publication workflows.
+These are implementation recommendations, not previously approved product requirements. When a requested slice depends on one of these decisions, use its listed default for reversible scaffolding and identify the assumption in the Turkish report. Ask for confirmation before irreversible actions such as destructive migrations or public deployment.
 
 - One publication, multiple authors; independent user-created blogs are outside the initial scope.
 - TypeScript, Next.js App Router, and a single application for public pages and administration.
 - Tiptap with JSON content, image upload, and a YouTube extension.
 - Public published posts; no paid or private posts initially.
 - Invite-only editorial accounts; reader accounts are a separate concern.
-- Initial roles and publishing permissions remain to be decided. Author credits must not implicitly grant edit access.
-- Draft/review/publish/archive transitions, shared editing permissions, and editing of already-published posts remain to be decided.
+- Provisional editorial policy: use two roles in one clearly marked, replaceable policy module: `editor` may create and edit their own drafts; `admin` may edit any post, publish or archive posts, and invite editorial accounts. Only admins may publish. Author credits do not grant edit access.
+- Provisional workflow: posts move from draft directly to published, then archived; there is no review step. Editors cannot edit another editor's drafts, and collaborative editing is not enabled. Admins may edit published posts in place; do not keep a separate revision history unless a later requirement adds one.
 - Start with SEO and sharing. Likes and comments can follow as separate increments.
 - Language, brand, domain, visual design, and hosting provider remain open. Do not hardcode sample branding into application logic.
 
@@ -75,10 +75,10 @@ These are implementation recommendations, not previously approved product requir
 - categories: id, name, slug, description, parent_id, sort_order.
 - Prevent category cycles on the server/database, including during moves. A self-reference CHECK alone does not prevent longer cycles.
 - Attach a post to its selected category only. Parent archive pages may include descendants through hierarchy queries.
-- Category requirement at publication is a provisional default; drafts may remain uncategorized.
+- posts.category_id is nullable; a post may have at most one category. Enforce "category required" only in the publish mutation (provisional default), not as a database NOT NULL constraint.
 - tags: id, name, slug, description; post_tags has a unique (post_id, tag_id) pair.
 - Define a consistent normalization policy to prevent accidental duplicate tags and slug collisions.
-- Use category-independent post URLs, for example /yazi/[slug]. Record redirects when published URLs change.
+- Use a single configurable, category-independent post route prefix (provisional placeholder: /posts/[slug]); do not scatter the literal prefix across routing, sitemap, and redirect code. Record redirects when published URLs change.
 - Define deletion/reassignment behavior before implementing category deletion; never cascade-delete posts accidentally.
 
 ### Media
