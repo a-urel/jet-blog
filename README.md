@@ -7,7 +7,9 @@ TypeScript, shadcn/ui, and Supabase infrastructure.
 
 - Node.js 22 or newer (Node.js 24 LTS recommended).
 - npm; use the committed `package-lock.json` rather than another package manager.
-- Docker is only needed if you choose to run Supabase locally later.
+- Optional local Supabase: CLI 2.121.0. The experimental native runtime needs
+  no Docker on Apple silicon with macOS 14+ or supported Linux systems.
+  Other platforms need a Docker-compatible container engine.
 
 ## Run locally
 
@@ -151,18 +153,44 @@ Keep this media-query behavior when adding components or regenerating theme CSS.
 
 ## Supabase workspace
 
-Configuration was generated with the official CLI; no hosted project was linked
-and no database was started or modified. The application does not need the CLI.
-To start an optional local Supabase instance once Docker is available:
+Configuration was generated with the official CLI; no hosted project is linked.
+The application sample pages do not need the CLI or a database.
+The config enables the experimental stack backend (`[experimental] stack = true`)
+and leaves endpoint ports unset so another local project can keep its own ports.
+With Supabase CLI 2.121.0 installed, run from the repository root:
 
 ```bash
-npx supabase@2.121.0 start
-npx supabase@2.121.0 status
-npx supabase@2.121.0 stop
+supabase start --runtime native
+supabase status
+supabase stop
 ```
 
-The generated config uses the standard local ports (API 54321, database 54322,
-Studio 54323). Adjust them if another project already uses these ports.
+The native runtime runs services as host processes, not containers. First start
+downloads and verifies the service archives. Postgres starts immediately; other
+services start on their first request and may sleep when idle. This is expected.
+Use `supabase start --runtime native --eager` after stopping the stack if every
+enabled service must start immediately and remain active.
+
+Use `supabase status` to find this stack's API, Studio, Mailpit, database URLs,
+and local keys; do not assume the standard 54321–54323 ports. Assigned ports
+persist across restarts. Endpoints bind to loopback. Local data lives under
+`~/.supabase/stacks/`, and downloaded artifacts under `~/.supabase/cache/stack/`.
+`supabase stop` preserves data; `supabase stack destroy` deletes the selected
+stack's data. Stack identity includes the repository path and Git branch, so
+switching branches selects a separate local stack.
+
+For Docker instead, use `supabase start --runtime docker` when creating a new
+stack. An existing stack keeps its original runtime; the CLI does not convert its
+data. Native mode and the stack commands are experimental, so keep the CLI version
+consistent and consult the official
+[runtime guide](https://supabase.com/docs/guides/local-development/docker-and-native-runtimes)
+before upgrading.
+
+To configure the application clients, copy only `API_URL` and `PUBLISHABLE_KEY`
+from `supabase status` into the corresponding `NEXT_PUBLIC_*` variables described
+above. Do not export the full status environment into a client-facing file: it
+also contains secret and service-role keys. Restart Next.js after configuring it.
+
 No application tables, SQL functions, RLS/Storage policies, buckets, login flow,
 or publishing permissions exist. Seeding is disabled until actual seed files
 are introduced. Create future migrations with `supabase migration new <name>`
