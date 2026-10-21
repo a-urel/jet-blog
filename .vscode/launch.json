@@ -9,6 +9,7 @@
       "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
       "args": ["dev", "--hostname", "127.0.0.1", "--port", "3107"],
       "runtimeArgs": ["--inspect"],
+      "preLaunchTask": "Supabase: start local stack",
       "skipFiles": ["<node_internals>/**"],
       "serverReadyAction": {
         "action": "debugWithChrome",
@@ -23,6 +24,7 @@
       "type": "node-terminal",
       "request": "launch",
       "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Supabase: start local stack",
       "command": "npm run dev -- --inspect --hostname 127.0.0.1 --port 3107"
     },
     {

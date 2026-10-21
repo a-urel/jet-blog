@@ -49,6 +49,12 @@ Open **Run and Debug** (`Cmd+Shift+D` on macOS or `Ctrl+Shift+D` on Windows/Linu
 select a configuration, set a breakpoint, and press `F5`. The full-stack
 configuration requires Google Chrome to be installed.
 
+The full-stack and server-side configurations run the `Supabase: start local
+stack` task before starting Next.js. This starts the local native Supabase stack
+when needed and leaves it running when the debug session ends. Run
+`Supabase: show local status` or `Supabase: stop local stack` from **Terminal >
+Run Task** to inspect or stop it.
+
 Debug configurations use http://127.0.0.1:3107 and bind the server to loopback.
 Stop any existing development server for this project before starting a
 full-stack or server-side session to avoid port and `.next/dev` lock conflicts.

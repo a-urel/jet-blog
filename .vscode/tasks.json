@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Supabase: start local stack",
+      "type": "shell",
+      "command": "supabase",
+      "args": ["start", "--runtime", "native"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Supabase: show local status",
+      "type": "shell",
+      "command": "supabase",
+      "args": ["status"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Supabase: stop local stack",
+      "type": "shell",
+      "command": "supabase",
+      "args": ["stop"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
