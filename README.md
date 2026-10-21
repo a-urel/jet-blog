@@ -32,6 +32,29 @@ npm start
 `typecheck` generates Next.js route types before checking TypeScript, so it also
 works before the first build. `npm start` serves the production build.
 
+### Debug with VS Code
+
+The committed `.vscode/launch.json` provides three configurations:
+
+- **Next.js: debug full stack** (default): starts the development server with
+  the Node.js inspector and launches Chrome when the server is ready.
+- **Next.js: debug server-side**: starts the development server in a debug
+  terminal without launching a browser.
+- **Next.js: debug client-side**: launches Chrome against an already running
+  development server; it does not start the server.
+
+Open **Run and Debug** (`Cmd+Shift+D` on macOS or `Ctrl+Shift+D` on Windows/Linux),
+select a configuration, set a breakpoint, and press `F5`. The full-stack
+configuration requires Google Chrome to be installed.
+
+Debug configurations use http://127.0.0.1:3107 and bind the server to loopback.
+Stop any existing development server for this project before starting a
+full-stack or server-side session to avoid port and `.next/dev` lock conflicts.
+For client-only debugging, first run
+`npm run dev -- --hostname 127.0.0.1 --port 3107`.
+Stop a full-stack session with `Shift+F5`; its browser debug session stops with
+the server. For the server-side debug terminal, use `Ctrl+C` to stop the server.
+
 ### Current dependency warnings
 
 `npm audit --omit=dev` reports no production dependency advisories at setup time.
