@@ -37,7 +37,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="mt-16 border-t">
           <div className="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-6 py-6 text-sm text-muted-foreground">
             <p>Birlikte düşünmek, birlikte yazmak.</p>
-            <p>Görünüm sistem temanızı izler.</p>
+            <p className="flex items-center gap-2">
+              <span>Görünüm sistem temanızı izler.</span>
+              <span aria-hidden="true">·</span>
+              <Link
+                href="/admin"
+                className="rounded-sm hover:text-foreground hover:underline underline-offset-4"
+              >
+                Yönetim
+              </Link>
+            </p>
           </div>
         </footer>
       </body>

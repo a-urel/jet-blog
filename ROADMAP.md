@@ -1,0 +1,817 @@
+# Roadmap
+
+Last updated: 2026-10-22 (Phase 4 complete; Phase 5 not started)
+
+`AGENTS.md` is the normative source for architecture, security, and delivery
+rules. This document turns those rules into ordered, reviewable increments. It
+does not add requirements on its own.
+
+## How to read this roadmap
+
+- Each phase is one reviewable delivery with a working repository at the end.
+- A phase ships only when its demo journey and denied-access path are verified.
+- Decision gates block dependent work. Do not implement RLS, invitations, or
+  publishing policies before the related gate is answered.
+- Scope grows by adding phases, not by widening an active phase.
+- Sizes are relative (S/M/L), not time estimates.
+
+## Current baseline (Phases 1–4, complete)
+
+- Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
+  shadcn/ui, system-only light/dark theme.
+- Static sample home, `/yazi/[slug]`, and 404. Bodies are plain structured text,
+  not Tiptap JSON.
+- `features/posts/data.ts` is the sample data boundary; no database queries.
+- Supabase config, native local stack, migrations/seeds folders, and anonymous
+  public-only clients.
+- Invite-only email/password sign-in at `/giris`, a server-verified protected
+  `/admin` layout, sign-out, and Next.js 16 Proxy token refresh. Local sign-ups
+  are disabled; no public registration route exists.
+- Phase 2 profiles, editorial membership, public author identities, audit log,
+  last-admin protection, RLS helpers, invite acceptance/set-password routes, and
+  admin member administration at `/admin/uyeler`.
+- Membership and audit writes go through centralized security-definer RPCs;
+  authenticated clients have no direct write grants on those tables.
+- Phase 3 categories, tags, posts, ordered credits, and post-tag relations with
+  unique normalization, category-cycle prevention, revision-ready posts, public
+  read policies, and a synthetic seed. Public pages still read the sample
+  fixtures.
+- Phase 4 draft authoring at `/admin/posts`: list, create, edit, and a
+  members-only preview. Metadata covers title, slug, excerpt, category, tags, and
+  ordered author credits. Writes go through security-definer RPCs that
+  re-check authorization, validate input, replace relations atomically, and
+  reject stale revisions. Authors edit only their own drafts; editors and admins
+  edit any draft or published post.
+- 31 unit tests and 44 local-Supabase RLS tests cover session, role,
+  deactivation, last-admin, direct-write boundaries, published/draft visibility,
+  post relations, taxonomy normalization, category cycles, referential
+  restrictions, draft creation/update by role, slug conflicts, relation
+  validation, and stale-revision rejection. Lint, typecheck, tests, and the
+  production build pass. Browser journeys covered invite, Mailpit acceptance,
+  password setup, role-specific admin UI, denied member administration, role
+  change, deactivation, denied access, draft creation/editing, a stale-form
+  conflict, preview, draft exclusion from public routes, and author isolation.
+
+Known gaps: no body editor, media, publishing workflow, SEO/sitemap, or public
+database reads. The public site still uses sample content, so `/admin` protects
+membership and drafts but does not yet feed public pages. Taxonomy and author
+identity administration remain deferred follow-ups; Phase 4 consumes the seeded
+records.
+
+## Where to resume (session handoff)
+
+Phases 1–4 are complete and verified. The Phase 1–4 work is committed locally;
+do not push without an explicit request.
+
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (31 tests),
+  `npm run test:rls` (44 tests), and `npm run build` pass.
+- Local database: `supabase db reset` applies all three migrations and
+  `supabase/seeds/seed.sql` (3 published posts, 1 draft, 3 categories, 3 tags, 2
+  author profiles). It creates no Auth users. Follow the README to bootstrap the
+  first admin when a browser journey needs a signed-in user.
+- Key files: `supabase/migrations/20261022150924_editorial_membership.sql`,
+  `supabase/migrations/20261022160516_content_schema.sql`,
+  `supabase/migrations/20261022170000_draft_authoring.sql`, `src/lib/slug.ts`,
+  `src/features/posts/admin/`, and
+  `src/lib/supabase/draft-authoring.rls.test.ts`.
+- Next slice: Phase 5. Read its scope and the Tiptap compatibility note before
+  adding packages.
+- Open gates: D4 before Phase 6 media work; D5 before Phase 8 canonical URLs and
+  sitemap output.
+
+## Deferred administration follow-ups
+
+Phase 4 needed category, tag, and author records to attach to a draft and
+proceeded with the seeded taxonomy and authors. Two administration surfaces are
+still not assigned to a phase:
+
+- **Taxonomy administration (admin).** D1 gives admins create, rename, move, and
+  delete for categories and tags, but no phase owns that UI. Decide whether a
+  minimal admin CRUD slice becomes its own increment before or alongside Phase 8;
+  moves must reuse the database cycle protection.
+- **Author identity administration (admin).** Credits reference `authors`, and
+  `authors.user_id` is intentionally not client-readable. Phase 4 added an
+  editorial-only select policy for the public author columns but no way to
+  create guest or member authors or to link/unlink an Auth account. Decide when
+  that server-only path ships.
+
+Neither belongs to Phase 5. Add them as explicit increments rather than widening
+an active phase silently.
+
+## Decision gates
+
+| ID | Decision | Blocks | Default / decision | Status |
+| --- | --- | --- | --- | --- |
+| D1 | Editorial role set and who may publish | Phase 2 onward, RLS everywhere | `admin` is the highest role and a superset of `editor`. Multiple admins are allowed. Admin manages members, roles, invitations, categories, and tags. Editor creates, edits, and publishes any post and assigns existing taxonomy, but cannot manage categories/tags or invite members. Author creates and edits own drafts but cannot publish. Reader membership is open to everyone; editorial/writer access is invite-only and granted by an admin. Reader accounts are planned (Phases 11–13) but are not editorial roles; see below | **Answered 2026-10-22** |
+| D2 | Workflow states and editing live posts | Phases 3, 8 | `draft` → `published` only; `review`/`archived` later; editors may edit published posts and `updated_at` is shown | **Answered 2026-10-22** |
+| D3 | Concurrency and revisions | Phases 3–5, 8 | One working copy with atomic revision comparison; no published snapshot initially; preview route for members | **Answered 2026-10-22** |
+| D4 | Media bucket visibility | Phase 6 | One public bucket, UUID object paths, app-level validation; document that draft media is fetchable by URL; revisit before launch | Open |
+| D5 | Language, brand, domain, hosting | Phases 8–10 | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | Open |
+| D6 | Reader accounts, bookmarks, and comments | Phases 11–13 | Private bookmarks only; reader accounts with email + password; post-moderation with reader reports and editor hide/delete; account deletion removes bookmarks and anonymizes comments. No public like counts, OAuth, or magic links initially | **Answered 2026-10-22** |
+
+D1, D2, D3, and D6 were answered on 2026-10-22 and no longer block their phases.
+D4 may be answered just before Phase 6. D5 can wait until Phase 8.
+
+### Answered decisions
+
+- **D1 (2026-10-22):** `admin` is the highest role and a superset of `editor`.
+  Multiple admins are allowed. Admin manages members, roles, invitations,
+  categories, and tags. Editor creates, edits, and publishes any post and assigns
+  existing taxonomy, but cannot manage categories/tags or invite members. Author
+  creates and edits own drafts but cannot publish. Reader membership is open to
+  everyone; editorial/writer access is invite-only and granted by an admin. The
+  first admin is bootstrapped locally through Studio/SQL, with no public route.
+- **D2 (2026-10-22):** Workflow starts with `draft` → `published` only.
+  `review` and `archived` remain later increments. Editors and admins may edit
+  published posts directly; `updated_at` is shown on the public post when it is
+  newer than `published_at`.
+- **D3 (2026-10-22):** One working copy with an integer `revision` and atomic
+  compare-and-swap updates. No published snapshot initially; publishing changes
+  status and `published_at`, and later edits change the live content. A
+  members-only preview route is planned in Phase 4.
+- **D6 (2026-10-22):** Reader accounts use email + password. Bookmarks are
+  private and have no public count. Comments are published immediately and
+  moderated afterward through reader reports plus editor hide/delete. On account
+  deletion, bookmarks are removed and comments are anonymized. OAuth, magic
+  links, and public likes remain deferred.
+
+### Reader identity is an account, not an editorial role
+
+Public reading stays anonymous and requires no account. Reader accounts are
+optional and become necessary when a reader-facing feature needs stable identity:
+bookmarks, comments, subscriptions, personalized lists, or private content.
+Bookmarks and comments are now planned in Phases 11–13; until then, reading is
+anonymous. When Phase 11 opens, anyone may create a reader account; doing so
+never creates an editorial grant. Editorial/writer access remains invite-only.
+
+Identity and editorial permission remain separate:
+
+- Every authenticated user gets a `profiles` row.
+- Editorial access is a separate grant in `editorial_members`, never a profile
+  flag. An authenticated user without that grant is a reader: public reading plus
+  reader-owned actions, and no admin, draft, or publish capability.
+- The `reader` label is derived (no editorial grant → reader), not stored as a
+  fourth value in the editorial role enum. If reporting needs it, expose a
+  read-only view that derives it. This keeps one source of truth for editorial
+  permissions and avoids default-row or self-escalation problems.
+- Public RLS targets both `anon` and `authenticated` for published content.
+  Signing in does not change access to published content; it only enables rows
+  owned by that user.
+- Reader capabilities stay action-scoped: a bookmark is a private row owned by
+  the user, and a comment is public until reported or hidden by an editor. Neither
+  grants editorial access.
+
+If the product later needs a stored reader role for reasons beyond permission
+checks (for example, audience segmentation or billing), that becomes a separate
+account-attribute decision, not a widening of the editorial role enum.
+
+## Increment overview
+
+| Phase | Increment | Outcome | Depends on | Size |
+| --- | --- | --- | --- | --- |
+| 0 | Baseline | Static sample blog, tooling, Supabase config | — | Done |
+| 1 | Auth foundation | Invite-only sign-in, protected admin, server-verified session | — | Done |
+| 2 | Editorial membership | Roles, invitations, RLS helpers, member admin | Phase 1, D1 | Done |
+| 3 | Content schema | Posts, taxonomy, credits, public read rules, integrity | Phase 2, D2, D3 | Done |
+| 4 | Draft authoring | Admin list/form, category, tags, ordered credits, validation | Phase 3 | Done |
+| 5 | Editor | Tiptap JSON, content versioning, safe renderer | Phase 4, D3 | L |
+| 6 | Media | Upload, media table, image node, alt text | Phase 5, D4 | M |
+| 7 | Embeds | Allowlisted YouTube node, responsive render | Phase 5 | S |
+| 8 | Publishing | Publish mutation, DB-backed public pages, slug redirects | Phases 3–5, optional 6, D2, D5 | L |
+| 9 | Discovery | SEO, OG, JSON-LD, sitemap, archives, share link | Phase 8, D5 | M |
+| 10 | Launch readiness | Cache invalidation, conflict handling, rate limits, backups | Phase 9 | M |
+| 11 | Reader accounts | Optional reader sign-up, profile, account management | Phase 2, Phase 8, D6 | M |
+| 12 | Bookmarks | Private saved posts with strict per-user isolation | Phase 8, 11 | S |
+| 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | L |
+
+Phases 11–13 follow the editorial MVP launch. They do not block Phases 1–10.
+D6 is answered; the remaining reader work still must not be pulled forward.
+
+Dependencies are transitive even where the table lists only the direct blocker.
+Phase 7 is optional for publishing; Phase 6 becomes required only when cover
+images or in-body images are part of the launch scope.
+
+## Dependency model
+
+"Independent" means each phase is a self-contained, reviewable delivery that
+leaves the repository working. It does not mean the phases can be implemented in
+any order.
+
+Hard spine:
+
+```text
+0 → 1 → 2 → 3 → 4 → 5 → 8 → 9 → 10
+```
+
+- Phases 1–5 build one chain: session → roles → schema → draft metadata → editor.
+  Skipping or reordering them breaks the permission or data model that the next
+  phase assumes.
+- Phase 8 is the first phase that changes the public site from sample data to the
+  database. It needs Phases 2, 3, 4, and 5. Phase 6 is required only if cover or
+  in-body images are in launch scope; Phase 7 is optional and does not block
+  publishing.
+- Phases 9 and 10 harden the public launch. They cannot be skipped before a
+  public launch, but cache design, CI, backup documentation, and rate-limit
+  utilities can be prepared earlier without closing the phase.
+
+Reader branch:
+
+```text
+2 → 11 → 12
+      └→ 13        (both also need Phase 8)
+8 ─────→ 11
+```
+
+- Phase 11 needs authentication and profiles from Phases 1–2, plus published
+  posts from Phase 8 for bookmarks and comments to target.
+- Phases 12 and 13 are independent of each other and can be built in parallel or
+  swapped. Both depend on Phase 11.
+- Starting Phase 11 before Phase 8 is technically possible but adds an unused
+  public account surface; it is not recommended.
+
+Parallelizable work:
+
+- Phase 6 (media) and Phase 7 (YouTube) after Phase 5.
+- Phase 12 (bookmarks) and Phase 13 (comments) after Phase 11.
+- Test harness setup (Phase 2), rate-limit utilities, backup/restore
+  documentation, and CI can be prepared before their phases close.
+
+What cannot be done independently:
+
+- Running Phase 3 RLS without the roles and helpers from Phase 2.
+- Building Phase 4 forms without the tables from Phase 3.
+- Adding image nodes (Phase 6) before the editor and allowlist (Phase 5).
+- Publishing from the database (Phase 8) before drafts, content, and
+  authorization exist.
+- Adding bookmarks or comments (Phases 12–13) before reader identity (Phase 11)
+  and published posts (Phase 8).
+- Skipping Phase 10 and expecting correct caches, conflict handling, and
+  recoverable operations at launch.
+
+## Phase details
+
+### Phase 1 — Authentication foundation
+
+Goal: editors can sign in without public registration, and the server verifies
+identity on every protected request.
+
+Status: complete on 2026-10-22. Verified with lint, typecheck, 8 unit tests, the
+production build, and a browser journey covering denied anonymous `/admin`
+access, sign-in, a wrong-password error, and sign-out. `/admin` proves
+authentication only; membership and authorization remain in Phase 2.
+
+Scope:
+
+- Add `@supabase/ssr` and cookie-based browser/server clients alongside the
+  existing anonymous public client.
+- Add the Next.js Proxy token-refresh integration. Verify the file convention
+  and API in `node_modules/next/dist/docs/` for this Next.js version first.
+- `/giris` sign-in page, sign-out action, protected `/admin` layout, and
+  redirects for unauthenticated users.
+- Minimal signed-in shell that follows the existing design tokens.
+- Document how to create the first user locally (Supabase Studio or CLI).
+
+Security and tests:
+
+- No public sign-up route. No service-role key in request paths.
+- Verify anonymous access to `/admin` is denied and a signed-in user reaches it.
+- Unit-test the server session helper with mocked cookies.
+
+Demo: sign in, open `/admin`, sign out, confirm the redirect. Exit when lint,
+typecheck, and build pass and the session is verified server-side.
+
+### Phase 2 — Editorial membership, roles, invitations
+
+Goal: roles and membership are stored, enforced, and impossible to self-escalate.
+
+Status: complete on 2026-10-22. Verified with lint, typecheck, 8 unit tests, 13
+local-Supabase RLS tests, the production build, and a browser journey covering
+invite, Mailpit acceptance, password setup, role-specific admin UI, denied
+member administration, role change, deactivation, and denied access after
+deactivation. The RLS suite removes its own synthetic rows.
+
+Scope:
+
+- Migrations: `profiles` for every authenticated user (one row per user,
+  display name, timestamps), editorial membership (profile reference, role,
+  timestamps), and a public `authors` identity table with a nullable, unique
+  user link. Guest author credits must not require login accounts.
+- `profiles.id` references `auth.users` with `ON DELETE CASCADE` so reader-owned
+  rows added in later phases have one lifecycle anchor. Self-service reader
+  sign-up still belongs to Phase 11; accounts here stay invite-only.
+- Editorial access stays a grant in `editorial_members`; the absence of a grant
+  is what makes an authenticated user a reader. Do not add a stored `reader`
+  value to the editorial role enum.
+- SQL helper functions for `is_admin()` / `is_editor()` used by later policies.
+- Invite-only flow: admin invites by email through a server action using a
+  server-only admin client; rate-limit and audit the action; no open signup.
+- Configure the Auth site URL and redirect allowlist for the invite acceptance
+  route.
+- Document a local-only bootstrap for the first admin (Studio/SQL); no public
+  bootstrap route, default admin, or seeded production credential.
+- Add a placeholder server-only secret-key variable and a server-only admin
+  client for invitations; never expose that key to the browser.
+- Minimal member administration (list, invite, change role, deactivate).
+- Extend the Vitest setup with a local-Supabase RLS test setup.
+
+Security and tests:
+
+- RLS on membership tables. Users cannot grant themselves or others roles.
+- Test anonymous, authenticated non-member (reader), author, editor, and admin
+  access to each operation.
+- An authenticated user without membership gets public read access only and is
+  denied every admin operation.
+- Test that deactivation and role changes take effect on the next request.
+
+Demo: admin invites someone, the invitee signs in, sees role-appropriate UI, and
+an author cannot open member administration. Exit when the RLS matrix passes.
+
+#### Phase 2 implementation notes
+
+D1 is answered. These defaults are adopted for Phase 2; reopen only if
+implementation reveals a conflict. Editorial accounts remain invite-only in this
+phase; public reader sign-up belongs to Phase 11.
+
+1. **Role matrix.** Answered: `admin` is the highest role and a superset of
+   `editor`. Multiple admins are allowed. Admin and editor create/edit/publish
+   any post; author creates/edits only their own drafts and cannot publish. Only
+   admin lists members, invites, changes roles, and deactivates. An admin may
+   grant the `admin` role with an explicit confirmation and an audit record.
+2. **Taxonomy.** Answered: only admin creates, renames, moves, or deletes
+   categories and tags. Editors and authors may assign existing taxonomy to a
+   post. Editors cannot invite members.
+3. **Invite acceptance.** Implemented: an admin invite creates the Auth user and
+   membership, and the Supabase invite email sends the invitee to
+   `/auth/confirm`, which applies the fragment session and forwards to
+   `/giris/parola`. No one can sign in before setting a password. Verified
+   locally with project sign-ups disabled. Local email goes to Mailpit; hosted
+   invitations need SMTP configuration and an email-template review.
+4. **Existing users.** Recommended: an admin can grant a role to an existing
+   authenticated user by email. Re-invite and revoke-invite UI are deferred;
+   deactivation covers revocation.
+5. **Deactivation.** Recommended: keep the membership row with a deactivation
+   timestamp; do not delete the Auth user or future author credits. A deactivated
+   member is denied on the next request and can be reactivated.
+6. **Last admin.** Recommended: block demoting or deactivating the last active
+   admin and block self-deactivation.
+7. **Profiles and authors.** Recommended: a database trigger creates one
+   `profiles` row per `auth.users` row; display name starts nullable. Editorial
+   membership never creates a public `authors` row automatically, and guest
+   author credits remain login-free.
+8. **Audit and rate limit.** Recommended: a database audit table records actor,
+   action, target, role, and timestamp; invitations use a database-backed
+   fixed-window limit. No external queue or rate-limit service in this phase.
+9. **Member UI scope.** Recommended: one list, invite form, role change, and
+   deactivate/reactivate action. No search, pagination, bulk actions, or member
+   deletion in Phase 2.
+10. **First admin.** Recommended: create the first Auth user in Studio and insert
+    one admin membership with documented local SQL; no bootstrap route, default
+    admin, or seeded production credential.
+
+Implementation boundaries: authenticated clients have select-only access to
+membership and audit tables; all writes go through security-definer RPCs. The
+last-admin trigger blocks role demotion and deactivation, including service-role
+SQL changes. Deleting an Auth user cascades through profile and membership and is
+allowed as an out-of-band operation, so operators must ensure another active
+admin exists first. This limitation is documented in the README.
+
+D2 and D3 were answered before Phase 3 and are recorded above.
+
+### Phase 3 — Content schema, taxonomy, and public read rules
+
+Goal: the database expresses the confirmed content model and only published
+content is publicly readable.
+
+Status: complete on 2026-10-22. Verified with lint, typecheck, 19 unit tests, 31
+local-Supabase RLS tests, `EXPLAIN ANALYZE` on generated data, a clean
+`supabase db reset` with seeds, and the production build. Public pages still read
+the sample fixtures.
+
+Scope:
+
+- Migrations: `categories` (hierarchical, cycle-safe), `tags`, `posts`
+  (single nullable `category_id`, status, `published_at`, timestamps, creator),
+  `post_authors` (`sort_order`, unique pair), `post_tags` (unique pair).
+- Slug and name normalization policy with functional unique indexes; slug
+  generation shared by server mutations.
+- Category cycle prevention function/trigger covering moves, not just
+  self-reference. Enforce category presence in the publish mutation, not as
+  `NOT NULL`.
+- Indexes for published listings, slugs, foreign-key joins, and taxonomy pages.
+- RLS: anonymous and authenticated non-members read only published posts and
+  their public relations; editors read all; authors read their own drafts.
+- Indexes and policies review with `EXPLAIN` on realistic queries.
+- Optional synthetic development seed, separate from production data.
+
+Security and tests:
+
+- Anonymous cannot see drafts, other authors' drafts, or unpublished relations.
+- Category cycles are rejected, including longer cycles and moves.
+- Tag/category normalization prevents duplicate name and slug collisions.
+- Creating a published post without a category fails at the mutation boundary.
+
+Demo: seed one published and one draft post; anonymous queries return only the
+published one. Exit when policies and integrity tests pass on a clean database.
+
+#### Phase 3 implementation notes
+
+- **Workflow (D2a):** `post_status` contains `draft` and `published`.
+  `published_at` is non-null exactly when the status is `published`. Unpublishing
+  returns a post to `draft`; `review` and `archived` stay deferred.
+- **Publication integrity:** `posts.category_id` is nullable. A CHECK constraint
+  allows uncategorized drafts and rejects `published` without a category, so the
+  rule holds for every write path, not only the future UI. The Phase 8 publish
+  mutation still returns a clear validation error.
+- **Concurrency (D3):** `posts.revision` starts at 1 and is reserved for the Phase
+  4 compare-and-swap update. No snapshot table or published copy exists.
+- **Normalization:** category and tag names are whitespace-collapsed and unique
+  case-insensitively; slugs are lower-case ASCII kebab-case and globally unique.
+  `src/lib/slug.ts` mirrors the database rules, including Turkish transliteration,
+  for future server mutations.
+- **Category hierarchy:** a trigger walks ancestors on insert and move, rejects
+  self-parenting and longer cycles, and caps depth at 100. A transaction-scoped
+  advisory lock serializes concurrent moves. Foreign keys use `ON DELETE
+  RESTRICT`, so a category, tag, or guest author in use cannot disappear.
+- **Visibility:** `can_view_post(uuid)` is the single rule used by post and
+  relation policies. Public visitors see published rows, editors see all, and
+  authors see their own drafts. `authors.user_id` is not selectable by clients;
+  Phase 4 added an editorial-only select policy over the public author columns,
+  while changing the account link remains a deferred administration concern.
+- **Indexes:** a partial `(published_at desc)` index serves published listings, a
+  partial `(category_id, published_at desc)` index serves category archives, and
+  credit/tag joins have supporting indexes. `EXPLAIN ANALYZE` on 20k generated
+  rows selected both listing indexes; the generating transaction was rolled back.
+- **Seed:** `supabase/seeds/seed.sql` runs on `supabase db reset` and mirrors the
+  stable sample UUIDs and slugs. It creates no Auth users or credentials.
+
+### Phase 4 — Draft authoring
+
+Goal: an authorized editor can create and reopen a draft with complete metadata.
+
+Status: complete on 2026-10-22. Verified with lint, typecheck, 31 unit tests, 44
+local-Supabase RLS tests, the production build, and a browser journey covering
+draft creation with category/tags/two ordered credits, reopen and edit, a
+stale-form conflict that preserved the newer edit, members-only preview,
+draft exclusion from `/yazi/[slug]` and the home listing, and an author denied
+access to another editor's draft.
+
+Scope:
+
+- `/admin/posts` list plus create/edit forms using shadcn/ui and Server Actions.
+- Metadata: title, slug, excerpt, category, tags, ordered author credits.
+  Body and cover media come in later phases.
+- Consume existing categories, tags, and authors. Taxonomy and author
+  administration are tracked in
+  [Deferred administration follow-ups](#deferred-administration-follow-ups)
+  and were not widened into this phase.
+- Server-side validation at the mutation boundary.
+- Slug uniqueness handling and explicit conflict errors.
+- Atomic revision comparison so a stale form cannot silently overwrite changes.
+- Draft preview entry point (read-only, members only) without exposing drafts to
+  public queries or caches.
+
+Security and tests:
+
+- Author edits own draft; author cannot edit another author's draft; editor can.
+- Invalid category, duplicate slug, duplicate author credit, and out-of-range
+  sort order are rejected.
+- Stale revision is rejected with a recoverable conflict response.
+
+Demo: create a draft with category, tags, and two ordered credits, reopen it,
+edit it, and confirm another author is denied. Exit when the full journey and
+denial path pass.
+
+#### Phase 4 implementation notes
+
+- **Mutation boundary:** `20261022170000_draft_authoring.sql` adds
+  `create_draft_post` and `update_post_metadata`. Both are security-definer RPCs
+  available only to `authenticated`; anonymous clients and direct table writes
+  remain denied. Authorization, metadata validation, slug conflict detection,
+  relation replacement, and the revision increment run in one transaction.
+- **Revision compare-and-swap:** `update_post_metadata` locks the row, compares
+  `revision` with the value submitted by the form, rejects a mismatch with
+  `40001`, and increments the revision on success. The UI keeps the user's input,
+  shows a recoverable conflict message, and offers a reload instead of
+  overwriting the newer version.
+- **Authorization:** authors may update only posts they created while the post is
+  still a draft. Editors and admins may update any draft or published post.
+  Being credited as an author grants no edit access. The RPC repeats this check
+  even though the UI hides unavailable actions.
+- **Validation:** the client form normalizes and validates input for fast
+  feedback, but the RPC re-validates title length, slug shape/uniqueness, excerpt
+  length, category existence, tag existence/uniqueness, author existence, and
+  duplicate credits. Credits carry explicit `sort_order` values and must form a
+  contiguous `0..n-1` sequence. Zero credits remain allowed until a later
+  workflow decides whether publication requires one.
+- **Relations:** `replace_post_relations` deletes and reinserts tags and credits
+  in the same transaction, so a failed validation leaves the previous relations
+  intact.
+- **Author list:** active editorial members may select the public `authors`
+  columns to build credits. The column grant still hides `authors.user_id`, so
+  the account link never reaches clients.
+- **Preview:** `/admin/posts/[id]/onizleme` sits under the protected admin layout,
+  uses `force-dynamic`, sends `noindex`, and reads through the caller's session.
+  It is not linked from public routes and is not placed in a public cache.
+
+### Phase 5 — Tiptap editor and safe renderer
+
+Goal: structured content is authored in Tiptap and rendered without the editor
+bundle on public pages.
+
+Scope:
+
+- Add Tiptap packages after checking current compatibility with React 19 and
+  this Next.js version.
+- Store body as JSONB with `content_version`. Define one shared allowlist of
+  supported nodes/attributes/marks used by both editor and renderer.
+- Validate documents on write; reject unknown nodes, attributes, and unsafe link
+  schemes. Sanitize any accepted HTML.
+- Editor integrated with the existing tokens and keyboard-accessible toolbar.
+- Read-only renderer shared by preview and public pages, with a controlled
+  fallback for unsupported content versions.
+- Defer image and YouTube nodes to Phases 6–7.
+
+Security and tests:
+
+- Unknown node types, malformed JSON, `javascript:` links, and unsupported
+  versions are rejected or fall back safely.
+- Server-rendered output contains the full body without loading the editor.
+
+Demo: write and reload a formatted draft; preview it read-only. Exit when the
+renderer and editor share the same allowlist tests.
+
+### Phase 6 — Media uploads
+
+Goal: images are validated, stored, and rendered accessibly.
+
+Scope:
+
+- Storage bucket per D4; `media` table with bucket, object path, uploader, MIME
+  type, size, dimensions, and timestamps.
+- Server-side upload handling with type and size allowlists; no SVG or arbitrary
+  HTML execution. Reject unauthorized uploads through Storage policies too.
+- Image node in the editor; contextual alt text stored with the occurrence.
+- Responsive delivery through the framework image component or a documented
+  loader; generate URLs rather than treating signed URLs as identifiers.
+- Reference-aware deletion: never remove an object still used by a post.
+
+Security and tests:
+
+- Anonymous upload is denied; oversize and wrong-type uploads are rejected.
+- Alt text is required or explicitly marked decorative.
+- Deleting unused media is safe; deleting referenced media is refused.
+
+Demo: upload an image, insert it with alt text, preview it, and verify the public
+render is responsive. Exit when Storage policies and validation tests pass.
+
+### Phase 7 — YouTube embeds
+
+Goal: supported videos render as structured, responsive embeds.
+
+Scope:
+
+- Allowlisted provider node with strict URL parsing (YouTube watch/short URLs),
+  no arbitrary iframe or HTML input.
+- Responsive wrapper, accessible title, and privacy-conscious embed domain.
+- Renderer parity with the editor.
+
+Tests: invalid hosts, malformed IDs, and script-bearing URLs are rejected.
+
+Demo: insert a valid video and confirm responsive rendering in both themes.
+
+### Phase 8 — Publishing and public reading from the database
+
+Goal: a draft becomes a public, server-rendered post through one controlled
+mutation, and sample data is gone.
+
+Scope:
+
+- Publish mutation: authorize, require a category, validate content, set
+  `published_at` separately from creation/update timestamps, and record the
+  `draft` → `published` transition. Unpublishing returns a post to `draft` and
+  clears `published_at`; review and archive states remain deferred.
+- Replace `sample-data.ts` reads with authorized public queries behind the
+  existing data boundary. Keep drafts out of public queries and caches.
+- Public listing and post page rendered from the database, with explicit
+  prerender/revalidate behavior for this Next.js version.
+- Slug change handling: keep old URLs working through a redirects record;
+  canonical URL remains category-independent.
+- Cached/static previews isolated from public caches.
+- Show `updated_at` as "Güncellendi" when it is newer than `published_at`.
+
+Security and tests:
+
+- Anonymous sees only published posts in pages, queries, and API routes.
+- Unauthorized publish is denied; publish without category fails.
+- Draft is absent from listing, sitemap input, and search/discovery output.
+- Old slug redirects to the new one exactly once.
+
+Demo: draft → publish → public page → edit → republish, plus denied anonymous
+draft access. Exit when the complete journey is verified end to end.
+
+### Phase 9 — SEO, sharing, and archives
+
+Goal: public content is discoverable and shareable without leaking non-public
+content.
+
+Scope:
+
+- Metadata, canonical URLs, Open Graph/Twitter previews, and Article structured
+  data for published posts.
+- `sitemap.ts` and `robots.ts` driven by published content and the site URL.
+- Category archive pages including descendants, plus tag and author archives.
+- Copy-link and provider share links; no social APIs.
+- `noindex` for previews, admin, and unpublished content.
+
+Tests: sitemap excludes drafts and previews; unpublished slugs return 404;
+metadata and JSON-LD match the post; canonical ignores category/tag paths.
+
+Demo: share a post link, inspect preview metadata and sitemap output.
+
+### Phase 10 — Caching, concurrency, and launch readiness
+
+Goal: the system stays correct under concurrent edits and can be operated.
+
+Scope:
+
+- Explicit cache tags and invalidation on publish, update, taxonomy, and slug
+  changes using current Next.js APIs.
+- Atomic revision checks on every content mutation, with a clear conflict UI.
+- Rate limiting for invitations, uploads, and other abuse-prone writes.
+- Loading, empty, and error states for admin and public pages in both themes.
+- Backup and restore runbook covering both database and Storage; document an
+  exercised drill.
+- Secrets and environment review; deployment target decision (D5).
+- End-to-end smoke tests and a final anonymous/reader/author/editor/admin RLS
+  matrix.
+
+Tests: two concurrent saves surface a conflict instead of overwriting; publish
+invalidates listing, post, taxonomy, and sitemap caches; restore drill documented.
+
+### Phase 11 — Reader accounts
+
+Goal: a visitor can create and manage a reader account with email and password
+without gaining any editorial access.
+
+Scope:
+
+- Public self-service sign-up and sign-in with email + password. Configure email
+  confirmation, password reset, a minimum password policy, and redirect URLs.
+  No OAuth or magic links in this phase. Verify the current Supabase password
+  and email-confirmation guidance before implementing.
+- Reuse the `profiles` row created in Phase 2; collect a display name for
+  comments at sign-up or on first use. No public reader profile pages initially.
+- Account page: display name, password reset entry point, sign-out, and account
+  deletion. Account deletion runs through a server-only admin action; `profiles`
+  cascades from `auth.users`, bookmarks are removed, and comments are anonymized
+  as described in Phase 13.
+- Abuse protection: rate limits on sign-up, sign-in, and password reset, plus
+  CAPTCHA or equivalent if abuse appears. Production SMTP and email template
+  review before public launch.
+- Reader state is derived from the absence of an editorial grant. No `reader`
+  value in the editorial role enum and no self-service path to editorial access.
+- Middleware/Proxy rules keep reader-only routes separate from `/admin`.
+
+Security and tests:
+
+- Sign-up creates a profile and nothing else; email confirmation is required.
+- Reader is denied every admin, draft, and publish operation.
+- Password reset does not reveal whether an email exists.
+- Account deletion removes only the user's own data and applies the documented
+  comment policy.
+- No endpoint accepts a client-supplied user ID or role.
+
+Demo: a reader signs up with email + password, confirms the address, sets a
+display name, is denied `/admin`, resets the password, and deletes the account.
+Exit when the reader RLS matrix passes.
+
+### Phase 12 — Bookmarks
+
+Goal: signed-in readers can save published posts privately and revisit them.
+
+Scope:
+
+- `bookmarks` with `(user_id, post_id)` as the unique pair, foreign keys, and
+  timestamps. `user_id` references `profiles` with `ON DELETE CASCADE`; a post
+  removal cannot leave orphan rows. No hard-delete post UI in this phase.
+- Toggle on the post page and cards; a private `/hesabim/kaydedilenler` list with
+  empty and error states. Optimistic UI confirmed by the server.
+- RLS: select, insert, and delete only the current user's rows; insert only for
+  published posts and only as the authenticated user; anonymous access denied.
+- The saved list joins posts and filters to published content, so a post that is
+  unpublished later does not leak draft content through a bookmark.
+- No public bookmark counts and no public like counts. Public likes remain
+  deferred and would need a separate `post_likes` table.
+- Account and saved-list routes are `noindex` and never publicly cached.
+
+Tests: one bookmark per pair, user isolation on read/write, draft posts cannot be
+bookmarked, unpublished posts disappear from the saved list without leaking,
+unauthenticated requests are denied, account deletion cascades.
+
+Demo: two readers bookmark the same post; neither sees the other's list; an
+anonymous visitor is redirected to sign in. Exit when the bookmark RLS matrix
+passes.
+
+### Phase 13 — Comments
+
+Goal: readers can discuss published posts under post-moderation without exposing
+unpublished content or other users' data.
+
+Scope:
+
+- `comments` with post, author, a stored display-name snapshot, body, status
+  (`visible`, `hidden`, `deleted`), and timestamps. Flat threads only; no replies
+  in this phase.
+- Post-moderation: a submitted comment becomes `visible` immediately. Any signed-in
+  reader can report it; editors can hide or delete it from a moderation queue.
+  Hidden is reversible; deleted is a soft delete. No auto-hide threshold
+  initially, to avoid report-based censorship gaming.
+- `comment_reports` with a unique `(comment_id, reporter_id)` pair, a reason, and
+  timestamps. A reader can report a comment once and can only see their own
+  reports. Reporter identity is never public.
+- Plain-text body with a length limit. If limited formatting is allowed, sanitize
+  it and reuse the renderer allowlist; never accept arbitrary HTML.
+- Submission allowed only on published posts. A reader can delete their own
+  comment; there is no comment editing.
+- On account deletion, the server action first anonymizes the user's comments
+  (`user_id` set to null and display-name snapshot replaced with a neutral label),
+  then deletes the auth user. `comments.user_id` references `profiles` with
+  `ON DELETE SET NULL` as a safety net. Keep the body so discussions remain
+  readable.
+- Rate limit per user per hour for comments and reports, plus a basic
+  duplicate/spam guard.
+- Public pages render only `visible` comments for published posts; counts and
+  listings exclude hidden and deleted rows.
+- RLS: public select of visible rows for published posts; insert only with the
+  authenticated user's ID and `visible` status; owner delete only; status changes
+  only through editorial membership; report insert only as the authenticated
+  reporter for a visible comment. No service-role use in request paths.
+- Invalidate the post page and comment count when a comment is created, hidden,
+  restored, or deleted.
+
+Tests: anonymous cannot write or report; a reader cannot impersonate another
+author, comment on a draft, or report twice; a new comment is visible immediately;
+a reported comment stays visible until an editor hides it; hidden and deleted
+comments are invisible publicly; only editors change status; account deletion
+anonymizes the comment and keeps the body; rate and length limits hold.
+
+Demo: reader comments, it appears immediately, another reader reports it, an
+editor hides it, and it disappears publicly. Unauthorized moderation is denied.
+Exit when anonymous, reader, author, editor, and admin paths are verified.
+
+## Cross-cutting delivery rules
+
+- Every phase runs `npm run lint`, `npm run typecheck`, tests, and
+  `npm run build` with repository scripts. Unrun checks are reported as unrun.
+- Every migration works on a clean local database and is tested with existing
+  data when it changes behavior.
+- Every phase verifies one complete journey plus an error or denied-access path.
+- Authorization tests cover anonymous, authenticated non-member (reader),
+  authorized, and unauthorized users against RLS, never service-role only.
+- Keep changes small; do not upgrade unrelated dependencies or rewrite adjacent
+  code.
+- Report status, checks, limitations, and the next step in Turkish.
+
+## Deferred beyond this roadmap
+
+Public like counts, OAuth and magic-link sign-in, comment replies and threading,
+notifications, subscriptions, personalized feeds, private or paid content,
+real-time collaborative editing, multi-publication tenancy, billing, AI writing,
+plugin systems, and social API integrations. Each requires a separate, explicit
+request and its own moderation/permission design.
+
+## Risks and watch items
+
+- Next.js 16 middleware/proxy and caching conventions differ from earlier
+  versions; read the bundled docs before each related phase.
+- Local Supabase stack identity is per repository path and branch; switching
+  branches selects another stack. Keep CLI versions consistent.
+- Vitest now includes a local-Supabase RLS suite. Every new policy and RPC must
+  extend the anonymous/reader/author/editor/admin matrix before it is trusted.
+- Tiptap and React 19 compatibility must be verified at implementation time.
+- Public media is a deliberate tradeoff; revisit before launch if drafts may
+  contain sensitive images.
+- SEO canonical and sitemap output cannot be finalized before D5.
+- RLS mistakes are silent; every policy change needs a negative test.
+- The single-working-copy model (D3) makes an edit to a published post live
+  immediately. Phase 8/10 must add the `updated_at` label, cache invalidation, and
+  a recoverable conflict UI before launch.
+- `authors.user_id` is not client-readable. Phase 4 author selection uses the
+  public author columns under an editorial-only policy. Future author
+  administration must use a server-only path for the account link instead of
+  widening the public grant.
+- Reader-generated content adds spam, moderation load, abuse handling, and
+  account-deletion obligations. Phases 11–13 must ship with rate limits,
+  reporting, and the documented deletion policy. Post-moderation only works with
+  an actively reviewed queue.
+
+## Next step
+
+Phases 1–4 are complete. Implement Phase 5 (Tiptap editor and safe renderer)
+against the Phase 4 metadata forms: verify current Tiptap/React 19 compatibility,
+add `content_version` and a shared node/attribute allowlist, validate documents
+on write, and render read-only content without the editor bundle. Keep taxonomy
+and author identity administration as the deferred follow-ups above rather than
+folding them into Phase 5. D4 is needed before Phase 6 media work; D5 is needed
+before Phase 8 finalizes canonical URLs and sitemap output. D6 is settled; reader
+work stays in Phases 11–13 after the editorial MVP.
