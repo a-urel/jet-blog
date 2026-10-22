@@ -335,6 +335,56 @@ Server Actions live in `features/posts/admin/actions.ts`; shared validation is i
 `src/lib/supabase/draft-authoring.rls.test.ts` covers the
 anonymous/reader/author/editor/admin matrix, conflicts, and invalid relations.
 
+## Post body editor and renderer
+
+Phase 5 stores the post body as a Tiptap/ProseMirror JSON document in
+`posts.body` (JSONB) with an explicit `posts.content_version` (currently `1`).
+Title, slug, excerpt, and taxonomy stay outside the document.
+
+- **One allowlist.** `src/features/posts/content/schema.ts` defines the supported
+  nodes (`paragraph`, `heading` levels 2–4, `bulletList`, `orderedList`,
+  `listItem`, `blockquote`, `codeBlock`, `horizontalRule`, `hardBreak`, `text`),
+  marks (`bold`, `italic`, `strike`, `code`, `link`), attribute keys,
+  parent/child rules, a 200,000-character size limit, and a nesting limit.
+  Unknown nodes, marks, or attribute keys are rejected, not dropped. Images and
+  YouTube embeds are deferred to Phases 6–7.
+- **Safe links.** Only `http(s)://`, `mailto:`, site-relative `/…`, and in-page
+  `#…` hrefs are accepted. `javascript:`, `data:`, protocol-relative `//host`,
+  backslash paths, whitespace, and control characters are rejected. The renderer
+  adds `rel="noopener noreferrer nofollow"` to external links; `target` and `rel`
+  are never stored.
+- **Editor.** `features/posts/admin/components/post-body-editor.tsx` is a Client
+  Component (`immediatelyRender: false`) configured by
+  `features/posts/content/editor-extensions.ts` (StarterKit with underline
+  disabled). Its toolbar follows the WAI-ARIA toolbar pattern: Tab enters and
+  leaves it once; arrow keys, Home, and End move between buttons. Markdown input
+  rules such as `## ` also work. The form submits the document as a hidden
+  `body` field.
+- **Write boundary.** The Server Action normalizes Tiptap's `getJSON()` output
+  (it drops editor-only link and list defaults) and validates it strictly.
+  `create_draft_post` and `update_post_metadata` take `p_body` and
+  `p_content_version` and re-validate with `public.post_body_error`, a PL/pgSQL
+  mirror of the allowlist. A `posts_body_valid` CHECK constraint applies the
+  same function, so service-role scripts and seeds cannot store an invalid
+  version-1 document either. Unsupported versions raise `22023`.
+- **Renderer.** `features/posts/components/post-body.tsx` maps validated nodes to
+  React elements and imports no Tiptap code. It re-validates every document and
+  shows a controlled fallback for an invalid document or an unsupported
+  `content_version`. The member preview and `/yazi/[slug]` use it, and both
+  editor and renderer share the `.post-body` typography in `globals.css`.
+- **Unsupported versions in the editor.** The edit page refuses to open a body
+  whose version or shape it cannot represent, so a save cannot silently drop
+  content.
+
+`features/posts/content/fixtures.ts` holds shared valid and invalid documents.
+`schema.test.ts` runs them through the TypeScript validator,
+`editor-extensions.test.ts` checks that the Tiptap schema defines exactly the
+allowlisted nodes and marks and round-trips every valid fixture,
+`post-body.test.tsx` checks rendered HTML and fallbacks, and
+`src/lib/supabase/post-body.rls.test.ts` sends the same fixtures to the database
+RPCs. A fixture accepted in one place and rejected in another means the
+allowlists have drifted.
+
 ## Structure and sample content
 
 ```text
@@ -352,8 +402,9 @@ src/
     auth/                 # Sign-in, invite confirmation, password actions
     members/              # Invite, role, and activation Server Actions
     posts/
-      admin/              # Draft data, validation, permissions, form, actions
-      components/         # Shared post presentation
+      admin/              # Draft data, validation, permissions, form, editor, actions
+      components/         # Shared post presentation and read-only body renderer
+      content/            # Body allowlist, editor extensions, shared fixtures
       data.ts             # Explicit sample data access boundary
       sample-data.ts      # Synthetic posts, ordered credits, taxonomy
       types.ts            # Read-only view models, not database definitions
@@ -368,6 +419,7 @@ src/
       admin.ts            # Server-only secret-key client
       content-rls.rls.test.ts    # Content and taxonomy RLS tests
       draft-authoring.rls.test.ts # Draft RPC and revision-conflict tests
+      post-body.rls.test.ts       # Body allowlist and visibility tests
       editorial-rls.rls.test.ts # Membership and audit RLS tests
   proxy.ts                # Next.js 16 token refresh (formerly middleware)
 supabase/
@@ -388,10 +440,11 @@ database schema now mirrors that shape, and the development seed reuses the same
 stable UUIDs and slugs. Taxonomy archives, database-backed post pages, and
 publishing mutations are still later phases.
 
-The sample body is plain structured text rendered by React, **not** a Tiptap
-document or arbitrary HTML. Tiptap, image uploads to Supabase Storage, and
-YouTube embeds remain selected for later increments; their packages, buckets,
-and workflows are intentionally not added yet.
+Sample bodies use the stored version-1 document format and render through the
+same `PostBody` component as the member preview. The seed stores the same
+documents for the published sample posts. Image uploads to Supabase Storage and
+YouTube embeds remain later increments; their buckets and nodes are
+intentionally not added yet.
 
 Turkish sample copy and generic labels are provisional, not a brand or language
 decision. Sample pages are prerendered at build time, including their body text,
@@ -493,20 +546,23 @@ page will not receive the fragment.
   for `@supabase/ssr` 0.12.7, [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security),
   [invite users](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail),
   [changelog](https://supabase.com/changelog), and CLI 2.121.0 help.
+- Tiptap 3.32.0 package metadata (React 19 peer ranges) and the installed
+  `@tiptap/react`, `@tiptap/starter-kit`, and `@tiptap/extension-link` type
+  definitions for `immediatelyRender`, `useEditorState`, and link
+  `isAllowedUri`.
 
 ## Next increment
 
-Phases 1–4 are implemented: authentication, editorial membership with
+Phases 1–5 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
-rules, and draft authoring with metadata forms and a members-only preview. Public
-pages still use the sample fixtures. See [ROADMAP.md](./ROADMAP.md) for the
-ordered increments and their decision gates.
+rules, draft authoring with metadata forms and a members-only preview, and the
+Tiptap body editor with a shared allowlist and a safe server-rendered renderer.
+Public pages still use the sample fixtures. See [ROADMAP.md](./ROADMAP.md) for
+the ordered increments and their decision gates.
 
-Phase 5 adds the Tiptap editor and a shared safe read-only renderer: JSONB body
-with `content_version`, a node/attribute allowlist, write-boundary validation,
-and server-rendered content without the editor bundle. Verify current
-Tiptap/React 19 compatibility before adding packages. Taxonomy and author
-identity administration remain explicit follow-up increments; do not widen Phase
-5 to include them. Answer D4 before media work in Phase 6 and D5 before Phase 8
+Phase 6 adds validated image uploads to Supabase Storage. Answer D4 (bucket
+visibility) first, then add an image node to the shared allowlist, the database
+mirror, the fixtures, and the renderer together. Taxonomy and author identity
+administration remain explicit follow-up increments. Answer D5 before Phase 8
 finalizes canonical URLs and the sitemap. Author credits must remain separate
 from edit and publish permissions.

@@ -132,3 +132,59 @@
     @apply outline-2 outline-offset-4 outline-ring;
   }
 }
+/*
+ * Shared typography for stored post bodies. The Tiptap editor surface and the
+ * read-only renderer both use .post-body, so a draft looks the same while it is
+ * edited, previewed, and published. Colors come from the semantic tokens and
+ * follow the system light/dark preference.
+ */
+@layer components {
+  .post-body {
+    @apply text-base leading-8 break-words;
+  }
+  .post-body > * + * {
+    @apply mt-5;
+  }
+  .post-body h2 {
+    @apply mt-10 text-2xl leading-tight font-semibold tracking-tight;
+  }
+  .post-body h3 {
+    @apply mt-8 text-xl leading-snug font-semibold tracking-tight;
+  }
+  .post-body h4 {
+    @apply mt-6 text-lg leading-snug font-semibold;
+  }
+  .post-body > :first-child {
+    @apply mt-0;
+  }
+  .post-body p:empty::before {
+    content: "\200b";
+  }
+  .post-body a {
+    @apply font-medium text-foreground underline underline-offset-4 decoration-muted-foreground hover:decoration-foreground;
+  }
+  .post-body strong {
+    @apply font-semibold;
+  }
+  .post-body ul {
+    @apply list-disc space-y-2 pl-6;
+  }
+  .post-body ol {
+    @apply list-decimal space-y-2 pl-6;
+  }
+  .post-body li > * + * {
+    @apply mt-2;
+  }
+  .post-body blockquote {
+    @apply border-l-2 border-border pl-4 text-muted-foreground italic;
+  }
+  .post-body :not(pre) > code {
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em];
+  }
+  .post-body pre {
+    @apply overflow-x-auto rounded-lg border bg-muted px-4 py-3 font-mono text-sm leading-6;
+  }
+  .post-body hr {
+    @apply my-8 border-border;
+  }
+}

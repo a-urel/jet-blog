@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  currentContentVersion,
+  parseSubmittedBody,
+} from "@/features/posts/content/schema";
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
@@ -50,6 +54,25 @@ function readRawMetadata(formData: FormData) {
   };
 }
 
+// Validate metadata and the editor document together so one submission reports
+// every field problem at once.
+function readPostInput(formData: FormData) {
+  const metadata = validatePostMetadata(readRawMetadata(formData));
+  const body = parseSubmittedBody(getStringField(formData, "body"));
+  const fieldErrors: PostFieldErrors = metadata.ok ? {} : { ...metadata.fieldErrors };
+
+  if (!body.ok) {
+    fieldErrors.body =
+      "Yazı gövdesi desteklenmeyen içerik veya güvenli olmayan bir bağlantı içeriyor.";
+  }
+
+  if (!metadata.ok || !body.ok) {
+    return { ok: false as const, fieldErrors };
+  }
+
+  return { ok: true as const, data: metadata.data, body: body.doc };
+}
+
 function mapRpcError(error: {
   code?: string;
   message?: string;
@@ -71,6 +94,15 @@ function mapRpcError(error: {
       return errorState("Yazı bulunamadı veya erişim yetkiniz yok.");
     case "22023":
     case "23514":
+      if (
+        message.includes("post body") ||
+        message.includes("content version")
+      ) {
+        return errorState("Yazı gövdesi geçersiz.", {
+          body: "Yazı gövdesi desteklenmeyen içerik içeriyor.",
+        });
+      }
+
       if (message.includes("Invalid category")) {
         return errorState("Geçerli bir kategori seçin.", {
           categoryId: "Geçerli bir kategori seçin.",
@@ -142,7 +174,7 @@ export async function createDraftPostAction(
     return errorState("Bu işlem için editöryal üyelik gerekir.");
   }
 
-  const validation = validatePostMetadata(readRawMetadata(formData));
+  const validation = readPostInput(formData);
 
   if (!validation.ok) {
     return errorState("Formda düzeltilmesi gereken alanlar var.", validation.fieldErrors);
@@ -160,6 +192,8 @@ export async function createDraftPostAction(
         author_id: credit.authorId,
         sort_order: credit.sortOrder,
       })),
+      p_body: validation.body,
+      p_content_version: currentContentVersion,
     },
   );
 
@@ -205,7 +239,7 @@ export async function updatePostMetadataAction(
     return errorState("Form sürüm bilgisi eksik. Sayfayı yenileyin.");
   }
 
-  const validation = validatePostMetadata(readRawMetadata(formData));
+  const validation = readPostInput(formData);
 
   if (!validation.ok) {
     return errorState("Formda düzeltilmesi gereken alanlar var.", validation.fieldErrors);
@@ -225,6 +259,8 @@ export async function updatePostMetadataAction(
         author_id: credit.authorId,
         sort_order: credit.sortOrder,
       })),
+      p_body: validation.body,
+      p_content_version: currentContentVersion,
     },
   );
 

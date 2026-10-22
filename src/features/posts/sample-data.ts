@@ -1,4 +1,26 @@
+import type { BodyDocument } from "./content/schema";
 import type { Author, Category, Post, Tag } from "./types";
+
+// Sample bodies use the same stored-document format as the editor, so public
+// pages already exercise the shared renderer before Phase 8 reads the database.
+function documentFromSections(
+  sections: { heading: string; paragraphs: string[] }[],
+): BodyDocument {
+  return {
+    type: "doc",
+    content: sections.flatMap((section) => [
+      {
+        type: "heading" as const,
+        attrs: { level: 2 as const },
+        content: [{ type: "text" as const, text: section.heading }],
+      },
+      ...section.paragraphs.map((paragraph) => ({
+        type: "paragraph" as const,
+        content: [{ type: "text" as const, text: paragraph }],
+      })),
+    ]),
+  };
+}
 
 const deniz: Author = {
   id: "d1336179-612e-4c57-97cd-b5c176d816b3",
@@ -36,7 +58,8 @@ export const samplePosts: Post[] = [
     authors: [{ author: deniz, sortOrder: 0 }, { author: ece, sortOrder: 1 }],
     category: sampleCategories[1],
     tags: [tags[0], tags[1]],
-    sections: [
+    contentVersion: 1,
+    body: documentFromSections([
       {
         heading: "Önce çalışan bir parça",
         paragraphs: [
@@ -51,7 +74,7 @@ export const samplePosts: Post[] = [
           "Bir sonraki adım, editoryal sorumlulukları netleştirmek ve içerik üretiminin temel akışını birlikte tasarlamak olacak.",
         ],
       },
-    ],
+    ]),
   },
   {
     id: "539106e1-38c4-4c92-b1f0-cbc791bfe168",
@@ -63,7 +86,8 @@ export const samplePosts: Post[] = [
     authors: [{ author: ece, sortOrder: 0 }, { author: deniz, sortOrder: 1 }],
     category: sampleCategories[0],
     tags: [tags[1]],
-    sections: [
+    contentVersion: 1,
+    body: documentFromSections([
       {
         heading: "Katkıyı görünür kılmak",
         paragraphs: [
@@ -71,7 +95,7 @@ export const samplePosts: Post[] = [
           "Yazar olarak görünmek ile içeriği düzenleme yetkisine sahip olmak aynı şey değildir. Bu örnek yalnızca yazar bilgisini sunar; herhangi bir yetki modeli tanımlamaz.",
         ],
       },
-    ],
+    ]),
   },
   {
     id: "b91d3983-5334-48b1-b849-3a368b6d3f6d",
@@ -83,7 +107,8 @@ export const samplePosts: Post[] = [
     authors: [{ author: deniz, sortOrder: 0 }],
     category: sampleCategories[2],
     tags: [tags[2], tags[0]],
-    sections: [
+    contentVersion: 1,
+    body: documentFromSections([
       {
         heading: "İçeriğe odaklanmak",
         paragraphs: [
@@ -91,6 +116,6 @@ export const samplePosts: Post[] = [
           "Açık ve koyu görünüm, cihazın tercihini otomatik olarak izler. Klavyeyle gezinirken bağlantıların odağı görünür kalır ve küçük ekranlarda içerik yatay kaydırma gerektirmeden okunabilir.",
         ],
       },
-    ],
+    ]),
   },
 ];

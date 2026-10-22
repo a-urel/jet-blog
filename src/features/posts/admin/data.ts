@@ -30,6 +30,8 @@ type RawPost = {
   updated_at: string;
   published_at: string | null;
   created_by: string | null;
+  body?: unknown;
+  content_version?: number;
   category: RelatedRecord<{ name: string }>;
 };
 
@@ -199,7 +201,7 @@ export async function getAdminPostDetail(
   const postResult = await supabase
     .from("posts")
     .select(
-      "id, title, slug, excerpt, category_id, status, revision, updated_at, published_at, created_by, category:categories(name)",
+      "id, title, slug, excerpt, category_id, status, revision, updated_at, published_at, created_by, body, content_version, category:categories(name)",
     )
     .eq("id", postId)
     .maybeSingle();
@@ -258,6 +260,8 @@ export async function getAdminPostDetail(
       tagIds: tags.map((tag) => tag.id),
       tagNames: tags.map((tag) => tag.name),
       credits,
+      body: raw.body ?? null,
+      contentVersion: raw.content_version ?? 0,
       status: raw.status,
       revision: raw.revision,
       updatedAt: raw.updated_at,

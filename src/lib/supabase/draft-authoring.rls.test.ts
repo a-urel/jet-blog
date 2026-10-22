@@ -77,8 +77,14 @@ async function insertOne<T extends Record<string, unknown>>(
   return data.id as string;
 }
 
+const bodyFields = {
+  p_body: { type: "doc", content: [{ type: "paragraph" }] },
+  p_content_version: 1,
+};
+
 function draftPayload(overrides: Record<string, unknown> = {}) {
   return {
+    ...bodyFields,
     p_title: `RPC Taslak ${runId}`,
     p_slug: `${slugPrefix}-draft-a`,
     p_excerpt: "RPC ile oluşturulan taslak.",
@@ -226,6 +232,7 @@ describe("draft authoring RPC and RLS", () => {
     const authorB = await signInAs("authorB");
     const { error } = await authorB.rpc("update_post_metadata", {
       p_post_id: fixtures.draftA,
+      ...bodyFields,
       p_expected_revision: 1,
       p_title: "Başka yazar denemesi",
       p_slug: `${slugPrefix}-draft-a`,
@@ -251,6 +258,7 @@ describe("draft authoring RPC and RLS", () => {
     const authorA = await signInAs("authorA");
     const { data, error } = await authorA.rpc("update_post_metadata", {
       p_post_id: fixtures.draftA,
+      ...bodyFields,
       p_expected_revision: 1,
       p_title: "Güncellenmiş RPC Taslağı",
       p_slug: `${slugPrefix}-draft-a`,
@@ -289,6 +297,7 @@ describe("draft authoring RPC and RLS", () => {
     const authorA = await signInAs("authorA");
     const { error } = await authorA.rpc("update_post_metadata", {
       p_post_id: fixtures.draftA,
+      ...bodyFields,
       p_expected_revision: 1,
       p_title: "Eski form üzerine yazmamalı",
       p_slug: `${slugPrefix}-draft-a`,
@@ -314,6 +323,7 @@ describe("draft authoring RPC and RLS", () => {
     const editor = await signInAs("editor");
     const { data, error } = await editor.rpc("update_post_metadata", {
       p_post_id: fixtures.draftA,
+      ...bodyFields,
       p_expected_revision: 2,
       p_title: "Editör düzenlemesi",
       p_slug: `${slugPrefix}-draft-a`,
@@ -380,6 +390,7 @@ describe("draft authoring RPC and RLS", () => {
 
     const duplicateUpdate = await authorA.rpc("update_post_metadata", {
       p_post_id: fixtures.draftA,
+      ...bodyFields,
       p_expected_revision: 3,
       p_title: "Slug çakışması",
       p_slug: `${slugPrefix}-draft-b`,
@@ -436,6 +447,7 @@ describe("draft authoring RPC and RLS", () => {
     const authorA = await signInAs("authorA");
     const authorResult = await authorA.rpc("update_post_metadata", {
       p_post_id: fixtures.published,
+      ...bodyFields,
       p_expected_revision: 1,
       p_title: "Yazar yayını düzenleyemez",
       p_slug: `${slugPrefix}-yayinda`,
@@ -450,6 +462,7 @@ describe("draft authoring RPC and RLS", () => {
     const editor = await signInAs("editor");
     const editorResult = await editor.rpc("update_post_metadata", {
       p_post_id: fixtures.published,
+      ...bodyFields,
       p_expected_revision: 1,
       p_title: "Editör yayını düzenledi",
       p_slug: `${slugPrefix}-yayinda`,

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { PostForm } from "@/features/posts/admin/components/post-form";
 import { listTaxonomyOptions } from "@/features/posts/admin/data";
+import { emptyBodyDocument } from "@/features/posts/content/schema";
 import { getEditorialContext } from "@/lib/auth/editorial";
 
 export const metadata: Metadata = {
@@ -83,6 +84,7 @@ export default async function NewPostPage() {
                 categoryId: "",
                 tagIds: [],
                 credits: [],
+                body: emptyBodyDocument,
               }}
             />
           </CardContent>

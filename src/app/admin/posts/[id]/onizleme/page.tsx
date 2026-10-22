@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { getAdminPostDetail } from "@/features/posts/admin/data";
 import { canEditPost } from "@/features/posts/admin/permissions";
+import { PostBody } from "@/features/posts/components/post-body";
 import { getEditorialContext } from "@/lib/auth/editorial";
 
 export const metadata: Metadata = {
@@ -130,10 +131,7 @@ export default async function PostPreviewPage({
           </p>
         </header>
 
-        <div className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-          Yazı gövdesi Phase 5&apos;te Tiptap editörüyle eklenecek. Bu önizleme
-          metadata, kategori, etiket ve sıralı yazar kredilerini doğrular.
-        </div>
+        <PostBody body={post.body} contentVersion={post.contentVersion} />
       </article>
     </div>
   );

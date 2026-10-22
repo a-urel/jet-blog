@@ -45,6 +45,8 @@ export type AdminPostDetail = Readonly<{
   tagIds: string[];
   tagNames: string[];
   credits: { authorId: string; authorName: string; sortOrder: number }[];
+  body: unknown;
+  contentVersion: number;
   status: PostStatus;
   revision: number;
   updatedAt: string;

@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-22 (Phase 4 complete; Phase 5 not started)
+Last updated: 2026-10-22 (Phase 5 complete; Phase 6 waits on D4)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,12 +15,12 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–4, complete)
+## Current baseline (Phases 1–5, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
-- Static sample home, `/yazi/[slug]`, and 404. Bodies are plain structured text,
-  not Tiptap JSON.
+- Static sample home, `/yazi/[slug]`, and 404. Sample bodies use the stored
+  version-1 document format and render through the shared `PostBody` renderer.
 - `features/posts/data.ts` is the sample data boundary; no database queries.
 - Supabase config, native local stack, migrations/seeds folders, and anonymous
   public-only clients.
@@ -42,7 +42,13 @@ does not add requirements on its own.
   re-check authorization, validate input, replace relations atomically, and
   reject stale revisions. Authors edit only their own drafts; editors and admins
   edit any draft or published post.
-- 31 unit tests and 44 local-Supabase RLS tests cover session, role,
+- Phase 5 body editing: `posts.body` JSONB with `content_version`, a Tiptap
+  editor in the post form, one shared node/mark/attribute allowlist enforced by
+  the Server Action, the authoring RPCs, and a CHECK constraint, and a read-only
+  renderer without Tiptap code shared by the preview and public pages.
+- 131 unit tests and 87 local-Supabase RLS tests cover body allowlist parity
+  (TypeScript, Tiptap schema, renderer, and database share fixtures), unsafe
+  links, unsupported versions, and body visibility in addition to session, role,
   deactivation, last-admin, direct-write boundaries, published/draft visibility,
   post relations, taxonomy normalization, category cycles, referential
   restrictions, draft creation/update by role, slug conflicts, relation
@@ -52,7 +58,7 @@ does not add requirements on its own.
   change, deactivation, denied access, draft creation/editing, a stale-form
   conflict, preview, draft exclusion from public routes, and author isolation.
 
-Known gaps: no body editor, media, publishing workflow, SEO/sitemap, or public
+Known gaps: no media, publishing workflow, SEO/sitemap, or public
 database reads. The public site still uses sample content, so `/admin` protects
 membership and drafts but does not yet feed public pages. Taxonomy and author
 identity administration remain deferred follow-ups; Phase 4 consumes the seeded
@@ -60,22 +66,25 @@ records.
 
 ## Where to resume (session handoff)
 
-Phases 1–4 are complete and verified. The Phase 1–4 work is committed locally;
-do not push without an explicit request.
+Phases 1–5 are complete, verified, and committed locally. Do not push without
+an explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (31 tests),
-  `npm run test:rls` (44 tests), and `npm run build` pass.
-- Local database: `supabase db reset` applies all three migrations and
-  `supabase/seeds/seed.sql` (3 published posts, 1 draft, 3 categories, 3 tags, 2
-  author profiles). It creates no Auth users. Follow the README to bootstrap the
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (131 tests),
+  `npm run test:rls` (87 tests), and `npm run build` pass.
+- Local database: `supabase db reset` applies all four migrations and
+  `supabase/seeds/seed.sql` (3 published posts and 1 draft with bodies, 3
+  categories, 3 tags, 2 author profiles). It creates no Auth users. Follow the README to bootstrap the
   first admin when a browser journey needs a signed-in user.
 - Key files: `supabase/migrations/20261022150924_editorial_membership.sql`,
   `supabase/migrations/20261022160516_content_schema.sql`,
-  `supabase/migrations/20261022170000_draft_authoring.sql`, `src/lib/slug.ts`,
-  `src/features/posts/admin/`, and
-  `src/lib/supabase/draft-authoring.rls.test.ts`.
-- Next slice: Phase 5. Read its scope and the Tiptap compatibility note before
-  adding packages.
+  `supabase/migrations/20261022170000_draft_authoring.sql`,
+  `supabase/migrations/20261022180000_post_body.sql`, `src/lib/slug.ts`,
+  `src/features/posts/admin/`, `src/features/posts/content/`,
+  `src/features/posts/components/post-body.tsx`, and
+  `src/lib/supabase/post-body.rls.test.ts`.
+- Next slice: Phase 6 after D4 is answered. A new body node must be added to the
+  TypeScript allowlist, the SQL mirror, the shared fixtures, and the renderer in
+  the same change.
 - Open gates: D4 before Phase 6 media work; D5 before Phase 8 canonical URLs and
   sitemap output.
 
@@ -95,8 +104,8 @@ still not assigned to a phase:
   create guest or member authors or to link/unlink an Auth account. Decide when
   that server-only path ships.
 
-Neither belongs to Phase 5. Add them as explicit increments rather than widening
-an active phase silently.
+Neither belongs to Phase 5 or 6. Add them as explicit increments rather than
+widening an active phase silently.
 
 ## Decision gates
 
@@ -174,7 +183,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 2 | Editorial membership | Roles, invitations, RLS helpers, member admin | Phase 1, D1 | Done |
 | 3 | Content schema | Posts, taxonomy, credits, public read rules, integrity | Phase 2, D2, D3 | Done |
 | 4 | Draft authoring | Admin list/form, category, tags, ordered credits, validation | Phase 3 | Done |
-| 5 | Editor | Tiptap JSON, content versioning, safe renderer | Phase 4, D3 | L |
+| 5 | Editor | Tiptap JSON, content versioning, safe renderer | Phase 4, D3 | Done |
 | 6 | Media | Upload, media table, image node, alt text | Phase 5, D4 | M |
 | 7 | Embeds | Allowlisted YouTube node, responsive render | Phase 5 | S |
 | 8 | Publishing | Publish mutation, DB-backed public pages, slug redirects | Phases 3–5, optional 6, D2, D5 | L |
@@ -518,6 +527,15 @@ denial path pass.
 Goal: structured content is authored in Tiptap and rendered without the editor
 bundle on public pages.
 
+Status: complete on 2026-10-22. Verified with lint, typecheck, 131 unit tests, 87
+local-Supabase RLS tests, the production build, a check that the prerendered
+public post HTML contains the full body while none of its scripts contain Tiptap
+or ProseMirror code, and a browser journey covering formatted editing, a
+rejected `javascript:` link in the link form, keyboard toolbar navigation, save
+and reload in canonical form, a tampered `javascript:` body rejected by the
+server without a revision change, the member preview in dark and light themes,
+and anonymous preview access redirected to sign-in.
+
 Scope:
 
 - Add Tiptap packages after checking current compatibility with React 19 and
@@ -539,6 +557,36 @@ Security and tests:
 
 Demo: write and reload a formatted draft; preview it read-only. Exit when the
 renderer and editor share the same allowlist tests.
+
+#### Phase 5 implementation notes
+
+- **Packages:** `@tiptap/core`, `@tiptap/pm`, `@tiptap/react`, and
+  `@tiptap/starter-kit` 3.32.0, pinned. Their peer ranges accept React 19. Only
+  the admin editor imports them; the renderer does not.
+- **Storage:** `20261022180000_post_body.sql` adds `posts.body` (JSONB, default
+  one empty paragraph) and `posts.content_version` (smallint, default 1). The
+  existing table-level select grant and row policies cover both columns, so a
+  draft body stays hidden from anonymous readers and other authors.
+- **Allowlist:** `features/posts/content/schema.ts` is the TypeScript source;
+  `public.post_body_error` and `public.is_safe_post_href` mirror it in PL/pgSQL.
+  Tiptap's `getJSON()` output is normalized first (editor-only link
+  `target`/`rel` and empty `class`/`title`, `orderedList` `type: null` and
+  `start: 1`, `codeBlock` `language: null`), then validated strictly. Stored
+  documents use ProseMirror's canonical mark order.
+- **Mutation boundary:** the Phase 4 RPC signatures were dropped and recreated
+  with `p_body jsonb` and `p_content_version integer`, so PostgREST cannot
+  resolve a call that skips body validation. The validation helpers are not
+  executable by `anon` or `authenticated`.
+- **Defense in depth:** the `posts_body_valid` CHECK constraint validates
+  version-1 bodies on every write path. A future content version needs its own
+  validator and constraint update; until then the renderer shows a fallback and
+  the edit page refuses to open the document.
+- **Known limits:** the SQL size check measures `jsonb::text`, which includes
+  formatting spaces, so a document very close to 200,000 characters may pass the
+  TypeScript check and fail in the database with a generic body error. Unicode
+  whitespace classes in link checks may differ slightly between JavaScript and
+  the database locale; the renderer re-validates, so a mismatch falls back
+  instead of rendering an unchecked link.
 
 ### Phase 6 — Media uploads
 
@@ -788,7 +836,8 @@ request and its own moderation/permission design.
   branches selects another stack. Keep CLI versions consistent.
 - Vitest now includes a local-Supabase RLS suite. Every new policy and RPC must
   extend the anonymous/reader/author/editor/admin matrix before it is trusted.
-- Tiptap and React 19 compatibility must be verified at implementation time.
+- Tiptap is pinned at 3.32.0. Upgrades must rerun the editor-schema parity test,
+  because a StarterKit change can add nodes or attributes outside the allowlist.
 - Public media is a deliberate tradeoff; revisit before launch if drafts may
   contain sensitive images.
 - SEO canonical and sitemap output cannot be finalized before D5.
@@ -807,11 +856,10 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Phases 1–4 are complete. Implement Phase 5 (Tiptap editor and safe renderer)
-against the Phase 4 metadata forms: verify current Tiptap/React 19 compatibility,
-add `content_version` and a shared node/attribute allowlist, validate documents
-on write, and render read-only content without the editor bundle. Keep taxonomy
-and author identity administration as the deferred follow-ups above rather than
-folding them into Phase 5. D4 is needed before Phase 6 media work; D5 is needed
-before Phase 8 finalizes canonical URLs and sitemap output. D6 is settled; reader
-work stays in Phases 11–13 after the editorial MVP.
+Phases 1–5 are complete. Answer D4 (media bucket visibility), then implement
+Phase 6 (media uploads): add the image node to the TypeScript allowlist, the SQL
+mirror, the shared fixtures, the editor, and the renderer in one change, and
+validate uploads server-side. Keep taxonomy and author identity administration
+as the deferred follow-ups above. D5 is needed before Phase 8 finalizes
+canonical URLs and sitemap output. D6 is settled; reader work stays in Phases
+11–13 after the editorial MVP.

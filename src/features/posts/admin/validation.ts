@@ -10,7 +10,10 @@ export type PostMetadataInput = Readonly<{
 }>;
 
 export type PostFieldErrors = Partial<
-  Record<"title" | "slug" | "excerpt" | "categoryId" | "tagIds" | "credits", string>
+  Record<
+    "title" | "slug" | "excerpt" | "categoryId" | "tagIds" | "credits" | "body",
+    string
+  >
 >;
 
 export type RawPostMetadata = Readonly<{

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PostBody } from "@/features/posts/components/post-body";
 import { PostMeta } from "@/features/posts/components/post-meta";
 import { getPostBySlug, listPosts } from "@/features/posts/data";
 
@@ -40,15 +41,8 @@ export default async function PostPage({ params }: PageProps<"/yazi/[slug]">) {
         <p className="text-lg leading-relaxed text-muted-foreground">{post.excerpt}</p>
         <PostMeta post={post} />
       </header>
-      <div className="space-y-10 py-10">
-        {post.sections.map((section) => (
-          <section key={section.heading} className="space-y-4">
-            <h2 className="text-2xl font-semibold tracking-tight">{section.heading}</h2>
-            {section.paragraphs.map((paragraph) => (
-              <p key={paragraph} className="text-base leading-8">{paragraph}</p>
-            ))}
-          </section>
-        ))}
+      <div className="py-10">
+        <PostBody body={post.body} contentVersion={post.contentVersion} />
       </div>
       <footer className="border-t pt-6">
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">Etiketler</h2>

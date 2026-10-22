@@ -26,6 +26,8 @@ import type {
   CategoryOption,
   TagOption,
 } from "@/features/posts/admin/types";
+import type { BodyDocument } from "@/features/posts/content/schema";
+import { PostBodyEditor } from "./post-body-editor";
 
 const initialState: PostFormState = {
   status: "idle",
@@ -52,6 +54,7 @@ type PostFormProps = {
     categoryId: string;
     tagIds: string[];
     credits: InitialCredit[];
+    body: BodyDocument;
   };
 };
 
@@ -218,6 +221,24 @@ export function PostForm({
         />
         <p className="text-sm text-muted-foreground">En fazla 500 karakter.</p>
         <FieldError id="post-excerpt-error" message={state.fieldErrors.excerpt} />
+      </div>
+
+      <div className="space-y-2">
+        <p id="post-body-label" className="text-sm font-medium">
+          Yazı gövdesi
+        </p>
+        <PostBodyEditor
+          id="post-body"
+          labelId="post-body-label"
+          initialContent={initialValues.body}
+          invalid={Boolean(state.fieldErrors.body)}
+          describedBy="post-body-help post-body-error"
+        />
+        <p id="post-body-help" className="text-sm text-muted-foreground">
+          Araç çubuğunda ok tuşlarıyla gezinebilirsiniz. Görsel ve video
+          desteği sonraki artışlarda eklenecek.
+        </p>
+        <FieldError id="post-body-error" message={state.fieldErrors.body} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

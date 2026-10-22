@@ -18,6 +18,10 @@ import {
   listTaxonomyOptions,
 } from "@/features/posts/admin/data";
 import { canEditPost } from "@/features/posts/admin/permissions";
+import {
+  currentContentVersion,
+  validateBodyDocument,
+} from "@/features/posts/content/schema";
 import { getEditorialContext } from "@/lib/auth/editorial";
 
 export const metadata: Metadata = {
@@ -72,6 +76,11 @@ export default async function EditPostPage({
   if (!post) notFound();
 
   const editable = canEditPost(post, membership, user.id);
+  const bodyValidation =
+    post.contentVersion === currentContentVersion
+      ? validateBodyDocument(post.body)
+      : null;
+  const editableBody = bodyValidation?.ok ? bodyValidation.doc : null;
   const { durum } = await searchParams;
   const successMessage =
     typeof durum === "string" ? (successMessages[durum] ?? null) : null;
@@ -136,6 +145,27 @@ export default async function EditPostPage({
             </Button>
           </CardContent>
         </Card>
+      ) : !editableBody ? (
+        // Opening an unsupported document in the editor would drop the content
+        // it cannot represent on the next save, so the form stays closed.
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CircleAlert aria-hidden="true" className="size-5" />
+              İçerik sürümü desteklenmiyor
+            </CardTitle>
+            <CardDescription>
+              Bu yazının gövdesi bu editör sürümünün desteklemediği bir biçimde
+              kaydedilmiş (sürüm {post.contentVersion}). Veri kaybını önlemek
+              için düzenleme kapalı.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href={previewHref}>Üye önizlemesini aç</Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : taxonomy.error ? (
         <Card>
           <CardHeader>
@@ -176,6 +206,7 @@ export default async function EditPostPage({
                   authorId: credit.authorId,
                   authorName: credit.authorName,
                 })),
+                body: editableBody,
               }}
             />
           </CardContent>
