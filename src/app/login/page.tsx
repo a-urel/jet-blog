@@ -22,13 +22,13 @@ export const metadata: Metadata = {
 
 export default async function SignInPage({
   searchParams,
-}: PageProps<"/giris">) {
-  const { cikis, davet } = await searchParams;
+}: PageProps<"/login">) {
+  const { "signed-out": signedOut, invite } = await searchParams;
 
   const inviteMessage =
-    davet === "oturum-yok"
+    invite === "no-session"
       ? "Parola belirlemek için davet bağlantısını yeniden açın."
-      : davet === "gecersiz"
+      : invite === "invalid"
         ? "Davet bağlantısı geçersiz veya süresi dolmuş."
         : null;
 
@@ -70,7 +70,7 @@ export default async function SignInPage({
         </p>
       </div>
 
-      {cikis ? (
+      {signedOut ? (
         <p
           role="status"
           className="rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"

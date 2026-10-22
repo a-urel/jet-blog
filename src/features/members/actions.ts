@@ -265,7 +265,7 @@ export async function inviteMemberAction(
       };
     }
 
-    revalidatePath("/admin/uyeler");
+    revalidatePath("/admin/members");
     revalidatePath("/admin", "layout");
 
     return {
@@ -315,12 +315,12 @@ export async function updateMemberRoleAction(formData: FormData) {
   const result = await updateMemberRole(formData);
 
   if (result.error) {
-    redirect(`/admin/uyeler?hata=${result.error}`);
+    redirect(`/admin/members?error=${result.error}`);
   }
 
-  revalidatePath("/admin/uyeler");
+  revalidatePath("/admin/members");
   revalidatePath("/admin", "layout");
-  redirect("/admin/uyeler?durum=rol-guncellendi");
+  redirect("/admin/members?status=role-updated");
 }
 
 async function setMemberActive(formData: FormData) {
@@ -356,10 +356,10 @@ export async function setMemberActiveAction(formData: FormData) {
   const result = await setMemberActive(formData);
 
   if (result.error) {
-    redirect(`/admin/uyeler?hata=${result.error}`);
+    redirect(`/admin/members?error=${result.error}`);
   }
 
-  revalidatePath("/admin/uyeler");
+  revalidatePath("/admin/members");
   revalidatePath("/admin", "layout");
-  redirect("/admin/uyeler?durum=uyelik-guncellendi");
+  redirect("/admin/members?status=membership-updated");
 }

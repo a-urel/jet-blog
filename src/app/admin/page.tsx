@@ -100,7 +100,7 @@ export default async function AdminPage() {
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href="/admin/uyeler">Üyeleri yönet</Link>
+              <Link href="/admin/members">Üyeleri yönet</Link>
             </Button>
           </CardContent>
         </Card>

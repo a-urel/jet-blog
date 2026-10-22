@@ -79,7 +79,7 @@ These are implementation recommendations, not previously approved product requir
 - Make `posts.category_id` nullable at the database level and enforce the category requirement in the server-side publish mutation (not via `NOT NULL`).
 - tags: id, name, slug, description; post_tags has a unique (post_id, tag_id) pair.
 - Define a consistent normalization policy to prevent accidental duplicate tags and slug collisions.
-- Use category-independent post URLs, for example /yazi/[slug]. Record redirects when published URLs change.
+- Use category-independent post URLs, for example /posts/[slug]. Record redirects when published URLs change.
 - Define deletion/reassignment behavior before implementing category deletion; never cascade-delete posts accidentally.
 
 ### Media

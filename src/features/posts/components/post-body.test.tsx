@@ -21,7 +21,7 @@ describe("PostBody", () => {
     expect(html).toContain(
       '<a href="https://example.com/a?b=1" rel="noopener noreferrer nofollow"><em>eğik bağlantı</em></a>',
     );
-    expect(html).toContain('<a href="/yazi/ornek">iç bağlantı</a>');
+    expect(html).toContain('<a href="/posts/ornek">iç bağlantı</a>');
     expect(html).toContain("<br/>");
     expect(html).toContain("<code>kod</code>");
     expect(html).toContain("<s>çizik</s>");

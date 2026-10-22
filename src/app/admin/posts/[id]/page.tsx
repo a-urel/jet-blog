@@ -34,8 +34,8 @@ const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
 });
 
 const successMessages: Record<string, string> = {
-  olusturuldu: "Taslak oluşturuldu.",
-  guncellendi: "Değişiklikler kaydedildi.",
+  created: "Taslak oluşturuldu.",
+  updated: "Değişiklikler kaydedildi.",
 };
 
 export default async function EditPostPage({
@@ -81,10 +81,10 @@ export default async function EditPostPage({
       ? validateBodyDocument(post.body)
       : null;
   const editableBody = bodyValidation?.ok ? bodyValidation.doc : null;
-  const { durum } = await searchParams;
+  const { status } = await searchParams;
   const successMessage =
-    typeof durum === "string" ? (successMessages[durum] ?? null) : null;
-  const previewHref = `/admin/posts/${post.id}/onizleme`;
+    typeof status === "string" ? (successMessages[status] ?? null) : null;
+  const previewHref = `/admin/posts/${post.id}/preview`;
 
   return (
     <div className="space-y-6">

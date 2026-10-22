@@ -22,7 +22,7 @@ npm run dev
 Open http://localhost:3000. No environment variables or Supabase instance are
 required for the public sample pages.
 
-Try `/yazi/kucuk-adimlarla-baslamak`, follow the back link, and visit an unknown
+Try `/posts/kucuk-adimlarla-baslamak`, follow the back link, and visit an unknown
 post slug to see the 404 page. The protected `/admin` area needs a configured
 Supabase project and a local user; see [Authentication and admin](#authentication-and-admin).
 
@@ -108,7 +108,7 @@ cp .env.example .env.local
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Project API URL from Supabase's Connect dialog, or the local CLI output. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public publishable API key for that project. |
-| `SUPABASE_SECRET_KEY` | Server-only secret key used by the invitation action and admin client. Required for `/admin/uyeler`. |
+| `SUPABASE_SECRET_KEY` | Server-only secret key used by the invitation action and admin client. Required for `/admin/members`. |
 | `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects. It must match the Supabase Auth site URL and redirect allowlist. Local default: `http://localhost:3000`. |
 
 Restart the development server after changing these values. `NEXT_PUBLIC_*`
@@ -148,26 +148,26 @@ publish permissions.
 
 ### Routes and request checks
 
-- `/giris` signs in an existing user and redirects signed-in visitors to
+- `/login` signs in an existing user and redirects signed-in visitors to
   `/admin`.
 - `/admin` is a protected layout. The server verifies the session on every
   request with `supabase.auth.getClaims()`, loads the current membership, and
   denies users without an active grant. Missing or invalid sessions are
-  redirected to `/giris`. Signing out clears the cookies and returns to the
+  redirected to `/login`. Signing out clears the cookies and returns to the
   sign-in page.
-- `/admin/uyeler` is the admin-only member list. Invite, role-change, and
+- `/admin/members` is the admin-only member list. Invite, role-change, and
   activation Server Actions re-check the caller and use database RPCs for the
   write plus its audit entry.
 - `/admin/posts` is the editorial content surface. Authors see their own drafts,
   editors and admins see every post, and edit links follow the same permission
-  rule the mutation RPC enforces. `/admin/posts/[id]/onizleme` is a
+  rule the mutation RPC enforces. `/admin/posts/[id]/preview` is a
   members-only, `noindex`, dynamically rendered preview.
 - `/auth/confirm` handles the fragment returned by Supabase's invite link,
-  applies the session, and forwards to `/giris/parola`. The invitee sets a
+  applies the session, and forwards to `/login/password`. The invitee sets a
   password before continuing to `/admin`.
 - `src/proxy.ts` refreshes expired Auth tokens and copies refreshed cookies to
   both the Server Components and the browser response. Proxy matchers cover
-  `/admin` and `/giris`, so public pages do not pay for session checks.
+  `/admin` and `/login`, so public pages do not pay for session checks.
 - Admin and invitation routes send `noindex, nofollow`.
 - The sign-in form uses a Server Action. Error messages stay generic so the form
   does not reveal whether an email exists.
@@ -216,7 +216,7 @@ set role = 'admin', deactivated_at = null;
 ```
 
 Replace the placeholder email. The profile trigger creates the `profiles` row.
-Verify the result and then sign in at `/giris`:
+Verify the result and then sign in at `/login`:
 
 ```sql
 select auth.users.email, editorial_members.role, editorial_members.deactivated_at
@@ -226,7 +226,7 @@ join auth.users on auth.users.id = editorial_members.profile_id;
 
 This is a local/hosted bootstrap operation, not seed data or a public route. Do
 not commit real credentials. Once signed in, invite additional admins through
-`/admin/uyeler`; do not bootstrap every account manually.
+`/admin/members`; do not bootstrap every account manually.
 
 Deleting an Auth user cascades to its profile and membership. The last-admin
 trigger blocks role demotion and deactivation, not Auth-user deletion, so ensure
@@ -240,10 +240,10 @@ phase.
 
 ### Invitations and local email
 
-An admin invites by email at `/admin/uyeler`, choosing a role and an optional
+An admin invites by email at `/admin/members`, choosing a role and an optional
 display name. A new email receives Supabase's invite email; an existing Auth
 user is granted membership without a new invite. The invitee follows the link
-to `/auth/confirm`, sets a password at `/giris/parola`, and then sees the
+to `/auth/confirm`, sets a password at `/login/password`, and then sees the
 role-appropriate admin overview.
 
 Local emails are captured by Mailpit; use the `Mailpit` URL from
@@ -303,14 +303,14 @@ Phase 4 adds the editorial metadata surface at `/admin/posts`:
 - `/admin/posts` lists the posts the signed-in member may read. Authors see their
   own drafts; editors and admins see every draft and published post. Edit links
   appear only for rows the member may change; the database repeats the check.
-- `/admin/posts/yeni` creates a draft with title, slug, excerpt, category, tags,
+- `/admin/posts/new` creates a draft with title, slug, excerpt, category, tags,
   and ordered author credits. An empty slug is derived from the title.
 - `/admin/posts/[id]` reopens a post. Authors may edit only drafts they created;
   editors and admins may edit any draft or published post. A credit grants no
   edit access, and a published post is read-only for authors.
-- `/admin/posts/[id]/onizleme` is a read-only members-only preview. It uses
+- `/admin/posts/[id]/preview` is a read-only members-only preview. It uses
   `force-dynamic`, sends `noindex`, and is not linked from public routes. A draft
-  remains absent from `/yazi/[slug]` and public listings.
+  remains absent from `/posts/[slug]` and public listings.
 - Taxonomy and author records come from the seed. Their administration screens
   are a deferred follow-up, not part of Phase 4.
 
@@ -370,7 +370,7 @@ Title, slug, excerpt, and taxonomy stay outside the document.
 - **Renderer.** `features/posts/components/post-body.tsx` maps validated nodes to
   React elements and imports no Tiptap code. It re-validates every document and
   shows a controlled fallback for an invalid document or an unsupported
-  `content_version`. The member preview and `/yazi/[slug]` use it, and both
+  `content_version`. The member preview and `/posts/[slug]` use it, and both
   editor and renderer share the `.post-body` typography in `globals.css`.
 - **Unsupported versions in the editor.** The edit page refuses to open a body
   whose version or shape it cannot represent, so a save cannot silently drop
@@ -391,12 +391,12 @@ allowlists have drifted.
 src/
   app/
     admin/                # Protected editorial shell and member administration
-    admin/uyeler/         # Admin-only member list and actions
+    admin/members/        # Admin-only member list and actions
     admin/posts/          # Draft list, create, edit, and members-only preview
     auth/confirm/         # Invite fragment/session confirmation
-    giris/                # Invite-only sign-in
-    giris/parola/         # Set-password step for invited users
-    yazi/[slug]/          # Public sample post page
+    login/                # Invite-only sign-in
+    login/password/       # Set-password step for invited users
+    posts/[slug]/         # Public sample post page
   components/ui/          # Generated shadcn/ui controls
   features/
     auth/                 # Sign-in, invite confirmation, password actions
@@ -446,6 +446,8 @@ documents for the published sample posts. Image uploads to Supabase Storage and
 YouTube embeds remain later increments; their buckets and nodes are
 intentionally not added yet.
 
+Route paths and query parameters are English (`/login`, `/admin/members`,
+`/posts/[slug]`, `?status=updated`) regardless of the interface language.
 Turkish sample copy and generic labels are provisional, not a brand or language
 decision. Sample pages are prerendered at build time, including their body text,
 with no Supabase requests or editor bundle. They have title/description metadata

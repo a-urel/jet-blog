@@ -19,17 +19,17 @@ does not add requirements on its own.
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
-- Static sample home, `/yazi/[slug]`, and 404. Sample bodies use the stored
+- Static sample home, `/posts/[slug]`, and 404. Sample bodies use the stored
   version-1 document format and render through the shared `PostBody` renderer.
 - `features/posts/data.ts` is the sample data boundary; no database queries.
 - Supabase config, native local stack, migrations/seeds folders, and anonymous
   public-only clients.
-- Invite-only email/password sign-in at `/giris`, a server-verified protected
+- Invite-only email/password sign-in at `/login`, a server-verified protected
   `/admin` layout, sign-out, and Next.js 16 Proxy token refresh. Local sign-ups
   are disabled; no public registration route exists.
 - Phase 2 profiles, editorial membership, public author identities, audit log,
   last-admin protection, RLS helpers, invite acceptance/set-password routes, and
-  admin member administration at `/admin/uyeler`.
+  admin member administration at `/admin/members`.
 - Membership and audit writes go through centralized security-definer RPCs;
   authenticated clients have no direct write grants on those tables.
 - Phase 3 categories, tags, posts, ordered credits, and post-tag relations with
@@ -275,7 +275,7 @@ Scope:
   existing anonymous public client.
 - Add the Next.js Proxy token-refresh integration. Verify the file convention
   and API in `node_modules/next/dist/docs/` for this Next.js version first.
-- `/giris` sign-in page, sign-out action, protected `/admin` layout, and
+- `/login` sign-in page, sign-out action, protected `/admin` layout, and
   redirects for unauthenticated users.
 - Minimal signed-in shell that follows the existing design tokens.
 - Document how to create the first user locally (Supabase Studio or CLI).
@@ -352,7 +352,7 @@ phase; public reader sign-up belongs to Phase 11.
 3. **Invite acceptance.** Implemented: an admin invite creates the Auth user and
    membership, and the Supabase invite email sends the invitee to
    `/auth/confirm`, which applies the fragment session and forwards to
-   `/giris/parola`. No one can sign in before setting a password. Verified
+   `/login/password`. No one can sign in before setting a password. Verified
    locally with project sign-ups disabled. Local email goes to Mailpit; hosted
    invitations need SMTP configuration and an email-template review.
 4. **Existing users.** Recommended: an admin can grant a role to an existing
@@ -461,7 +461,7 @@ Status: complete on 2026-10-22. Verified with lint, typecheck, 31 unit tests, 44
 local-Supabase RLS tests, the production build, and a browser journey covering
 draft creation with category/tags/two ordered credits, reopen and edit, a
 stale-form conflict that preserved the newer edit, members-only preview,
-draft exclusion from `/yazi/[slug]` and the home listing, and an author denied
+draft exclusion from `/posts/[slug]` and the home listing, and an author denied
 access to another editor's draft.
 
 Scope:
@@ -518,7 +518,7 @@ denial path pass.
 - **Author list:** active editorial members may select the public `authors`
   columns to build credits. The column grant still hides `authors.user_id`, so
   the account link never reaches clients.
-- **Preview:** `/admin/posts/[id]/onizleme` sits under the protected admin layout,
+- **Preview:** `/admin/posts/[id]/preview` sits under the protected admin layout,
   uses `force-dynamic`, sends `noindex`, and reads through the caller's session.
   It is not linked from public routes and is not placed in a public cache.
 

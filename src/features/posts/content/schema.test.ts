@@ -36,7 +36,7 @@ describe("isSafeHref", () => {
     "HTTP://EXAMPLE.COM/a",
     "mailto:a@example.com",
     "/",
-    "/yazi/ornek#bolum",
+    "/posts/ornek#bolum",
     "#bolum",
   ])("accepts %s", (href) => {
     expect(isSafeHref(href)).toBe(true);

@@ -157,7 +157,7 @@ function mapRpcError(error: {
 function revalidatePostPaths(postId: string) {
   revalidatePath("/admin/posts");
   revalidatePath(`/admin/posts/${postId}`);
-  revalidatePath(`/admin/posts/${postId}/onizleme`);
+  revalidatePath(`/admin/posts/${postId}/preview`);
 }
 
 export async function createDraftPostAction(
@@ -208,7 +208,7 @@ export async function createDraftPostAction(
   }
 
   revalidatePostPaths(row.post_id);
-  redirect(`/admin/posts/${row.post_id}?durum=olusturuldu`);
+  redirect(`/admin/posts/${row.post_id}?status=created`);
 }
 
 export async function updatePostMetadataAction(
@@ -269,5 +269,5 @@ export async function updatePostMetadataAction(
   }
 
   revalidatePostPaths(postId);
-  redirect(`/admin/posts/${postId}?durum=guncellendi`);
+  redirect(`/admin/posts/${postId}?status=updated`);
 }

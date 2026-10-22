@@ -42,7 +42,7 @@ export default async function AdminPostsPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/admin/posts/yeni">
+          <Link href="/admin/posts/new">
             <FilePlus2 aria-hidden="true" />
             Yeni taslak
           </Link>
@@ -75,7 +75,7 @@ export default async function AdminPostsPage() {
                 Henüz erişebildiğiniz bir yazı yok.
               </p>
               <Button asChild variant="outline" size="sm">
-                <Link href="/admin/posts/yeni">İlk taslağı oluştur</Link>
+                <Link href="/admin/posts/new">İlk taslağı oluştur</Link>
               </Button>
             </div>
           ) : null}
@@ -147,7 +147,7 @@ export default async function AdminPostsPage() {
                               </Button>
                             ) : null}
                             <Button asChild variant="ghost" size="sm">
-                              <Link href={`/admin/posts/${post.id}/onizleme`}>
+                              <Link href={`/admin/posts/${post.id}/preview`}>
                                 <Eye aria-hidden="true" />
                                 Önizle
                               </Link>

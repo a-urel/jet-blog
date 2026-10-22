@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PostPreviewPage({
   params,
-}: PageProps<"/admin/posts/[id]/onizleme">) {
+}: PageProps<"/admin/posts/[id]/preview">) {
   const { id } = await params;
   const { user, membership } = await getEditorialContext();
 

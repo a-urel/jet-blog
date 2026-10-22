@@ -96,5 +96,5 @@ export async function signOutAction() {
   await supabase.auth.signOut();
 
   revalidatePath("/admin", "layout");
-  redirect("/giris?cikis=1");
+  redirect("/login?signed-out=1");
 }

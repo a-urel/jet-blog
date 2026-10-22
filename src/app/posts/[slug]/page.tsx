@@ -15,7 +15,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/yazi/[slug]">): Promise<Metadata> {
+}: PageProps<"/posts/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const post = getPostBySlug(slug);
   if (!post) notFound();
@@ -23,7 +23,7 @@ export async function generateMetadata({
   return { title: post.title, description: post.excerpt };
 }
 
-export default async function PostPage({ params }: PageProps<"/yazi/[slug]">) {
+export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
   const { slug } = await params;
   const post = getPostBySlug(slug);
   if (!post) notFound();

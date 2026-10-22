@@ -42,7 +42,7 @@ export default function Home() {
                     {post.category.name}
                   </span>
                   <h3 className="text-2xl leading-snug font-semibold tracking-tight">
-                    <Link href={`/yazi/${post.slug}`} className="rounded-sm hover:underline underline-offset-4">
+                    <Link href={`/posts/${post.slug}`} className="rounded-sm hover:underline underline-offset-4">
                       {post.title}
                     </Link>
                   </h3>
@@ -60,7 +60,7 @@ export default function Home() {
                 </CardContent>
                 <CardFooter className="justify-end bg-transparent">
                   <Button asChild variant="ghost">
-                    <Link href={`/yazi/${post.slug}`} aria-label={`${post.title} — yazıyı oku`}>
+                    <Link href={`/posts/${post.slug}`} aria-label={`${post.title} — yazıyı oku`}>
                       Yazıyı oku <ArrowRight aria-hidden="true" />
                     </Link>
                   </Button>

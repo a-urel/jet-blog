@@ -58,7 +58,7 @@ export function InviteConfirm() {
         return;
       }
 
-      router.replace("/giris/parola");
+      router.replace("/login/password");
     }
 
     void confirmInvite();
@@ -79,7 +79,7 @@ export function InviteConfirm() {
           {error}
         </p>
         <Button asChild variant="outline">
-          <Link href="/giris">Giriş sayfasına dön</Link>
+          <Link href="/login">Giriş sayfasına dön</Link>
         </Button>
       </div>
     );

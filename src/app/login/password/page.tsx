@@ -45,7 +45,7 @@ export default async function SetPasswordPage() {
   const user = await getSessionUser();
 
   if (!user) {
-    redirect("/giris?davet=oturum-yok");
+    redirect("/login?invite=no-session");
   }
 
   return (

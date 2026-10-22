@@ -28,7 +28,7 @@ export default async function AdminLayout({
 }: LayoutProps<"/admin">) {
   const { user, membership } = await getEditorialContext();
 
-  if (!user) redirect("/giris");
+  if (!user) redirect("/login");
 
   if (!membership) {
     return (
@@ -69,7 +69,7 @@ export default async function AdminLayout({
             </Link>
             {canManageMembership(membership) ? (
               <Link
-                href="/admin/uyeler"
+                href="/admin/members"
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/80"
               >
                 <Users aria-hidden="true" className="size-4" />

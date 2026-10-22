@@ -47,8 +47,8 @@ const roleLabels: Record<EditorialRole, string> = {
 };
 
 const successMessages: Record<string, string> = {
-  "rol-guncellendi": "Rol güncellendi.",
-  "uyelik-guncellendi": "Üyelik durumu güncellendi.",
+  "role-updated": "Rol güncellendi.",
+  "membership-updated": "Üyelik durumu güncellendi.",
 };
 
 const errorMessages: Record<string, string> = {
@@ -64,10 +64,10 @@ const errorMessages: Record<string, string> = {
 
 export default async function AdminMembersPage({
   searchParams,
-}: PageProps<"/admin/uyeler">) {
+}: PageProps<"/admin/members">) {
   const { user, membership } = await getEditorialContext();
 
-  if (!user) redirect("/giris");
+  if (!user) redirect("/login");
 
   if (membership?.role !== "admin") {
     return (
@@ -79,11 +79,11 @@ export default async function AdminMembersPage({
     );
   }
 
-  const { durum, hata } = await searchParams;
+  const { status, error } = await searchParams;
   const successMessage =
-    typeof durum === "string" ? (successMessages[durum] ?? null) : null;
+    typeof status === "string" ? (successMessages[status] ?? null) : null;
   const errorMessage =
-    typeof hata === "string" ? (errorMessages[hata] ?? null) : null;
+    typeof error === "string" ? (errorMessages[error] ?? null) : null;
 
   let members: MemberRow[] = [];
   let memberError: string | null = null;

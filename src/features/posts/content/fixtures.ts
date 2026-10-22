@@ -36,7 +36,7 @@ export const validBodyFixtures: ReadonlyArray<{ name: string; doc: unknown }> = 
             {
               type: "text",
               text: "iç bağlantı",
-              marks: [{ type: "link", attrs: { href: "/yazi/ornek" } }],
+              marks: [{ type: "link", attrs: { href: "/posts/ornek" } }],
             },
             { type: "text", text: " " },
             {
