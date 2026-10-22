@@ -1,8 +1,9 @@
 // Shared allowlist for stored post bodies. The Tiptap editor, the read-only
 // renderer, the Server Action boundary, and the database function
 // `post_body_error` all apply these rules. Change them together: the database
-// mirror lives in supabase/migrations/20261022180000_post_body.sql, and the
-// shared fixtures in ./fixtures.ts run against both.
+// mirror is `public.post_body_node_error` (latest definition in
+// supabase/migrations/20261022190100_post_body_image.sql), and the shared
+// fixtures in ./fixtures.ts run against both.
 
 export const currentContentVersion = 1;
 
@@ -11,6 +12,9 @@ export const currentContentVersion = 1;
 export const maxBodyLength = 200_000;
 export const maxBodyDepth = 24;
 export const maxHrefLength = 2048;
+export const maxImageAltLength = 300;
+export const maxImageCaptionLength = 500;
+export const maxImageDimension = 10_000;
 
 export const headingLevels = [2, 3, 4] as const;
 
@@ -22,6 +26,7 @@ export const blockNodeTypes = [
   "blockquote",
   "codeBlock",
   "horizontalRule",
+  "image",
 ] as const;
 
 export const inlineNodeTypes = ["text", "hardBreak"] as const;
@@ -68,6 +73,18 @@ export type CodeBlockNode = {
   content?: TextNode[];
 };
 export type HorizontalRuleNode = { type: "horizontalRule" };
+// Media is referenced by id; delivery URLs are derived, never stored. Alt text
+// and caption belong to this occurrence. Alt text is required unless the image
+// is explicitly decorative, in which case it is empty.
+export type ImageAttrs = {
+  mediaId: string;
+  width: number;
+  height: number;
+  alt: string;
+  caption?: string;
+  decorative?: true;
+};
+export type ImageNode = { type: "image"; attrs: ImageAttrs };
 
 export type BlockNode =
   | ParagraphNode
@@ -76,7 +93,8 @@ export type BlockNode =
   | BulletListNode
   | OrderedListNode
   | CodeBlockNode
-  | HorizontalRuleNode;
+  | HorizontalRuleNode
+  | ImageNode;
 
 export type BodyDocument = { type: "doc"; content: BlockNode[] };
 
@@ -97,6 +115,22 @@ const hrefPattern =
   /^(?:https?:\/\/[^\s"<>\\]+|mailto:[^\s"<>\\]+|\/(?:[^/\s"<>\\][^\s"<>\\]*)?|#[^\s"<>\\]*)$/i;
 const controlCharacterPattern = /[\u0000-\u001f\u007f]/;
 const languagePattern = /^[a-z0-9+#-]{1,32}$/;
+export const mediaIdPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const nonWhitespacePattern = /\S/;
+
+// Count code points, matching PostgreSQL char_length.
+function codePointLength(value: string): number {
+  return [...value].length;
+}
+
+function isImageDimension(value: unknown): boolean {
+  return (
+    Number.isInteger(value) &&
+    (value as number) >= 1 &&
+    (value as number) <= maxImageDimension
+  );
+}
 
 export function isSafeHref(value: string): boolean {
   return (
@@ -140,6 +174,7 @@ const contentRules: Record<NodeType, ContentRule> = {
   listItem: "listItem",
   codeBlock: "text*",
   horizontalRule: "none",
+  image: "none",
   hardBreak: "none",
   text: "none",
 };
@@ -215,8 +250,56 @@ function validateAttrs(node: JsonObject, type: NodeType): void {
         fail("Invalid code block language");
       }
       return;
+    case "image":
+      validateImageAttrs(attrs);
+      return;
     default:
       if (attrs !== undefined) fail(`Node ${type} does not accept attributes`);
+  }
+}
+
+function validateImageAttrs(attrs: unknown): void {
+  if (
+    !isObject(attrs) ||
+    !hasOnlyKeys(attrs, ["mediaId", "width", "height", "alt", "caption", "decorative"])
+  ) {
+    fail("Invalid image attributes");
+  }
+
+  if (typeof attrs.mediaId !== "string" || !mediaIdPattern.test(attrs.mediaId)) {
+    fail("Invalid image media reference");
+  }
+
+  if (!isImageDimension(attrs.width) || !isImageDimension(attrs.height)) {
+    fail("Invalid image dimensions");
+  }
+
+  const alt = attrs.alt;
+  if (
+    typeof alt !== "string" ||
+    codePointLength(alt) > maxImageAltLength ||
+    controlCharacterPattern.test(alt)
+  ) {
+    fail("Invalid image alt text");
+  }
+
+  if (attrs.decorative !== undefined) {
+    if (attrs.decorative !== true) fail("Invalid decorative flag");
+    if (alt !== "") fail("Decorative images must have empty alt text");
+  } else if (!nonWhitespacePattern.test(alt)) {
+    fail("Image alt text is required");
+  }
+
+  if (attrs.caption !== undefined) {
+    const caption = attrs.caption;
+    if (
+      typeof caption !== "string" ||
+      codePointLength(caption) > maxImageCaptionLength ||
+      controlCharacterPattern.test(caption) ||
+      !nonWhitespacePattern.test(caption)
+    ) {
+      fail("Invalid image caption");
+    }
   }
 }
 
@@ -362,6 +445,13 @@ export function normalizeEditorDocument(value: unknown): unknown {
 
     if (node.type === "codeBlock" && attrs.language === null) {
       delete attrs.language;
+    }
+
+    if (node.type === "image") {
+      if (attrs.caption === null || attrs.caption === "") delete attrs.caption;
+      if (attrs.decorative === null || attrs.decorative === false) {
+        delete attrs.decorative;
+      }
     }
 
     if (Object.keys(attrs).length === 0) delete node.attrs;

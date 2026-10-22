@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-22 (Phase 5 complete; Phase 6 waits on D4)
+Last updated: 2026-10-22 (Phase 6 complete; D4 answered)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–5, complete)
+## Current baseline (Phases 1–6, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -46,7 +46,14 @@ does not add requirements on its own.
   editor in the post form, one shared node/mark/attribute allowlist enforced by
   the Server Action, the authoring RPCs, and a CHECK constraint, and a read-only
   renderer without Tiptap code shared by the preview and public pages.
-- 131 unit tests and 87 local-Supabase RLS tests cover body allowlist parity
+- Phase 6 media: one public `media` bucket (D4) with UUID object paths, a
+  `public.media` table, Storage policies for members-only uploads, a per-member
+  upload rate limit, signature-based server validation (no SVG), an `image` body
+  node with occurrence alt text and caption, `next/image` delivery, and
+  reference-aware deletion at `/admin/media`.
+- 199 unit tests and 146 local-Supabase RLS tests cover media upload
+  validation, Storage policies by role, the upload rate limit, media
+  registration and visibility, reference-aware deletion, image-node parity, body allowlist parity
   (TypeScript, Tiptap schema, renderer, and database share fixtures), unsafe
   links, unsupported versions, and body visibility in addition to session, role,
   deactivation, last-admin, direct-write boundaries, published/draft visibility,
@@ -58,35 +65,39 @@ does not add requirements on its own.
   change, deactivation, denied access, draft creation/editing, a stale-form
   conflict, preview, draft exclusion from public routes, and author isolation.
 
-Known gaps: no media, publishing workflow, SEO/sitemap, or public
-database reads. The public site still uses sample content, so `/admin` protects
+Known gaps: no publishing workflow, SEO/sitemap, or public
+database reads. Draft media is fetchable by URL (D4 tradeoff). The public site still uses sample content, so `/admin` protects
 membership and drafts but does not yet feed public pages. Taxonomy and author
 identity administration remain deferred follow-ups; Phase 4 consumes the seeded
 records.
 
 ## Where to resume (session handoff)
 
-Phases 1–5 are complete, verified, and committed locally. Do not push without
-an explicit request.
+Phases 1–5 are complete, verified, and committed. Phase 6 is complete and
+verified; commit only on request. Do not push without an explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (131 tests),
-  `npm run test:rls` (87 tests), and `npm run build` pass.
-- Local database: `supabase db reset` applies all four migrations and
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (199 tests),
+  `npm run test:rls` (146 tests), and `npm run build` pass.
+- Local database: `supabase db reset` applies all six migrations and
   `supabase/seeds/seed.sql` (3 published posts and 1 draft with bodies, 3
   categories, 3 tags, 2 author profiles). It creates no Auth users. Follow the README to bootstrap the
   first admin when a browser journey needs a signed-in user.
 - Key files: `supabase/migrations/20261022150924_editorial_membership.sql`,
   `supabase/migrations/20261022160516_content_schema.sql`,
   `supabase/migrations/20261022170000_draft_authoring.sql`,
-  `supabase/migrations/20261022180000_post_body.sql`, `src/lib/slug.ts`,
+  `supabase/migrations/20261022180000_post_body.sql`,
+  `supabase/migrations/20261022190000_media.sql`,
+  `supabase/migrations/20261022190100_post_body_image.sql`, `src/features/media/`,
+  `src/lib/slug.ts`,
   `src/features/posts/admin/`, `src/features/posts/content/`,
   `src/features/posts/components/post-body.tsx`, and
-  `src/lib/supabase/post-body.rls.test.ts`.
-- Next slice: Phase 6 after D4 is answered. A new body node must be added to the
-  TypeScript allowlist, the SQL mirror, the shared fixtures, and the renderer in
-  the same change.
-- Open gates: D4 before Phase 6 media work; D5 before Phase 8 canonical URLs and
-  sitemap output.
+  `src/lib/supabase/post-body.rls.test.ts`, and
+  `src/lib/supabase/media.rls.test.ts`.
+- Next slice: Phase 7 (YouTube embeds) or Phase 8 (publishing). A new body node
+  must be added to the TypeScript allowlist, the SQL mirror, the shared
+  fixtures, the editor, and the renderer in the same change.
+- Open gates: D5 before Phase 8 canonical URLs and sitemap output. Revisit D4
+  before public launch if draft images must stay private.
 
 ## Deferred administration follow-ups
 
@@ -114,12 +125,12 @@ widening an active phase silently.
 | D1 | Editorial role set and who may publish | Phase 2 onward, RLS everywhere | `admin` is the highest role and a superset of `editor`. Multiple admins are allowed. Admin manages members, roles, invitations, categories, and tags. Editor creates, edits, and publishes any post and assigns existing taxonomy, but cannot manage categories/tags or invite members. Author creates and edits own drafts but cannot publish. Reader membership is open to everyone; editorial/writer access is invite-only and granted by an admin. Reader accounts are planned (Phases 11–13) but are not editorial roles; see below | **Answered 2026-10-22** |
 | D2 | Workflow states and editing live posts | Phases 3, 8 | `draft` → `published` only; `review`/`archived` later; editors may edit published posts and `updated_at` is shown | **Answered 2026-10-22** |
 | D3 | Concurrency and revisions | Phases 3–5, 8 | One working copy with atomic revision comparison; no published snapshot initially; preview route for members | **Answered 2026-10-22** |
-| D4 | Media bucket visibility | Phase 6 | One public bucket, UUID object paths, app-level validation; document that draft media is fetchable by URL; revisit before launch | Open |
+| D4 | Media bucket visibility | Phase 6 | One public bucket, UUID object paths, app-level validation; document that draft media is fetchable by URL; revisit before launch | **Answered 2026-10-22** |
 | D5 | Language, brand, domain, hosting | Phases 8–10 | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | Open |
 | D6 | Reader accounts, bookmarks, and comments | Phases 11–13 | Private bookmarks only; reader accounts with email + password; post-moderation with reader reports and editor hide/delete; account deletion removes bookmarks and anonymizes comments. No public like counts, OAuth, or magic links initially | **Answered 2026-10-22** |
 
-D1, D2, D3, and D6 were answered on 2026-10-22 and no longer block their phases.
-D4 may be answered just before Phase 6. D5 can wait until Phase 8.
+D1, D2, D3, D4, and D6 were answered on 2026-10-22 and no longer block their
+phases. D5 can wait until Phase 8.
 
 ### Answered decisions
 
@@ -138,6 +149,9 @@ D4 may be answered just before Phase 6. D5 can wait until Phase 8.
   compare-and-swap updates. No published snapshot initially; publishing changes
   status and `published_at`, and later edits change the live content. A
   members-only preview route is planned in Phase 4.
+- **D4 (2026-10-22):** One public `media` bucket with UUID object paths and
+  server-side validation. Draft images are fetchable by anyone who has their
+  URL; this is documented and revisited before launch.
 - **D6 (2026-10-22):** Reader accounts use email + password. Bookmarks are
   private and have no public count. Comments are published immediately and
   moderated afterward through reader reports plus editor hide/delete. On account
@@ -591,6 +605,31 @@ renderer and editor share the same allowlist tests.
 ### Phase 6 — Media uploads
 
 Goal: images are validated, stored, and rendered accessibly.
+
+Status: complete on 2026-10-22. Verified with lint, typecheck, 199 unit tests,
+146 local-Supabase RLS tests, the production build, and a browser journey on the
+production server covering a client-side alt-text error, a renamed SVG rejected
+by the server signature check, an oversized file rejected, a JPEG uploaded and
+inserted with alt text and caption, alt text edited on the selected image, draft
+save and reload, the member preview serving the optimized image with
+`srcset`/`sizes`, deletion of the referenced image refused, anonymous
+`/admin/media` redirected to sign-in, a signed-in non-member denied, and an
+author shown no delete control for another member's upload.
+
+Implementation notes:
+
+- `public.media.object_path` equals the media id, so the image node stores only
+  the id and URLs are derived. Storage objects are immutable (no update policy).
+- `register_media` trusts Storage metadata for type and size and the server for
+  dimensions; the server identifies the format from file signatures.
+- `delete_media` locks the row and scans post bodies; `assert_post_body` takes a
+  key-share lock on referenced media, so a concurrent save and delete cannot
+  both succeed.
+- Rate limit: 20 uploads per member per ten minutes, enforced in the Storage
+  insert policy.
+- Follow-ups outside this phase: orphaned uploads are cleaned up manually from
+  `/admin/media`; the editor toolbar stays disabled until the editor is first
+  focused (pre-existing Phase 5 behavior).
 
 Scope:
 

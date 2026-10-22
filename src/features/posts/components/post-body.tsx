@@ -1,9 +1,13 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
+
+import { mediaPublicUrl } from "@/features/media/url";
 
 import {
   currentContentVersion,
   validateBodyDocument,
   type BlockNode,
+  type ImageAttrs,
   type InlineNode,
   type ListItemNode,
   type TextNode,
@@ -13,6 +17,9 @@ import {
 // no Tiptap code, so public HTML is complete without the editor bundle. Every
 // document is re-validated against the shared allowlist before rendering; an
 // unsupported version or invalid document shows a controlled fallback instead.
+
+// Bodies render inside a max-w-3xl article with horizontal padding.
+const imageSizes = "(min-width: 48rem) 45rem, 100vw";
 
 function renderText(node: TextNode, key: number): ReactNode {
   let element: ReactNode = node.text;
@@ -62,6 +69,38 @@ function renderListItems(items: ListItemNode[]): ReactNode {
   ));
 }
 
+// Images go through the framework image component, which serves resized
+// variants from the public media URL allowed in next.config.ts. Width and height
+// come from the node, so the layout reserves space before the image loads.
+function renderImage(attrs: ImageAttrs, key: number): ReactNode {
+  const src = mediaPublicUrl(attrs.mediaId);
+  const alt = attrs.decorative ? "" : attrs.alt;
+
+  return (
+    <figure key={key}>
+      {src ? (
+        <Image
+          src={src}
+          alt={alt}
+          width={attrs.width}
+          height={attrs.height}
+          sizes={imageSizes}
+        />
+      ) : (
+        <span
+          role={alt ? "img" : undefined}
+          aria-label={alt || undefined}
+          aria-hidden={alt ? undefined : true}
+          className="block rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground"
+        >
+          Görsel şu anda yüklenemiyor.
+        </span>
+      )}
+      {attrs.caption ? <figcaption>{attrs.caption}</figcaption> : null}
+    </figure>
+  );
+}
+
 function renderBlock(node: BlockNode, key: number): ReactNode {
   switch (node.type) {
     case "paragraph":
@@ -90,6 +129,8 @@ function renderBlock(node: BlockNode, key: number): ReactNode {
       );
     case "horizontalRule":
       return <hr key={key} />;
+    case "image":
+      return renderImage(node.attrs, key);
   }
 }
 

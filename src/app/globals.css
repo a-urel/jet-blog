@@ -187,4 +187,10 @@
   .post-body hr {
     @apply my-8 border-border;
   }
+  .post-body figure img {
+    @apply mx-auto h-auto max-w-full rounded-lg border border-border bg-muted;
+  }
+  .post-body figcaption {
+    @apply mt-2 text-center text-sm leading-6 text-muted-foreground not-italic;
+  }
 }

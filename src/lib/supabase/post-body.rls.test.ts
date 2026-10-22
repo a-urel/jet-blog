@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  fixtureMediaIds,
   invalidBodyFixtures,
   validBodyFixtures,
 } from "@/features/posts/content/fixtures";
@@ -85,6 +86,21 @@ async function storedDraft() {
 }
 
 beforeAll(async () => {
+  // Image fixtures reference media rows; the authoring RPCs require them. The
+  // rows need no Storage object for body validation.
+  const { error: mediaError } = await service.from("media").upsert(
+    fixtureMediaIds.map((id) => ({
+      id,
+      object_path: id,
+      mime_type: "image/png",
+      size_bytes: 1,
+      width: 1,
+      height: 1,
+    })),
+  );
+
+  if (mediaError) throw mediaError;
+
   for (const key of Object.keys(emails) as UserKey[]) {
     const { data, error } = await service.auth.admin.createUser({
       email: emails[key],
@@ -148,6 +164,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await service.from("posts").delete().like("slug", `${slugPrefix}-%`);
   await service.from("categories").delete().like("slug", `${slugPrefix}-%`);
+  await service.from("media").delete().in("id", [...fixtureMediaIds]);
 
   for (const id of Object.values(userIds)) {
     await service.auth.admin.deleteUser(id);

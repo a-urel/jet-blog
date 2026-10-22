@@ -157,6 +157,61 @@ describe("normalizeEditorDocument", () => {
   });
 });
 
+describe("image normalization", () => {
+  const editorImage = {
+    type: "image",
+    attrs: {
+      mediaId: "6f1c1e2a-3b4d-4c5e-8f60-718293a4b5c6",
+      width: 10,
+      height: 5,
+      alt: "Örnek",
+      caption: null,
+      decorative: null,
+    },
+  };
+
+  it("drops empty caption and decorative defaults from editor output", () => {
+    expect(
+      normalizeEditorDocument({ type: "doc", content: [editorImage] }),
+    ).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "image",
+          attrs: {
+            mediaId: "6f1c1e2a-3b4d-4c5e-8f60-718293a4b5c6",
+            width: 10,
+            height: 5,
+            alt: "Örnek",
+          },
+        },
+      ],
+    });
+  });
+
+  it("keeps a decorative flag and rejects alt text on it", () => {
+    const normalized = normalizeEditorDocument({
+      type: "doc",
+      content: [{ ...editorImage, attrs: { ...editorImage.attrs, decorative: true } }],
+    });
+
+    expect(validateBodyDocument(normalized)).toEqual({
+      ok: false,
+      error: "Decorative images must have empty alt text",
+    });
+  });
+
+  it("counts alt text length in code points like PostgreSQL", () => {
+    const doc = (alt: string) => ({
+      type: "doc",
+      content: [{ ...editorImage, attrs: { ...editorImage.attrs, alt, caption: undefined, decorative: undefined } }],
+    });
+
+    expect(validateBodyDocument(normalizeEditorDocument(doc("😀".repeat(300)))).ok).toBe(true);
+    expect(validateBodyDocument(normalizeEditorDocument(doc("😀".repeat(301)))).ok).toBe(false);
+  });
+});
+
 describe("parseSubmittedBody", () => {
   it("treats an empty payload as the empty document", () => {
     expect(parseSubmittedBody("")).toEqual({ ok: true, doc: emptyBodyDocument });

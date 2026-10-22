@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileText, LayoutDashboard, LogOut, Users } from "lucide-react";
+import { FileText, Image as ImageIcon, LayoutDashboard, LogOut, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,13 @@ export default async function AdminLayout({
             >
               <FileText aria-hidden="true" className="size-4" />
               Yazılar
+            </Link>
+            <Link
+              href="/admin/media"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/80"
+            >
+              <ImageIcon aria-hidden="true" className="size-4" />
+              Medya
             </Link>
             {canManageMembership(membership) ? (
               <Link

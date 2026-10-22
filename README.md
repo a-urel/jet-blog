@@ -343,11 +343,12 @@ Title, slug, excerpt, and taxonomy stay outside the document.
 
 - **One allowlist.** `src/features/posts/content/schema.ts` defines the supported
   nodes (`paragraph`, `heading` levels 2–4, `bulletList`, `orderedList`,
-  `listItem`, `blockquote`, `codeBlock`, `horizontalRule`, `hardBreak`, `text`),
-  marks (`bold`, `italic`, `strike`, `code`, `link`), attribute keys,
-  parent/child rules, a 200,000-character size limit, and a nesting limit.
-  Unknown nodes, marks, or attribute keys are rejected, not dropped. Images and
-  YouTube embeds are deferred to Phases 6–7.
+  `listItem`, `blockquote`, `codeBlock`, `horizontalRule`, `image`,
+  `hardBreak`, `text`), marks (`bold`, `italic`, `strike`, `code`, `link`),
+  attribute keys, parent/child rules, a 200,000-character size limit, and a
+  nesting limit. Unknown nodes, marks, or attribute keys are rejected, not
+  dropped. YouTube embeds are deferred to Phase 7; images are described in
+  [Media uploads](#media-uploads).
 - **Safe links.** Only `http(s)://`, `mailto:`, site-relative `/…`, and in-page
   `#…` hrefs are accepted. `javascript:`, `data:`, protocol-relative `//host`,
   backslash paths, whitespace, and control characters are rejected. The renderer
@@ -364,7 +365,8 @@ Title, slug, excerpt, and taxonomy stay outside the document.
   (it drops editor-only link and list defaults) and validates it strictly.
   `create_draft_post` and `update_post_metadata` take `p_body` and
   `p_content_version` and re-validate with `public.post_body_error`, a PL/pgSQL
-  mirror of the allowlist. A `posts_body_valid` CHECK constraint applies the
+  mirror of the allowlist (latest definition in
+  `supabase/migrations/20261022190100_post_body_image.sql`). A `posts_body_valid` CHECK constraint applies the
   same function, so service-role scripts and seeds cannot store an invalid
   version-1 document either. Unsupported versions raise `22023`.
 - **Renderer.** `features/posts/components/post-body.tsx` maps validated nodes to
@@ -385,12 +387,74 @@ allowlisted nodes and marks and round-trips every valid fixture,
 RPCs. A fixture accepted in one place and rejected in another means the
 allowlists have drifted.
 
+## Media uploads
+
+Phase 6 adds image uploads. Decision D4 (answered 2026-10-22) chose one public
+Storage bucket with UUID object paths and server-side validation.
+
+- **Tradeoff.** The `media` bucket is public. Anyone who knows an object URL can
+  fetch it, including images used only by drafts. Object paths are random UUIDs
+  and are not listed publicly, but they are not secret once shared. Revisit
+  before launch if unpublished images must stay private.
+- **Storage and metadata.** `supabase/migrations/20261022190000_media.sql`
+  creates the bucket (5 MiB limit, JPEG/PNG/WebP/GIF only) and `public.media`
+  with bucket, object path, uploader, MIME type, size, dimensions, and
+  timestamps. The object path equals the media id. Members read media rows;
+  readers and anonymous visitors do not. Clients have no write grants on
+  `public.media`.
+- **Upload flow.** The editor's image button opens a panel that asks for a file,
+  alt text (or an explicit "decorative" flag), and an optional caption.
+  `features/media/actions.ts` `uploadMediaAction` checks membership, reads the
+  bytes, and identifies the format from the file signature
+  (`features/media/validation.ts`); the declared type and file name are ignored,
+  so SVG, HTML, and renamed files are rejected. It uploads with the user's
+  session so Storage policies apply, then calls `register_media`, which re-reads
+  type and size from Storage metadata and requires the caller to own the object.
+  If registration fails, the object is removed. The Server Action body limit is
+  raised to 6 MB in `next.config.ts` for this upload.
+- **Storage policies.** Inserts into the `media` bucket require an active
+  editorial member, a lowercase UUID path (no folders or extensions), and fewer
+  than 20 uploads by that member in the last ten minutes
+  (`public.media_upload_allowed`). There is no update policy, so objects cannot
+  be overwritten. Deletes are allowed only for objects without a media row, by
+  their uploader or an editor/admin.
+- **Image node.** `{ type: "image", attrs: { mediaId, width, height, alt,
+  caption?, decorative? } }`. Alt text and caption belong to the occurrence, not
+  the media row. Alt text is required (1–300 characters) unless `decorative:
+  true`, which requires empty alt text. URLs are never stored; the renderer and
+  editor derive them from the media id (`features/media/url.ts`). The authoring
+  RPCs reject bodies that reference unknown media and take a key-share lock on
+  each referenced row.
+- **Delivery.** `PostBody` renders a `<figure>` with `next/image`, intrinsic
+  width/height, `sizes`, and an optional `<figcaption>`. `next.config.ts` allows
+  only the public media path of the configured Supabase host. The local stack is
+  on a loopback address, so `images.dangerouslyAllowLocalIP` is enabled only
+  when `NEXT_PUBLIC_SUPABASE_URL` is loopback.
+- **Deletion.** `/admin/media` lists uploads. `delete_media` refuses media that
+  any post body references (`23503`), then the Storage object is removed with
+  the user's session. Authors delete only their own uploads; editors and admins
+  delete any unused upload. The reference scan reads every post body; add an
+  index only if the media library grows enough to need one.
+- **Known limits.** Uploads that are never inserted or whose post is never saved
+  stay in the library until someone deletes them. Direct service-role writes to
+  `posts.body` bypass the media existence check; the CHECK constraint still
+  validates their shape. If the Storage delete after `delete_media` fails, the
+  page reports it and the unregistered object can be removed later.
+
+Tests: `features/media/validation.test.ts` covers signature and dimension
+parsing, size, and SVG rejection. Shared fixtures add valid and invalid image
+nodes. `src/lib/supabase/media.rls.test.ts` covers the bucket configuration,
+anonymous/reader/author/editor/admin uploads, path and type restrictions,
+overwrite denial, the rate limit, registration ownership, media row visibility,
+public delivery, unknown-media rejection, and reference-aware deletion.
+
 ## Structure and sample content
 
 ```text
 src/
   app/
     admin/                # Protected editorial shell and member administration
+    admin/media/          # Media library with reference-aware deletion
     admin/members/        # Admin-only member list and actions
     admin/posts/          # Draft list, create, edit, and members-only preview
     auth/confirm/         # Invite fragment/session confirmation
@@ -400,6 +464,7 @@ src/
   components/ui/          # Generated shadcn/ui controls
   features/
     auth/                 # Sign-in, invite confirmation, password actions
+    media/                # Upload validation, upload/delete actions, URLs
     members/              # Invite, role, and activation Server Actions
     posts/
       admin/              # Draft data, validation, permissions, form, editor, actions
@@ -420,6 +485,7 @@ src/
       content-rls.rls.test.ts    # Content and taxonomy RLS tests
       draft-authoring.rls.test.ts # Draft RPC and revision-conflict tests
       post-body.rls.test.ts       # Body allowlist and visibility tests
+      media.rls.test.ts           # Media table, Storage policy, deletion tests
       editorial-rls.rls.test.ts # Membership and audit RLS tests
   proxy.ts                # Next.js 16 token refresh (formerly middleware)
 supabase/
@@ -442,9 +508,8 @@ publishing mutations are still later phases.
 
 Sample bodies use the stored version-1 document format and render through the
 same `PostBody` component as the member preview. The seed stores the same
-documents for the published sample posts. Image uploads to Supabase Storage and
-YouTube embeds remain later increments; their buckets and nodes are
-intentionally not added yet.
+documents for the published sample posts. The sample bodies contain no images;
+YouTube embeds remain a later increment.
 
 Route paths and query parameters are English (`/login`, `/admin/members`,
 `/posts/[slug]`, `?status=updated`) regardless of the interface language.
@@ -521,10 +586,12 @@ audit log, with triggers, RPCs, and RLS. The Phase 3 migration adds `categories`
 `tags`, `posts`, `post_authors`, and `post_tags` with normalization checks,
 category cycle protection, indexes, and public read policies. The Phase 4
 migration adds the draft-authoring RPCs, revision compare-and-swap, relation
-replacement, metadata validation, and the editorial author-read policy. Seeding
-is enabled: `supabase/seeds/seed.sql` loads synthetic taxonomy and posts, never
-production data. Storage policies, buckets, media, publishing mutations, and
-public database reads are still later phases. Create future migrations with
+replacement, metadata validation, and the editorial author-read policy. The
+Phase 5 migration adds post bodies. The Phase 6 migrations add the `media`
+bucket, Storage policies, `public.media`, the media RPCs, and the image node.
+Seeding is enabled: `supabase/seeds/seed.sql` loads synthetic taxonomy and
+posts, never production data. Publishing mutations and public database reads
+are still later phases. Create future migrations with
 `supabase migration new <name>` and keep all related changes in this repository.
 Add optional Edge Functions only when there is a concrete need.
 
@@ -552,19 +619,26 @@ page will not receive the fragment.
   `@tiptap/react`, `@tiptap/starter-kit`, and `@tiptap/extension-link` type
   definitions for `immediatelyRender`, `useEditorState`, and link
   `isAllowedUri`.
+- Bundled Next.js 16.4.2 docs for the [Image component](node_modules/next/dist/docs/01-app/03-api-reference/02-components/image.md)
+  (`remotePatterns`, `maximumResponseBody`, `dangerouslyAllowLocalIP`) and
+  [`serverActions.bodySizeLimit`](node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/serverActions.md);
+  Supabase [Storage access control](https://supabase.com/docs/guides/storage/security/access-control).
+  The local Storage schema blocks direct SQL deletes from `storage.objects`
+  (`storage.protect_delete`), so objects are removed through the Storage API.
 
 ## Next increment
 
-Phases 1–5 are implemented: authentication, editorial membership with
+Phases 1–6 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
-rules, draft authoring with metadata forms and a members-only preview, and the
-Tiptap body editor with a shared allowlist and a safe server-rendered renderer.
-Public pages still use the sample fixtures. See [ROADMAP.md](./ROADMAP.md) for
-the ordered increments and their decision gates.
+rules, draft authoring with metadata forms and a members-only preview, the
+Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
+and validated image uploads with reference-aware deletion. Public pages still
+use the sample fixtures. See [ROADMAP.md](./ROADMAP.md) for the ordered
+increments and their decision gates.
 
-Phase 6 adds validated image uploads to Supabase Storage. Answer D4 (bucket
-visibility) first, then add an image node to the shared allowlist, the database
-mirror, the fixtures, and the renderer together. Taxonomy and author identity
+Phase 7 (allowlisted YouTube embeds) or Phase 8 (publishing) can follow; a new
+body node again changes the TypeScript allowlist, the database mirror, the
+fixtures, the editor, and the renderer together. Taxonomy and author identity
 administration remain explicit follow-up increments. Answer D5 before Phase 8
 finalizes canonical URLs and the sitemap. Author credits must remain separate
 from edit and publish permissions.

@@ -235,8 +235,9 @@ export function PostForm({
           describedBy="post-body-help post-body-error"
         />
         <p id="post-body-help" className="text-sm text-muted-foreground">
-          Araç çubuğunda ok tuşlarıyla gezinebilirsiniz. Görsel ve video
-          desteği sonraki artışlarda eklenecek.
+          Araç çubuğunda ok tuşlarıyla gezinebilirsiniz. Görseller için
+          alternatif metin gerekir; seçili görseli düzenlemek için görsel
+          düğmesini kullanın. Video desteği sonraki artışta eklenecek.
         </p>
         <FieldError id="post-body-error" message={state.fieldErrors.body} />
       </div>

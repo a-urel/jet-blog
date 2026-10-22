@@ -33,4 +33,9 @@ describe("editor schema and stored-body allowlist", () => {
       expect(validateBodyDocument(roundTripped).ok).toBe(true);
     },
   );
+
+  it("defines image as a block atom", () => {
+    expect(schema.nodes.image.isBlock).toBe(true);
+    expect(schema.nodes.image.isAtom).toBe(true);
+  });
 });

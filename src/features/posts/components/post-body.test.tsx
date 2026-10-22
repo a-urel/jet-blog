@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { invalidBodyFixtures, validBodyFixtures } from "../content/fixtures";
+import {
+  fixtureMediaIds,
+  invalidBodyFixtures,
+  validBodyFixtures,
+} from "../content/fixtures";
 import { PostBody } from "./post-body";
 
 function render(body: unknown, contentVersion = 1) {
@@ -68,5 +72,48 @@ describe("PostBody", () => {
 
     expect(html).toContain(fallbackText);
     expect(html).not.toContain("Kalın");
+  });
+
+  describe("images", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("renders a figure with derived URL, dimensions, alt text, and escaped caption", () => {
+      vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+      const html = render(validBodyFixtures[3].doc);
+      const source = encodeURIComponent(
+        `https://project.supabase.co/storage/v1/object/public/media/${fixtureMediaIds[0]}`,
+      );
+
+      expect(html).toContain("<figure>");
+      expect(html).toContain('alt="Deniz kıyısında gün batımı"');
+      expect(html).toContain('width="1200"');
+      expect(html).toContain('height="800"');
+      expect(html).toContain(`/_next/image?url=${source}`);
+      expect(html).toContain("sizes=");
+      expect(html).toContain(
+        "<figcaption>Fotoğraf: örnek &lt;b&gt;kaynak&lt;/b&gt;</figcaption>",
+      );
+    });
+
+    it("renders decorative images with empty alt text", () => {
+      vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+      const html = render(validBodyFixtures[4].doc);
+
+      expect(html).toContain('alt=""');
+      expect(html).toContain(fixtureMediaIds[1]);
+      expect(html).toContain("<blockquote><figure>");
+    });
+
+    it("shows a placeholder when the media URL cannot be derived", () => {
+      vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+      const html = render(validBodyFixtures[3].doc);
+
+      expect(html).not.toContain("<img");
+      expect(html).toContain('role="img"');
+      expect(html).toContain('aria-label="Deniz kıyısında gün batımı"');
+      expect(html).toContain("Görsel şu anda yüklenemiyor.");
+    });
   });
 });

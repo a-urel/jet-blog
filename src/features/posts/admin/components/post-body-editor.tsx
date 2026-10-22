@@ -12,6 +12,7 @@ import {
   Code,
   Heading2,
   Heading3,
+  ImagePlus,
   Italic,
   Link2,
   List,
@@ -29,8 +30,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { postBodyExtensions } from "@/features/posts/content/editor-extensions";
-import { isSafeHref, type BodyDocument } from "@/features/posts/content/schema";
+import {
+  isSafeHref,
+  type BodyDocument,
+  type ImageAttrs,
+} from "@/features/posts/content/schema";
 import { cn } from "@/lib/utils";
+import { PostImagePanel } from "./post-image-panel";
 
 type PostBodyEditorProps = {
   id: string;
@@ -109,6 +115,7 @@ function useToolbarState(editor: Editor | null) {
         orderedList: current.isActive("orderedList"),
         blockquote: current.isActive("blockquote"),
         codeBlock: current.isActive("codeBlock"),
+        image: current.isActive("image"),
         canUndo: current.can().undo(),
         canRedo: current.can().redo(),
       };
@@ -129,6 +136,11 @@ export function PostBodyEditor({
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
+  // null: closed; "insert": upload a new image; otherwise the selected image.
+  const [imagePanel, setImagePanel] = useState<
+    { mode: "insert" } | { mode: "edit"; attrs: ImageAttrs } | null
+  >(null);
+  const [imagePanelKey, setImagePanelKey] = useState(0);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
@@ -160,7 +172,19 @@ export function PostBodyEditor({
     if (!editor) return;
     setLinkValue((editor.getAttributes("link").href as string | undefined) ?? "");
     setLinkError(null);
+    setImagePanel(null);
     setLinkOpen(true);
+  }
+
+  function openImagePanel() {
+    if (!editor) return;
+    setLinkOpen(false);
+    setImagePanelKey((key) => key + 1);
+    setImagePanel(
+      editor.isActive("image")
+        ? { mode: "edit", attrs: editor.getAttributes("image") as ImageAttrs }
+        : { mode: "insert" },
+    );
   }
 
   function applyLink() {
@@ -332,6 +356,14 @@ export function PostBodyEditor({
           >
             <Minus aria-hidden="true" />
           </ToolbarButton>
+          <ToolbarButton
+            label={state?.image ? "Görseli düzenle" : "Görsel ekle"}
+            active={state?.image}
+            disabled={disabled}
+            onClick={openImagePanel}
+          >
+            <ImagePlus aria-hidden="true" />
+          </ToolbarButton>
           <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
           <ToolbarButton
             label="Geri al"
@@ -405,6 +437,15 @@ export function PostBodyEditor({
               </p>
             ) : null}
           </div>
+        ) : null}
+
+        {editor && imagePanel ? (
+          <PostImagePanel
+            key={imagePanelKey}
+            editor={editor}
+            selected={imagePanel.mode === "edit" ? imagePanel.attrs : null}
+            onClose={() => setImagePanel(null)}
+          />
         ) : null}
 
         {editor ? (
