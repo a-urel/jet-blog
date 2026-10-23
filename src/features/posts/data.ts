@@ -170,14 +170,21 @@ export type ArchiveLookup<T> =
   | { kind: "redirect"; slug: string }
   | { kind: "missing" };
 
-// Old category and tag slugs (renames, and deleted categories whose posts
-// moved) resolve to the current slug in one hop. The target page still
-// returns 404 when it has no published post.
-async function findTaxonomyRedirect(
-  table: "category_slug_redirects" | "tag_slug_redirects",
+const redirectTargets = {
+  category_slug_redirects: "categories",
+  tag_slug_redirects: "tags",
+  author_slug_redirects: "authors",
+} as const;
+
+// Old category, tag, and author slugs (renames, and deleted categories whose
+// posts moved) resolve to the current slug in one hop. The target page still
+// returns 404 when it has no published post. Author redirects are visible only
+// while the author is credited on a published post.
+async function findArchiveRedirect(
+  table: keyof typeof redirectTargets,
   slug: string,
 ): Promise<ArchiveLookup<never>> {
-  const target = table === "category_slug_redirects" ? "categories" : "tags";
+  const target = redirectTargets[table];
   const { data, error } = await publicClient()
     .from(table)
     .select(`target:${target}!inner(slug)`)
@@ -208,7 +215,7 @@ export const findCategoryArchive = cache(
 
     const categories = await listCategories();
     const category = categories.find((candidate) => candidate.slug === slug);
-    if (!category) return findTaxonomyRedirect("category_slug_redirects", slug);
+    if (!category) return findArchiveRedirect("category_slug_redirects", slug);
 
     const subtree = collectCategorySubtree(categories, category.id);
     const { data, error } = await selectPublishedPostsInCategories(publicClient(), subtree);
@@ -252,7 +259,7 @@ export const findTagArchive = cache(
     const supabase = publicClient();
     const tag = await selectTagBySlug(supabase, slug);
     if (tag.error) throw new Error(`Tag could not be loaded: ${tag.error.message}`);
-    if (!tag.data) return findTaxonomyRedirect("tag_slug_redirects", slug);
+    if (!tag.data) return findArchiveRedirect("tag_slug_redirects", slug);
 
     const { data, error } = await selectPublishedPostsWithTag(supabase, tag.data.id);
     if (error) throw new Error(`Tag archive could not be loaded: ${error.message}`);
@@ -278,7 +285,7 @@ export const findAuthorArchive = cache(
     const supabase = publicClient();
     const author = await selectAuthorBySlug(supabase, slug);
     if (author.error) throw new Error(`Author could not be loaded: ${author.error.message}`);
-    if (!author.data) return { kind: "missing" };
+    if (!author.data) return findArchiveRedirect("author_slug_redirects", slug);
 
     const { data, error } = await selectPublishedPostsByAuthor(supabase, author.data.id);
     if (error) throw new Error(`Author archive could not be loaded: ${error.message}`);

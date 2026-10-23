@@ -38,8 +38,9 @@ export type PublicContentChange =
   // moves or detaches. Names and slugs appear in every post card, archive,
   // breadcrumb, and the sitemap; old slugs start redirecting.
   | "taxonomy-changed"
-  // Author identity administration (not built yet): name, slug, or bio of an
-  // author credited on a published post.
+  // Author identity administration (/admin/authors): create, rename, re-slug,
+  // re-describe, link, or delete an author. Names and slugs appear in post
+  // bylines, author archives, and the sitemap; old slugs start redirecting.
   | "author-changed";
 
 export type PublicRoute = {

@@ -122,54 +122,56 @@ Known gaps: posts have no cover or Open Graph image (text-only cards); the site
 name and origin are provisional (D5), so canonical/sitemap URLs point at
 whatever `NEXT_PUBLIC_SITE_URL` holds. Archive and sitemap builds read every
 published post (fine at the current size; revisit with pagination later).
-Author identity edits have no admin UI yet and would reach cached archives only
-through the 5-minute fallback. Draft media is fetchable by URL (D4 tradeoff). Cache
+Draft media is fetchable by URL (D4 tradeoff). Cache
 invalidation stays route-wide by design (Phase 10 documents why per-post tags
 would not save regenerations). Hosting, domain, and brand (D5) are still open,
 so no hosted backup schedule, HSTS, or multi-instance cache handler exists yet. A slug
 changed while a post is unpublished records no redirect, so a URL that was
 public before an unpublish/rename/republish cycle returns 404. A deleted tag's
-archive URL returns 404 by decision. Author identity administration remains a
-follow-up increment; credits still use the seeded authors.
+archive URL returns 404 by decision, as does a deleted author's. A credited
+author cannot be deleted until the credits are removed post by post (no bulk
+reassignment by decision).
 
 ## Where to resume (session handoff)
 
-Phases 1–11 are on `origin/main` (latest `d99395c`). Taxonomy administration
-is complete and verified in the working tree; commit only on request. Do not
-push without an explicit request.
+Phases 1–11 and taxonomy administration are on `origin/main` (latest
+`8081321`). Author identity administration is complete and verified in the
+working tree; commit only on request. Do not push without an explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (405 tests),
-  `npm run test:rls` (276 tests), and `npm run build` pass. A browser journey on
-  `next dev` covered: an editor sees no taxonomy links and is denied
-  `/admin/categories`; an admin changed a category slug (the old archive URL
-  redirected), deleted a category with a post onto a target (the post moved,
-  the old URL redirected, the archive and sitemap updated at once), deleted a
-  tag used by two posts (removed from them, old URL 404), got "Bu ad zaten
-  kullanılıyor." with the form values kept for a duplicate name, and created a
-  child category.
-- Local database: `supabase db reset` applies all eleven migrations and the
-  seed. It creates no Auth users. The journey changed seed taxonomy locally
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (411 tests),
+  `npm run test:rls` (288 tests), and `npm run build` pass. A browser journey on
+  `next dev` covered: an admin changed the slug of a credited author and linked
+  an editor account (the old `/authors/deniz-ornek` URL answered 308 to the new
+  slug, and the sitemap listed the new slug at once); the account select listed
+  only editorial members; creating an author with the redirected old slug
+  showed the slug error with the form values kept; an author created with an
+  empty slug got one from its name and was deleted; the credited author's page
+  showed no delete form; an editor saw no "Yazarlar" link and was denied
+  `/admin/authors`.
+- Local database: `supabase db reset` applies all twelve migrations and the
+  seed. It creates no Auth users. The journeys changed seed data locally
   (Tasarım slug `tasarim-arayuz`, Yazılım deleted into Tasarım, tag
-  "Birlikte üretmek" deleted, "Arayüz Notları" added); a reset restores it.
-- Key files: taxonomy administration:
+  "Birlikte üretmek" deleted, "Arayüz Notları" added, author Deniz Örnek
+  re-slugged to `deniz-ornek-kalem` and linked to a local editor); a reset
+  restores it.
+- Key files: author administration:
+  `supabase/migrations/20261023180000_author_administration.sql`,
+  `src/features/authors/` (`actions.ts`, `admin-data.ts`, `validation.ts`,
+  `account-choices.ts`, components), `src/app/admin/authors/`,
+  `src/features/posts/data.ts` (archive redirects), and
+  `src/lib/supabase/author-admin.rls.test.ts`. Taxonomy administration:
   `supabase/migrations/20261023160000_taxonomy_administration.sql`,
-  `src/features/taxonomy/` (`actions.ts`, `admin-data.ts`, `validation.ts`,
-  `tree.ts`, components), `src/app/admin/{categories,tags}/`,
-  `src/features/posts/invalidate.ts`, `src/features/posts/data.ts` (archive
-  redirects), and `src/lib/supabase/taxonomy-admin.rls.test.ts`. Phase 11:
+  `src/features/taxonomy/`, `src/app/admin/{categories,tags}/`,
+  `src/features/posts/invalidate.ts`, and
+  `src/lib/supabase/taxonomy-admin.rls.test.ts`. Phase 11:
   `supabase/migrations/20261023140000_reader_accounts.sql`,
   `src/features/auth/`, `src/features/account/`, and
   `src/lib/supabase/reader-accounts.rls.test.ts`. Phase 10:
   `supabase/migrations/20261023120000_write_rate_limits.sql`,
   `src/features/posts/cache.ts`, and `docs/backup-and-restore.md`. Earlier
   phases: the other migrations and `*.rls.test.ts` files.
-- Next slice: author identity administration. Mutations must apply
-  `invalidatePublicContent("author-changed")` from
-  `src/features/posts/invalidate.ts` and consume a rate-limit event in the
-  RPC, like `require_taxonomy_admin()`. Keep `authors.user_id` server-only;
-  linking an account must not grant editorial access (reader accounts can
-  exist for any email). Decide what an author slug change does (redirect like
-  taxonomy?) and what deleting a credited author does before building it.
+- Next slice: Phase 12 (bookmarks). Both deferred administration follow-ups
+  are done.
 - Phases 12–13 hook into `prepare_own_account_deletion()` (delete bookmarks,
   anonymize comments) and need a display name before a reader comments.
 - Open gates: D5 remains provisional (hosting deferred, no production domain,
@@ -194,11 +196,13 @@ and then 11 (reader accounts) first; both increments now follow Phase 11
   removes it from its posts and its URL returns 404; category and tag slug
   changes record redirects like posts. See the README "Taxonomy
   administration" section.
-- **Author identity administration (admin).** Credits reference `authors`, and
-  `authors.user_id` is intentionally not client-readable. Phase 4 added an
-  editorial-only select policy for the public author columns but no way to
-  create guest or member authors or to link/unlink an Auth account. That
-  server-only path is the next increment.
+- **Author identity administration (admin). Done 2026-10-23.** Admins
+  create, rename, re-slug, describe, link, and delete author identities
+  through RPCs; `authors.user_id` stays client-unreadable. Decisions taken with
+  the user on 2026-10-23: an author slug change records a redirect like
+  taxonomy; an author credited on any post cannot be deleted; an author may
+  link only to an active editorial member's account, and the link grants no
+  access. See the README "Author identity administration" section.
 
 Neither belongs to Phase 5 or 6. Add them as explicit increments rather than
 widening an active phase silently.

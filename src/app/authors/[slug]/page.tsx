@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { archivePaths } from "@/features/posts/archives";
 import { ArchiveLayout } from "@/features/posts/components/archive-layout";
@@ -9,6 +9,7 @@ import { getSiteName } from "@/lib/site-url";
 
 // Same cache contract as /posts/[slug]. RLS exposes an author only while they
 // are credited on a published post, so uncredited and draft-only authors 404.
+// An old slug redirects to the current one (author administration).
 export const revalidate = 300;
 
 export async function generateStaticParams() {
@@ -34,6 +35,7 @@ export async function generateMetadata({
 export default async function AuthorArchivePage({ params }: PageProps<"/authors/[slug]">) {
   const { slug } = await params;
   const lookup = await findAuthorArchive(slug);
+  if (lookup.kind === "redirect") permanentRedirect(archivePaths.author(lookup.slug));
   if (lookup.kind !== "archive") notFound();
 
   return (

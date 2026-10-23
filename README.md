@@ -298,8 +298,9 @@ Phase 3 adds the content tables. Public pages read them since Phase 8 (see
 - `authors.user_id` stays internal: clients can select only the public identity
   columns (`id`, `name`, `slug`, `bio`, timestamps). Active editorial members get
   an additional select policy over those columns so they can build author
-  credits, but the account link remains unavailable. Author administration is a
-  deferred follow-up and will need an explicit server-side path to change it.
+  credits, but the account link remains unavailable. Admins change it only
+  through the author administration RPCs (see
+  [Author identity administration](#author-identity-administration)).
 
 `supabase db reset` reloads `supabase/seeds/seed.sql`: three synthetic published
 posts, one uncategorized draft, categories, tags, and guest author
@@ -321,8 +322,10 @@ Phase 4 adds the editorial metadata surface at `/admin/posts`:
 - `/admin/posts/[id]/preview` is a read-only members-only preview. It uses
   `force-dynamic`, sends `noindex`, and is not linked from public routes. A draft
   remains absent from `/posts/[slug]` and public listings.
-- Taxonomy and author records come from the seed. Their administration screens
-  are a deferred follow-up, not part of Phase 4.
+- Taxonomy and author records came from the seed in Phase 4. Their
+  administration screens arrived later as separate increments
+  ([taxonomy](#taxonomy-administration),
+  [authors](#author-identity-administration)).
 
 Writes use the security-definer RPCs in
 `supabase/migrations/20261022170000_draft_authoring.sql`. `create_draft_post`
@@ -617,8 +620,8 @@ needs a migration: archives reuse the Phase 3 RLS policies and indexes.
   (including slug changes and edits of published posts) calls
   `updateTag("public-posts")` and revalidates `/`, `/posts/[slug]`,
   `/categories/[slug]`, `/tags/[slug]`, `/authors/[slug]`, and `/sitemap.xml`.
-  Taxonomy and author changes have no admin UI yet; out-of-band changes appear
-  after the 5-minute fallback. Phase 10 moved this list into
+  Taxonomy and author administration apply the same invalidation; only
+  out-of-band database changes wait for the 5-minute fallback. Phase 10 moved this list into
   `features/posts/cache.ts` (see [Launch readiness](#launch-readiness-phase-10)).
 
 Tests: `archives.rls.test.ts` runs the real query builders
@@ -1102,9 +1105,52 @@ audit), a 130-post reassignment without post write-limit events, tag removal
 from posts, and the `taxonomy.write` limit. Unit tests cover input validation
 and the tree helpers.
 
+## Author identity administration
+
+Admins manage author identities at `/admin/authors`; editors and authors see a
+denial and keep crediting existing authors in the post editor. Migration
+`20261023180000_author_administration.sql` adds the write path.
+
+- **RPCs only.** `create_author`, `update_author`, and `delete_author` are
+  security-definer functions that re-check an active admin, write an
+  `editorial_audit_log` entry, and consume one `author.write` rate-limit event
+  (60 per admin per 10 minutes). The Phase 2 direct insert/update/delete grants
+  and policies on `authors` are removed, admins included. Server Actions in
+  `features/authors/actions.ts` normalize input (an empty slug is derived from
+  the name) and map errors to Turkish messages. Names may repeat; slugs are
+  unique and now limited to 120 characters.
+- **Stale forms.** Update and delete take the loaded `updated_at` and reject a
+  mismatch (`40001`).
+- **Slug redirects** (decision 2026-10-23). `author_slug_redirects` records old
+  slugs with the same one-hop rules as posts and taxonomy. A redirect row is
+  readable only while its author is (credited on a visible post), so it cannot
+  reveal an uncredited author. `/authors/[slug]` answers an old slug with a
+  permanent redirect.
+- **Deleting** (decision 2026-10-23). An author credited on any post, draft or
+  published, cannot be deleted (`23503`); the page hides the delete form and
+  says to remove the credits in the post editor first. Deleting an uncredited
+  author drops its redirects.
+- **Account links** (decision 2026-10-23). An author may link to one account,
+  and only to an active editorial member; readers cannot be linked. The link
+  grants nothing: edit and publish rights still come from `editorial_members`
+  and `posts.created_by`. A link survives deactivation (the form keeps offering
+  the current account) and is cleared when the account is deleted, so the
+  byline stays. `authors.user_id` remains column-unreadable; admins read links
+  through the admin-only `list_author_account_links()` RPC.
+- **Caches.** Every change applies `invalidatePublicContent("author-changed")`.
+
+Tests: `author-admin.rls.test.ts` covers the denial of every RPC for
+anonymous, reader, author, and editor callers, closed direct writes for admins
+too, the hidden `user_id` column, duplicate slugs, stale forms, redirects that
+stay hidden until the author is public plus takeover protection and reclaim,
+blocked deletion of a credited author, deletion with redirects and audit, link
+rules (readers, deactivated members, unknown ids, one author per account), and
+the `author.write` limit. Unit tests cover input validation and the account
+choices offered by the form.
+
 ## Next increment
 
-Phases 1–10 are implemented: authentication, editorial membership with
+Phases 1–11 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
@@ -1114,12 +1160,11 @@ invalidation, and slug redirects, SEO metadata, Article JSON-LD, sitemap,
 robots, sharing, and category/tag/author archives, and launch readiness (cache
 invalidation map, conflict handling, write rate limits, error and loading
 states, security headers, backup runbook, smoke test), self-service reader
-accounts (Phase 11), and taxonomy administration. See
+accounts (Phase 11), taxonomy administration, and author identity
+administration. See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-Next: author identity administration (guest and member authors, linking an
-Auth account through a server-only path). Its mutations must apply the
-`author-changed` invalidation through `features/posts/invalidate.ts`. A new body node still changes the TypeScript
+Next: Phase 12 (bookmarks) per ROADMAP.md. A new body node still changes the TypeScript
 allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

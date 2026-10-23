@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
+  PenLine,
   Tags,
   Users,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/features/auth/actions";
 import { EditorialAccessDenied } from "@/features/auth/components/editorial-access-denied";
 import {
+  canManageAuthors,
   canManageMembership,
   canManageTaxonomy,
   getEditorialContext,
@@ -100,6 +102,15 @@ export default async function AdminLayout({
                   Etiketler
                 </Link>
               </>
+            ) : null}
+            {canManageAuthors(membership) ? (
+              <Link
+                href="/admin/authors"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/80"
+              >
+                <PenLine aria-hidden="true" className="size-4" />
+                Yazarlar
+              </Link>
             ) : null}
             {canManageMembership(membership) ? (
               <Link

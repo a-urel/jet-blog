@@ -75,3 +75,10 @@ export function canManageTaxonomy(
 ): boolean {
   return membership?.role === "admin";
 }
+
+// Author identities and their account links are admin-only, like membership.
+export function canManageAuthors(
+  membership: EditorialMembership | null,
+): boolean {
+  return membership?.role === "admin";
+}
