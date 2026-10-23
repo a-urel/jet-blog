@@ -8,7 +8,9 @@ import { execFileSync } from "node:child_process";
 export function resolveStorageEnvironment(argv) {
   if (argv.includes("--local")) {
     const status = JSON.parse(
-      execFileSync("supabase", ["status", "--env"], {
+      // JSON explicitly: the default text format is dotenv lines outside of
+      // automation environments.
+      execFileSync("supabase", ["status", "--env", "--output-format", "json"], {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
       }),

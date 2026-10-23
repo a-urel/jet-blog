@@ -3,7 +3,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 let statusOutput;
 
 try {
-  statusOutput = execFileSync("supabase", ["status", "--env"], {
+  // Ask for JSON explicitly: the CLI prints dotenv lines (KEY='value') by
+  // default in an interactive shell and switches to JSON only when it detects
+  // an automation or agent environment.
+  statusOutput = execFileSync("supabase", ["status", "--env", "--output-format", "json"], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -19,7 +22,9 @@ let status;
 try {
   status = JSON.parse(statusOutput);
 } catch {
-  console.error("Could not parse `supabase status --env` output as JSON.");
+  console.error(
+    "Could not parse `supabase status --env --output-format json` output. Check the Supabase CLI version.",
+  );
   process.exit(1);
 }
 
