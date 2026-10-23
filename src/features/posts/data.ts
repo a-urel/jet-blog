@@ -167,7 +167,32 @@ export async function listPublicArchives(): Promise<PublicArchives> {
 
 export type ArchiveLookup<T> =
   | { kind: "archive"; subject: T; posts: PostSummary[] }
+  | { kind: "redirect"; slug: string }
   | { kind: "missing" };
+
+// Old category and tag slugs (renames, and deleted categories whose posts
+// moved) resolve to the current slug in one hop. The target page still
+// returns 404 when it has no published post.
+async function findTaxonomyRedirect(
+  table: "category_slug_redirects" | "tag_slug_redirects",
+  slug: string,
+): Promise<ArchiveLookup<never>> {
+  const target = table === "category_slug_redirects" ? "categories" : "tags";
+  const { data, error } = await publicClient()
+    .from(table)
+    .select(`target:${target}!inner(slug)`)
+    .eq("old_slug", slug)
+    .maybeSingle();
+
+  if (error) throw new Error(`Archive redirect could not be loaded: ${error.message}`);
+
+  const row = data?.target as { slug: string } | { slug: string }[] | null | undefined;
+  const targetSlug = Array.isArray(row) ? row[0]?.slug : row?.slug;
+
+  return targetSlug && targetSlug !== slug
+    ? { kind: "redirect", slug: targetSlug }
+    : { kind: "missing" };
+}
 
 export type CategoryArchive = PublicCategory & {
   // Root first, ending with the category itself.
@@ -183,7 +208,7 @@ export const findCategoryArchive = cache(
 
     const categories = await listCategories();
     const category = categories.find((candidate) => candidate.slug === slug);
-    if (!category) return { kind: "missing" };
+    if (!category) return findTaxonomyRedirect("category_slug_redirects", slug);
 
     const subtree = collectCategorySubtree(categories, category.id);
     const { data, error } = await selectPublishedPostsInCategories(publicClient(), subtree);
@@ -227,7 +252,7 @@ export const findTagArchive = cache(
     const supabase = publicClient();
     const tag = await selectTagBySlug(supabase, slug);
     if (tag.error) throw new Error(`Tag could not be loaded: ${tag.error.message}`);
-    if (!tag.data) return { kind: "missing" };
+    if (!tag.data) return findTaxonomyRedirect("tag_slug_redirects", slug);
 
     const { data, error } = await selectPublishedPostsWithTag(supabase, tag.data.id);
     if (error) throw new Error(`Tag archive could not be loaded: ${error.message}`);

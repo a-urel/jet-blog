@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileText, Image as ImageIcon, LayoutDashboard, LogOut, Users } from "lucide-react";
+import {
+  FileText,
+  FolderTree,
+  Image as ImageIcon,
+  LayoutDashboard,
+  LogOut,
+  Tags,
+  Users,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +17,7 @@ import { signOutAction } from "@/features/auth/actions";
 import { EditorialAccessDenied } from "@/features/auth/components/editorial-access-denied";
 import {
   canManageMembership,
+  canManageTaxonomy,
   getEditorialContext,
   type EditorialRole,
 } from "@/lib/auth/editorial";
@@ -74,6 +83,24 @@ export default async function AdminLayout({
               <ImageIcon aria-hidden="true" className="size-4" />
               Medya
             </Link>
+            {canManageTaxonomy(membership) ? (
+              <>
+                <Link
+                  href="/admin/categories"
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/80"
+                >
+                  <FolderTree aria-hidden="true" className="size-4" />
+                  Kategoriler
+                </Link>
+                <Link
+                  href="/admin/tags"
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/80"
+                >
+                  <Tags aria-hidden="true" className="size-4" />
+                  Etiketler
+                </Link>
+              </>
+            ) : null}
             {canManageMembership(membership) ? (
               <Link
                 href="/admin/members"

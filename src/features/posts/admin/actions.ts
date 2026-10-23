@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
@@ -9,7 +9,7 @@ import {
 } from "@/features/posts/content/schema";
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { publicCacheInvalidation, type PublicContentChange } from "../cache";
+import { invalidatePublicContent } from "../invalidate";
 import { canPublishPosts } from "./permissions";
 import { publicationErrorKey } from "./publication";
 import {
@@ -177,14 +177,6 @@ function revalidatePostPaths(postId: string) {
   revalidatePath("/admin/posts");
   revalidatePath(`/admin/posts/${postId}`);
   revalidatePath(`/admin/posts/${postId}/preview`);
-}
-
-// The invalidation for each kind of change is defined in ../cache.ts. updateTag
-// runs before revalidatePath so regenerated routes read fresh rows.
-function invalidatePublicContent(change: PublicContentChange) {
-  const { tags, routes } = publicCacheInvalidation(change);
-  tags.forEach((tag) => updateTag(tag));
-  routes.forEach(({ path, type }) => revalidatePath(path, type));
 }
 
 function keepSubmittedValues(

@@ -33,9 +33,10 @@ export type PublicContentChange =
   | "published-post-updated"
   // Save of a post that is not published. No public effect.
   | "draft-saved"
-  // Taxonomy administration (not built yet): create, rename, re-slug, move, or
-  // delete a category or tag. Names and slugs appear in every post card,
-  // archive, breadcrumb, and the sitemap.
+  // Taxonomy administration (/admin/categories, /admin/tags): create, rename,
+  // re-slug, move, or delete a category or tag, including the posts a delete
+  // moves or detaches. Names and slugs appear in every post card, archive,
+  // breadcrumb, and the sitemap; old slugs start redirecting.
   | "taxonomy-changed"
   // Author identity administration (not built yet): name, slug, or bio of an
   // author credited on a published post.

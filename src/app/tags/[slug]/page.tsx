@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { archivePaths } from "@/features/posts/archives";
 import { ArchiveLayout } from "@/features/posts/components/archive-layout";
@@ -33,6 +33,7 @@ export async function generateMetadata({
 export default async function TagArchivePage({ params }: PageProps<"/tags/[slug]">) {
   const { slug } = await params;
   const lookup = await findTagArchive(slug);
+  if (lookup.kind === "redirect") permanentRedirect(archivePaths.tag(lookup.slug));
   if (lookup.kind !== "archive") notFound();
 
   return (

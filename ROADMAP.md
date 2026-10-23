@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-23 (Phase 11 complete)
+Last updated: 2026-10-23 (taxonomy administration complete)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -88,7 +88,14 @@ does not add requirements on its own.
   account deletion through `prepare_own_account_deletion()` plus the Auth admin
   API (active admins refused; authored content kept). Reader state stays
   derived from the absence of an editorial grant.
-- 395 unit tests and 263 local-Supabase RLS tests (including the Phase 11
+- Taxonomy administration (deferred follow-up 1 of 2): admin-only
+  `/admin/categories` and `/admin/tags` with create, edit, move, and delete
+  through audited, rate-limited security-definer RPCs, `updated_at`
+  stale-form protection, public slug redirects for categories and tags,
+  category deletion that moves posts to a chosen target, and tag deletion that
+  removes the tag from its posts.
+- 405 unit tests and 276 local-Supabase RLS tests (including the taxonomy
+  administration suite, the Phase 11
   self-signed-up reader matrix and the Phase 10
   concurrent-save, rate-limit, and final anonymous/reader/author/editor/admin
   matrix tests) cover archive and sitemap
@@ -115,62 +122,60 @@ Known gaps: posts have no cover or Open Graph image (text-only cards); the site
 name and origin are provisional (D5), so canonical/sitemap URLs point at
 whatever `NEXT_PUBLIC_SITE_URL` holds. Archive and sitemap builds read every
 published post (fine at the current size; revisit with pagination later).
-Taxonomy and author edits have no admin UI yet and reach cached archives only
+Author identity edits have no admin UI yet and would reach cached archives only
 through the 5-minute fallback. Draft media is fetchable by URL (D4 tradeoff). Cache
 invalidation stays route-wide by design (Phase 10 documents why per-post tags
 would not save regenerations). Hosting, domain, and brand (D5) are still open,
 so no hosted backup schedule, HSTS, or multi-instance cache handler exists yet. A slug
 changed while a post is unpublished records no redirect, so a URL that was
-public before an unpublish/rename/republish cycle returns 404. Taxonomy and
-author identity administration remain follow-up increments; Phase 8 consumes
-the seeded records.
+public before an unpublish/rename/republish cycle returns 404. A deleted tag's
+archive URL returns 404 by decision. Author identity administration remains a
+follow-up increment; credits still use the seeded authors.
 
 ## Where to resume (session handoff)
 
-Phases 1–10 are on `origin/main` (latest `a258914`). Phase 11 is complete and
-verified in the working tree; commit only on request. Do not push without an
-explicit request.
+Phases 1–11 are on `origin/main` (latest `d99395c`). Taxonomy administration
+is complete and verified in the working tree; commit only on request. Do not
+push without an explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (395 tests),
-  `npm run test:rls` (263 tests), and `npm run build` pass. A browser journey on
-  `next dev` with local Mailpit covered sign-up (weak password rejected),
-  sign-in refused before confirmation, the PKCE confirmation link, display-name
-  change, denied `/admin/posts` and `/admin/members`, identical reset answers
-  for unknown and registered emails, the recovery link, the new password,
-  account deletion (wrong password refused, then only that user's rows gone),
-  an active admin's deletion refused on `/account`, invalid callback links,
-  the `token_hash` recovery link, and an admin inviting an editor who accepted
-  in Mailpit, set a password, and reached `/admin` as before.
-- Local database: `supabase db reset` applies all ten migrations and the seed.
-  It creates no Auth users. `supabase/config.toml` changed in Phase 11 (sign-up,
-  email and phone confirmations, password rule, redirect URLs): restart the
-  local stack after pulling.
-- Key files: Phase 11: `supabase/migrations/20261023140000_reader_accounts.sql`,
-  `supabase/config.toml`, `src/features/auth/` (`actions.ts`,
-  `password-policy.ts`, `rate-limit*.ts`, `code-exchange.ts`, `validation.ts`,
-  components), `src/features/account/`, `src/app/{signup,account,login/reset}`,
-  `src/app/auth/{callback,recovery}/route.ts`, `src/proxy.ts`,
-  `src/lib/app-origin.ts`, and `src/lib/supabase/reader-accounts.rls.test.ts`.
-  Phase 10: `supabase/migrations/20261023120000_write_rate_limits.sql`,
-  `src/features/posts/cache.ts`, `src/lib/security-headers.ts`,
-  `docs/backup-and-restore.md`, and `src/lib/supabase/launch-readiness.rls.test.ts`.
-  Earlier phases: the other migrations, `src/features/posts/`,
-  `src/features/media/`, and the other `*.rls.test.ts` files.
-- Next slice: taxonomy administration, then author identity administration.
-  Both were agreed on 2026-10-23 to follow Phase 8; the user then asked for
-  Phases 9, 10, and 11 first, so they now follow Phase 11. Taxonomy and author
-  mutations must apply `publicCacheInvalidation("taxonomy-changed")` /
-  `("author-changed")` from `src/features/posts/cache.ts` and should get a
-  rate-limit rule in the same trigger style. Author administration must keep
-  `authors.user_id` server-only; linking an account must not grant editorial
-  access (reader accounts can now exist for any email).
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (405 tests),
+  `npm run test:rls` (276 tests), and `npm run build` pass. A browser journey on
+  `next dev` covered: an editor sees no taxonomy links and is denied
+  `/admin/categories`; an admin changed a category slug (the old archive URL
+  redirected), deleted a category with a post onto a target (the post moved,
+  the old URL redirected, the archive and sitemap updated at once), deleted a
+  tag used by two posts (removed from them, old URL 404), got "Bu ad zaten
+  kullanılıyor." with the form values kept for a duplicate name, and created a
+  child category.
+- Local database: `supabase db reset` applies all eleven migrations and the
+  seed. It creates no Auth users. The journey changed seed taxonomy locally
+  (Tasarım slug `tasarim-arayuz`, Yazılım deleted into Tasarım, tag
+  "Birlikte üretmek" deleted, "Arayüz Notları" added); a reset restores it.
+- Key files: taxonomy administration:
+  `supabase/migrations/20261023160000_taxonomy_administration.sql`,
+  `src/features/taxonomy/` (`actions.ts`, `admin-data.ts`, `validation.ts`,
+  `tree.ts`, components), `src/app/admin/{categories,tags}/`,
+  `src/features/posts/invalidate.ts`, `src/features/posts/data.ts` (archive
+  redirects), and `src/lib/supabase/taxonomy-admin.rls.test.ts`. Phase 11:
+  `supabase/migrations/20261023140000_reader_accounts.sql`,
+  `src/features/auth/`, `src/features/account/`, and
+  `src/lib/supabase/reader-accounts.rls.test.ts`. Phase 10:
+  `supabase/migrations/20261023120000_write_rate_limits.sql`,
+  `src/features/posts/cache.ts`, and `docs/backup-and-restore.md`. Earlier
+  phases: the other migrations and `*.rls.test.ts` files.
+- Next slice: author identity administration. Mutations must apply
+  `invalidatePublicContent("author-changed")` from
+  `src/features/posts/invalidate.ts` and consume a rate-limit event in the
+  RPC, like `require_taxonomy_admin()`. Keep `authors.user_id` server-only;
+  linking an account must not grant editorial access (reader accounts can
+  exist for any email). Decide what an author slug change does (redirect like
+  taxonomy?) and what deleting a credited author does before building it.
 - Phases 12–13 hook into `prepare_own_account_deletion()` (delete bookmarks,
   anonymize comments) and need a display name before a reader comments.
 - Open gates: D5 remains provisional (hosting deferred, no production domain,
   `NEXT_PUBLIC_SITE_NAME` default "Yazılar"). Launch needs those decisions plus
-  the README hosting checklist, which now includes the reader-account Auth
-  settings, production SMTP, and `token_hash` email templates. Revisit D4
-  before public launch if draft images must stay private.
+  the README hosting checklist. Revisit D4 before public launch if draft images
+  must stay private.
 
 ## Deferred administration follow-ups
 
@@ -181,15 +186,19 @@ used the seeded records). Later the same day the user asked for Phases 9, 10,
 and then 11 (reader accounts) first; both increments now follow Phase 11
 (Phases 9–11 also use the seeded records):
 
-- **Taxonomy administration (admin).** D1 gives admins create, rename, move, and
-  delete for categories and tags. A minimal admin CRUD slice is the next
-  increment; moves must reuse the database cycle protection, and deletion must
-  define reassignment before removing a category that posts use.
+- **Taxonomy administration (admin). Done 2026-10-23.** D1 gives admins
+  create, rename, move, and delete for categories and tags. Decisions taken
+  with the user on 2026-10-23: deleting a category that posts use requires a
+  target category (posts move there, children move up to the deleted
+  category's parent, the old URL redirects to the target); deleting a tag
+  removes it from its posts and its URL returns 404; category and tag slug
+  changes record redirects like posts. See the README "Taxonomy
+  administration" section.
 - **Author identity administration (admin).** Credits reference `authors`, and
   `authors.user_id` is intentionally not client-readable. Phase 4 added an
   editorial-only select policy for the public author columns but no way to
   create guest or member authors or to link/unlink an Auth account. That
-  server-only path follows taxonomy administration.
+  server-only path is the next increment.
 
 Neither belongs to Phase 5 or 6. Add them as explicit increments rather than
 widening an active phase silently.
@@ -1131,17 +1140,14 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Phases 1–11 are complete. Next, ship the deferred administration increments in
-order: taxonomy administration (admin create, rename, move with database cycle
-protection, and delete with defined reassignment; mutations must apply
-`publicCacheInvalidation("taxonomy-changed")`, which expires `public-posts` and
-revalidates the listing, posts, archives, and the sitemap), then author
+Phases 1–11 and taxonomy administration are complete. Next, ship author
 identity administration (guest and member authors through a server-only path
-for `authors.user_id`, invalidating with `"author-changed"`; linking a reader
-account to an author must not grant editorial access). Phases 12 (bookmarks)
-and 13 (comments) follow and plug into `prepare_own_account_deletion()`. The
-public launch then needs the D5 domain, brand, and hosting decisions and the
-README hosting checklist (site URL, Auth redirects, reader-account Auth
-settings, production SMTP and `token_hash` templates, HSTS, shared cache
-handler or single instance, hosted backups, D4 review, smoke test against the
-deployment).
+for `authors.user_id`, invalidating with `"author-changed"` through
+`features/posts/invalidate.ts`; linking a reader account to an author must not
+grant editorial access; decide slug-change and deletion behavior for credited
+authors first). Phases 12 (bookmarks) and 13 (comments) follow and plug into
+`prepare_own_account_deletion()`. The public launch then needs the D5 domain,
+brand, and hosting decisions and the README hosting checklist (site URL, Auth
+redirects, reader-account Auth settings, production SMTP and `token_hash`
+templates, HSTS, shared cache handler or single instance, hosted backups, D4
+review, smoke test against the deployment).

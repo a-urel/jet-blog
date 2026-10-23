@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { archivePaths } from "@/features/posts/archives";
 import { ArchiveLayout } from "@/features/posts/components/archive-layout";
@@ -38,6 +38,7 @@ export default async function CategoryArchivePage({
 }: PageProps<"/categories/[slug]">) {
   const { slug } = await params;
   const lookup = await findCategoryArchive(slug);
+  if (lookup.kind === "redirect") permanentRedirect(archivePaths.category(lookup.slug));
   if (lookup.kind !== "archive") notFound();
 
   const { subject, posts } = lookup;

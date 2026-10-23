@@ -68,3 +68,10 @@ export function canManageMembership(
 ): boolean {
   return membership?.role === "admin";
 }
+
+// D1: only admins manage categories and tags; editors assign existing ones.
+export function canManageTaxonomy(
+  membership: EditorialMembership | null,
+): boolean {
+  return membership?.role === "admin";
+}

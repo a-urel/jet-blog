@@ -269,8 +269,10 @@ Phase 3 adds the content tables. Public pages read them since Phase 8 (see
 
 - `categories` is hierarchical through `parent_id`. A trigger rejects
   self-parenting and longer cycles on insert and move, and a transaction-scoped
-  advisory lock serializes concurrent moves. Deleting a category is restricted
-  while children or posts reference it; posts are never cascade-deleted.
+  advisory lock serializes concurrent moves. Foreign keys restrict deleting a
+  category while children or posts reference it; posts are never
+  cascade-deleted. The admin delete RPC moves them first (see
+  [Taxonomy administration](#taxonomy-administration)).
 - `posts.category_id` stays nullable at the database level. Drafts may be
   uncategorized; a CHECK constraint requires a category, and a publication
   timestamp, before `status = 'published'`.
@@ -636,6 +638,8 @@ src/
     admin/                # Protected editorial shell and member administration
     admin/media/          # Media library with reference-aware deletion
     admin/members/        # Admin-only member list and actions
+    admin/categories/     # Admin-only category tree, create, edit, move, delete
+    admin/tags/           # Admin-only tags, create, edit, delete
     admin/posts/          # Draft list, create, edit, and members-only preview
     account/              # Reader account: display name, sign-out, deletion
     account/password/     # Change or recover the password (signed in)
@@ -659,7 +663,7 @@ src/
     members/              # Invite, role, and activation Server Actions
     seo/                  # Metadata, Article JSON-LD, sitemap and robots builders
     sharing/              # Copy link and provider share links
-    taxonomy/             # Category hierarchy helpers
+    taxonomy/             # Hierarchy and tree helpers, admin data, validation, actions
     posts/
       admin/              # Draft data, validation, permissions, form, editor, actions
       components/         # Shared post presentation and read-only body renderer
@@ -689,6 +693,7 @@ src/
       archives.rls.test.ts        # Archives and sitemap input by role
       editorial-rls.rls.test.ts # Membership and audit RLS tests
       reader-accounts.rls.test.ts # Self-service reader matrix, deletion, limits
+      taxonomy-admin.rls.test.ts  # Taxonomy RPCs, moves, redirects, deletion
     app-origin.ts         # Origin for Auth email redirects
   proxy.ts                # Next.js 16 token refresh (formerly middleware)
 supabase/
@@ -1042,6 +1047,61 @@ with `token_hash` links,
 `max_frequency` and Auth rate limits for the hosted project, and the hosted
 Auth settings listed in the hosting checklist above.
 
+## Taxonomy administration
+
+Admins manage categories at `/admin/categories` and tags at `/admin/tags` (D1);
+editors and authors only assign existing ones and see a denial on these pages.
+Migration `20261023160000_taxonomy_administration.sql` adds the write path.
+
+- **RPCs only.** `create_category`, `update_category`, `delete_category`,
+  `create_tag`, `update_tag`, and `delete_tag` are security-definer functions
+  that re-check an active admin (`require_admin_actor`), write an
+  `editorial_audit_log` entry, and consume one `taxonomy.write` rate-limit
+  event (60 per admin per 10 minutes, the Phase 10 mechanism). Clients still
+  have no direct write grants on taxonomy tables. Server Actions in
+  `features/taxonomy/actions.ts` normalize input with `src/lib/slug.ts` (an
+  empty slug is derived from the name) and map errors to Turkish messages; the
+  table constraints remain the final authority.
+- **Stale forms.** Update and delete RPCs take the `updated_at` value the form
+  loaded and reject a mismatch (`40001`), so two admins cannot silently
+  overwrite each other.
+- **Moves.** Changing the parent moves the whole subtree. The parent select
+  hides the category and its descendants, and the existing
+  `prevent_category_cycle` trigger rejects any cycle (`23514`).
+- **Slug redirects.** `category_slug_redirects` and `tag_slug_redirects` record
+  old slugs on every slug change, with the same one-hop rules as posts: another
+  category or tag cannot take a redirected slug, and a record may take its own
+  old slug back. They are publicly readable; `/categories/[slug]` and
+  `/tags/[slug]` answer an old slug with a permanent redirect.
+- **Deleting a category** (decision 2026-10-23): when posts use it, the admin
+  must pick a target category. The RPC moves the posts to the target, moves
+  child categories up to the deleted category's parent, points the deleted
+  slug and its older redirects at the target, and deletes the row, all in one
+  transaction. An unused category can be deleted without a target (its URL
+  then returns 404) or with one (its URL redirects).
+- **Deleting a tag** (decision 2026-10-23): the tag is removed from every post
+  and deleted; its archive URL returns 404. The confirmation names the number
+  of affected posts.
+- **Affected posts.** Moved or detached posts get `revision + 1`, so an
+  editor's open form hits the normal conflict instead of saving a removed
+  category or tag, and a new `updated_at` (published posts show
+  "Güncellendi"). These bulk updates do not spend the per-row `post.update`
+  limit: the RPC sets a transaction-local flag that the post rate-limit trigger
+  honors, and clients cannot set it.
+- **Caches.** Every successful change applies
+  `invalidatePublicContent("taxonomy-changed")` (`features/posts/invalidate.ts`,
+  now shared with the post actions), which expires `public-posts` and
+  revalidates the listing, post, archive routes, and the sitemap.
+
+Tests: `taxonomy-admin.rls.test.ts` covers the denial of every RPC for
+anonymous, reader, author, and editor callers, closed direct writes (including
+the redirect tables), duplicate names and slugs, stale forms, subtree moves and
+cycle rejection, public redirects with takeover protection and reclaim,
+deletion with and without a target (posts, children, redirects, revisions,
+audit), a 130-post reassignment without post write-limit events, tag removal
+from posts, and the `taxonomy.write` limit. Unit tests cover input validation
+and the tree helpers.
+
 ## Next increment
 
 Phases 1–10 are implemented: authentication, editorial membership with
@@ -1053,14 +1113,13 @@ embeds, publishing with database-backed public pages, explicit ISR and cache
 invalidation, and slug redirects, SEO metadata, Article JSON-LD, sitemap,
 robots, sharing, and category/tag/author archives, and launch readiness (cache
 invalidation map, conflict handling, write rate limits, error and loading
-states, security headers, backup runbook, smoke test), and self-service reader
-accounts (Phase 11). See
+states, security headers, backup runbook, smoke test), self-service reader
+accounts (Phase 11), and taxonomy administration. See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-Next: the taxonomy administration and author identity administration
-increments (Phases 10 and 11 were done first at the user's request). Their mutations
-must apply the `taxonomy-changed` and `author-changed` invalidations from
-`features/posts/cache.ts`. A new body node still changes the TypeScript
+Next: author identity administration (guest and member authors, linking an
+Auth account through a server-only path). Its mutations must apply the
+`author-changed` invalidation through `features/posts/invalidate.ts`. A new body node still changes the TypeScript
 allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand
