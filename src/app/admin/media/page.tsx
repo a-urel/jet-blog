@@ -39,6 +39,8 @@ const errorMessages: Record<string, string> = {
   "in-use": "Bu görsel bir yazıda kullanıldığı için silinemez. Önce yazılardan kaldırın.",
   "object-remains":
     "Görsel kaydı silindi ancak dosya Storage'dan kaldırılamadı. Tekrar deneyin veya bir yöneticiye bildirin.",
+  "rate-limited":
+    "Kısa sürede çok fazla görsel silindi (10 dakikada en fazla 60). Biraz sonra tekrar deneyin.",
   failed: "İşlem tamamlanamadı. Tekrar deneyin.",
 };
 

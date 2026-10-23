@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 import { mediaPublicPath } from "./src/features/media/url";
+import { buildSecurityHeaders, isLoopbackHostname } from "./src/lib/security-headers";
 
 // Public media lives in the Supabase Storage bucket chosen by decision D4. Only
 // that bucket path is allowed as a remote image source.
@@ -28,12 +29,23 @@ function isLoopbackSupabase(): boolean {
   const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!raw) return false;
 
-  const { hostname } = new URL(raw);
-  return ["127.0.0.1", "localhost", "[::1]"].includes(hostname);
+  return isLoopbackHostname(new URL(raw).hostname);
 }
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  poweredByHeader: false,
+  // CSP and baseline security headers; see src/lib/security-headers.ts.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: buildSecurityHeaders({
+          supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+          isDevelopment: process.env.NODE_ENV === "development",
+        }),
+      },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {

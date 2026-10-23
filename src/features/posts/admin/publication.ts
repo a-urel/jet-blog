@@ -7,6 +7,7 @@ export type PublicationErrorKey =
   | "body"
   | "state"
   | "missing"
+  | "rate-limited"
   | "failed";
 
 export function publicationErrorKey(error: {
@@ -29,6 +30,8 @@ export function publicationErrorKey(error: {
       return "state";
     case "P0002":
       return "missing";
+    case "PT429":
+      return "rate-limited";
     default:
       return "failed";
   }
@@ -42,6 +45,8 @@ export const publicationErrorMessages: Record<PublicationErrorKey, string> = {
   body: "Yazı gövdesi geçersiz olduğu için yayınlanamadı.",
   state: "Yazının durumu bu işlem için uygun değil. Sayfayı yenileyin.",
   missing: "Yazı bulunamadı veya erişim yetkiniz yok.",
+  "rate-limited":
+    "Kısa sürede çok fazla yayınlama işlemi yapıldı (saatte en fazla 30). Biraz sonra tekrar deneyin.",
   failed: "İşlem tamamlanamadı. Tekrar deneyin.",
 };
 

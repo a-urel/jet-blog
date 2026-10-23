@@ -83,12 +83,16 @@ export function PostForm({
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialValues.tagIds,
   );
+  const [categoryId, setCategoryId] = useState(initialValues.categoryId);
   const [authorToAdd, setAuthorToAdd] = useState("");
   const [state, formAction, pending] = useActionState(
     mode === "create" ? createDraftPostAction : updatePostMetadataAction,
     initialState,
   );
 
+  // After a rejected save, the submitted text becomes the default value so the
+  // automatic form reset keeps what the user typed.
+  const values = state.values ?? initialValues;
   const usedAuthorIds = new Set(credits.map((credit) => credit.authorId));
   const availableAuthors = authors.filter(
     (author) => !usedAuthorIds.has(author.id),
@@ -178,7 +182,7 @@ export function PostForm({
           type="text"
           required
           maxLength={200}
-          defaultValue={initialValues.title}
+          defaultValue={values.title}
           aria-invalid={state.fieldErrors.title ? true : undefined}
           aria-describedby={
             state.fieldErrors.title ? "post-title-error" : undefined
@@ -194,7 +198,7 @@ export function PostForm({
           name="slug"
           type="text"
           maxLength={200}
-          defaultValue={initialValues.slug}
+          defaultValue={values.slug}
           spellCheck={false}
           aria-invalid={state.fieldErrors.slug ? true : undefined}
           aria-describedby="post-slug-help post-slug-error"
@@ -213,7 +217,7 @@ export function PostForm({
           name="excerpt"
           rows={4}
           maxLength={500}
-          defaultValue={initialValues.excerpt}
+          defaultValue={values.excerpt}
           aria-invalid={state.fieldErrors.excerpt ? true : undefined}
           aria-describedby={
             state.fieldErrors.excerpt ? "post-excerpt-error" : undefined
@@ -249,7 +253,8 @@ export function PostForm({
           <select
             id="post-category"
             name="categoryId"
-            defaultValue={initialValues.categoryId}
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
             aria-invalid={state.fieldErrors.categoryId ? true : undefined}
             aria-describedby={

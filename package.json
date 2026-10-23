@@ -10,7 +10,10 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:rls": "node scripts/run-rls-tests.mjs"
+    "test:rls": "node scripts/run-rls-tests.mjs",
+    "test:smoke": "node scripts/smoke.mjs",
+    "backup:storage": "node scripts/storage-backup.mjs",
+    "restore:storage": "node scripts/storage-restore.mjs"
   },
   "engines": {
     "node": ">=22.0.0"

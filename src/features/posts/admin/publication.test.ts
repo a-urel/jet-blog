@@ -13,6 +13,7 @@ describe("publicationErrorKey", () => {
     expect(publicationErrorKey({ code: "23514" })).toBe("category");
     expect(publicationErrorKey({ code: "55000" })).toBe("state");
     expect(publicationErrorKey({ code: "P0002" })).toBe("missing");
+    expect(publicationErrorKey({ code: "PT429" })).toBe("rate-limited");
   });
 
   it("separates body errors from other invalid input", () => {

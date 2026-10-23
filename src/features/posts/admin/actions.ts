@@ -9,7 +9,7 @@ import {
 } from "@/features/posts/content/schema";
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { publicPostsCacheTag } from "../cache";
+import { publicCacheInvalidation, type PublicContentChange } from "../cache";
 import { canPublishPosts } from "./permissions";
 import { publicationErrorKey } from "./publication";
 import {
@@ -21,10 +21,22 @@ import {
   type PostFieldErrors,
 } from "./validation";
 
+// Submitted values of the uncontrolled fields. React resets a form after its
+// action settles, so a rejected save hands them back as the new default values
+// instead of silently reverting the user's input. Tags, credits, and the body
+// editor are client state and survive on their own.
+export type SubmittedPostValues = {
+  title: string;
+  slug: string;
+  excerpt: string;
+  categoryId: string;
+};
+
 export type PostFormState = {
   status: "idle" | "error" | "conflict";
   message: string | null;
   fieldErrors: PostFieldErrors;
+  values?: SubmittedPostValues;
 };
 
 type PostMutationRow = {
@@ -85,6 +97,10 @@ function mapRpcError(error: {
   switch (error?.code) {
     case "42501":
       return errorState("Bu yazıyı düzenleme yetkiniz yok.");
+    case "PT429":
+      return errorState(
+        "Kısa sürede çok fazla kayıt yapıldı. Formdaki değişiklikleriniz korundu; birkaç dakika sonra tekrar kaydedin.",
+      );
     case "40001":
       return conflictState(
         "Bu yazı siz formu açtıktan sonra değişti. Formdaki değişiklikleriniz korundu; güncel sürümü açıp yeniden uygulayın.",
@@ -163,28 +179,45 @@ function revalidatePostPaths(postId: string) {
   revalidatePath(`/admin/posts/${postId}/preview`);
 }
 
-// Public pages are ISR-cached (home, /posts/[slug], the category, tag, and
-// author archives, and sitemap.xml) and their Supabase reads sit in the Data
-// Cache under publicPostsCacheTag. Any change that can alter published output
-// (publish, unpublish, slug change, edit of a published post) expires that
-// data immediately (updateTag: the next request waits for fresh rows) and
-// invalidates every public route that lists or links posts. A slug change also affects the old URL, which
-// now redirects, so a route-pattern invalidation is simpler and safer than
-// tracking both slugs. Phase 10 may narrow this with per-post tags.
-function revalidatePublicPostPaths() {
-  updateTag(publicPostsCacheTag);
-  revalidatePath("/");
-  revalidatePath("/posts/[slug]", "page");
-  revalidatePath("/categories/[slug]", "page");
-  revalidatePath("/tags/[slug]", "page");
-  revalidatePath("/authors/[slug]", "page");
-  revalidatePath("/sitemap.xml");
+// The invalidation for each kind of change is defined in ../cache.ts. updateTag
+// runs before revalidatePath so regenerated routes read fresh rows.
+function invalidatePublicContent(change: PublicContentChange) {
+  const { tags, routes } = publicCacheInvalidation(change);
+  tags.forEach((tag) => updateTag(tag));
+  routes.forEach(({ path, type }) => revalidatePath(path, type));
 }
 
+function keepSubmittedValues(
+  formData: FormData,
+  state: PostFormState,
+): PostFormState {
+  return {
+    ...state,
+    values: {
+      title: getStringField(formData, "title"),
+      slug: getStringField(formData, "slug"),
+      excerpt: getStringField(formData, "excerpt"),
+      categoryId: getStringField(formData, "categoryId"),
+    },
+  };
+}
+
+// Success redirects (redirect() throws), so only rejected saves return state.
 export async function createDraftPostAction(
   _previousState: PostFormState,
   formData: FormData,
 ): Promise<PostFormState> {
+  return keepSubmittedValues(formData, await createDraftPost(formData));
+}
+
+export async function updatePostMetadataAction(
+  _previousState: PostFormState,
+  formData: FormData,
+): Promise<PostFormState> {
+  return keepSubmittedValues(formData, await updatePostMetadata(formData));
+}
+
+async function createDraftPost(formData: FormData): Promise<PostFormState> {
   const context = await getEditorialContext();
 
   if (!context.user) {
@@ -232,10 +265,7 @@ export async function createDraftPostAction(
   redirect(`/admin/posts/${row.post_id}?status=created`);
 }
 
-export async function updatePostMetadataAction(
-  _previousState: PostFormState,
-  formData: FormData,
-): Promise<PostFormState> {
+async function updatePostMetadata(formData: FormData): Promise<PostFormState> {
   const context = await getEditorialContext();
 
   if (!context.user) {
@@ -266,7 +296,8 @@ export async function updatePostMetadataAction(
     return errorState("Formda düzeltilmesi gereken alanlar var.", validation.fieldErrors);
   }
 
-  const { error } = await (await createServerSupabaseClient()).rpc(
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.rpc(
     "update_post_metadata",
     {
       p_post_id: postId,
@@ -290,9 +321,18 @@ export async function updatePostMetadataAction(
   }
 
   // An editor may edit a published post directly (D3), so a save can change
-  // public output. Draft saves invalidate too; that only costs a regeneration.
+  // public output. A draft save cannot. If the status cannot be read, assume
+  // the post is public: an extra regeneration is cheaper than a stale page.
+  const { data: saved } = await supabase
+    .from("posts")
+    .select("status")
+    .eq("id", postId)
+    .maybeSingle();
+
   revalidatePostPaths(postId);
-  revalidatePublicPostPaths();
+  invalidatePublicContent(
+    saved?.status === "draft" ? "draft-saved" : "published-post-updated",
+  );
   redirect(`/admin/posts/${postId}?status=updated`);
 }
 
@@ -331,7 +371,9 @@ async function changePublication(
   if (error) redirect(`${postPath}?error=${publicationErrorKey(error)}`);
 
   revalidatePostPaths(postId);
-  revalidatePublicPostPaths();
+  invalidatePublicContent(
+    rpc === "publish_post" ? "post-published" : "post-unpublished",
+  );
   redirect(`${postPath}?status=${successStatus}`);
 }
 

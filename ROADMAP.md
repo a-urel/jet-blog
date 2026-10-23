@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-23 (Phase 9 complete)
+Last updated: 2026-10-23 (Phase 10 complete)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–9, complete)
+## Current baseline (Phases 1–10, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -69,7 +69,18 @@ does not add requirements on its own.
   button and provider share links, `noindex` on admin, previews, sign-in, and
   every 404, and archive/sitemap invalidation in the existing `public-posts`
   tag flow. No migration was needed.
-- 365 unit tests and 204 local-Supabase RLS tests cover archive and sitemap
+- Phase 10 launch readiness: an explicit public cache invalidation map
+  (`features/posts/cache.ts`; draft saves no longer expire public caches),
+  conflict UI that keeps every form field and the Tiptap body, per-actor write
+  rate limits enforced by database triggers (HTTP 429), error, not-found, and
+  loading states for public and admin routes, a static CSP and baseline
+  security headers compatible with ISR, YouTube nocookie, and the media origin,
+  a secrets review, a Postgres + Storage backup runbook with an exercised local
+  drill (`docs/backup-and-restore.md`), and an anonymous smoke test
+  (`npm run test:smoke`).
+- 379 unit tests and 239 local-Supabase RLS tests (including the Phase 10
+  concurrent-save, rate-limit, and final anonymous/reader/author/editor/admin
+  matrix tests) cover archive and sitemap
   visibility by role, metadata and JSON-LD, share links, and publishing by role,
   publish without category, stale revisions, draft absence from public reads,
   slug redirects and reservation, public row mapping, YouTube URL parsing
@@ -95,7 +106,9 @@ whatever `NEXT_PUBLIC_SITE_URL` holds. Archive and sitemap builds read every
 published post (fine at the current size; revisit with pagination later).
 Taxonomy and author edits have no admin UI yet and reach cached archives only
 through the 5-minute fallback. Draft media is fetchable by URL (D4 tradeoff). Cache
-invalidation is route-wide rather than per post (Phase 10 may narrow it). A slug
+invalidation stays route-wide by design (Phase 10 documents why per-post tags
+would not save regenerations). Hosting, domain, and brand (D5) are still open,
+so no hosted backup schedule, HSTS, or multi-instance cache handler exists yet. A slug
 changed while a post is unpublished records no redirect, so a URL that was
 public before an unpublish/rename/republish cycle returns 404. Taxonomy and
 author identity administration remain follow-up increments; Phase 8 consumes
@@ -103,20 +116,29 @@ the seeded records.
 
 ## Where to resume (session handoff)
 
-Phases 1–7 are on `origin/main` (latest `c77bca8`). Phase 8 is committed
-locally (`e246034`) and not pushed. Phase 9 is complete and verified in the
-working tree; commit only on request. Do not push without an explicit request.
+Phases 1–7 are on `origin/main` (latest `c77bca8`). Phase 8 (`e246034`) and
+Phase 9 (`159d60c`) are committed locally and not pushed. Phase 10 is complete
+and verified in the working tree; commit only on request. Do not push without
+an explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (365 tests),
-  `npm run test:rls` (204 tests), and `npm run build` pass.
-- Local database: `supabase db reset` applies all eight migrations and
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (379 tests),
+  `npm run test:rls` (239 tests), `npm run build`, and `npm run test:smoke`
+  against `next start` pass.
+- Local database: `supabase db reset` applies all nine migrations and
   `supabase/seeds/seed.sql` (3 published posts and 1 uncategorized draft with
   bodies, 3 categories, 3 tags, 2 author profiles). It creates no Auth users.
   Follow the README to bootstrap the first admin when a browser journey needs a
-  signed-in user.
-- Key files: `supabase/migrations/20261023100000_publishing.sql`,
-  `src/features/posts/data.ts`, `src/features/posts/mapping.ts`,
+  signed-in user. `supabase db reset --sql-paths <dump>` restores a data dump
+  instead of the seed (see `docs/backup-and-restore.md`).
+- Key files: Phase 10: `supabase/migrations/20261023120000_write_rate_limits.sql`,
   `src/features/posts/cache.ts`, `src/features/posts/admin/actions.ts`,
+  `src/lib/security-headers.ts`, `next.config.ts`, `src/app/error.tsx`,
+  `src/app/global-error.tsx`, `src/app/admin/{error,loading,not-found}.tsx`,
+  `src/components/status/route-error.tsx`, `scripts/storage-*.mjs`,
+  `scripts/smoke.mjs`, `docs/backup-and-restore.md`, and
+  `src/lib/supabase/launch-readiness.rls.test.ts`. Phase 8:
+  `supabase/migrations/20261023100000_publishing.sql`,
+  `src/features/posts/data.ts`, `src/features/posts/mapping.ts`,
   `src/features/posts/admin/publication.ts`, `src/app/page.tsx`,
   `src/app/posts/[slug]/page.tsx`, `src/app/admin/posts/[id]/page.tsx`, and
   `src/lib/supabase/publishing.rls.test.ts`. Phase 9:
@@ -124,30 +146,33 @@ working tree; commit only on request. Do not push without an explicit request.
   `src/features/posts/archives.ts`, `src/features/taxonomy/hierarchy.ts`,
   `src/app/{categories,tags,authors}/[slug]/page.tsx`, `src/app/sitemap.ts`,
   `src/app/robots.ts`, and `src/lib/supabase/archives.rls.test.ts`. Earlier
-  phases: the other
-  migrations in `supabase/migrations/`, `src/features/media/`,
-  `src/features/posts/content/`, `src/features/posts/components/post-body.tsx`,
-  and the other `*.rls.test.ts` files.
+  phases: the other migrations in `supabase/migrations/`,
+  `src/features/media/`, `src/features/posts/content/`,
+  `src/features/posts/components/post-body.tsx`, and the other
+  `*.rls.test.ts` files.
 - Next slice: taxonomy administration, then author identity administration.
   Both were agreed on 2026-10-23 to follow Phase 8; the user then asked for
-  Phase 9 first, so they now follow Phase 9 and precede Phase 10. Taxonomy
-  mutations must expire `public-posts` and revalidate the archive routes and
-  the sitemap, like publication actions do. A new body node must be added to the TypeScript allowlist, the SQL
-  mirror, the shared fixtures, the editor, and the renderer in the same change.
-- Open gates: D5 remains provisional (`NEXT_PUBLIC_SITE_URL`,
-  `NEXT_PUBLIC_SITE_NAME` defaulting to "Yazılar", Turkish copy, generic
-  labels); finalize the domain and brand before launch, since canonical,
-  sitemap, and share URLs come from it.
-  Revisit D4 before public launch if draft images must stay private.
+  Phase 9 and later Phase 10 first, so they now follow Phase 10. Taxonomy and
+  author mutations must apply `publicCacheInvalidation("taxonomy-changed")` /
+  `("author-changed")` from `src/features/posts/cache.ts` (expires
+  `public-posts` and revalidates the listing, post, archive routes, and the
+  sitemap) and should get a rate-limit rule in the same trigger style. A new
+  body node must be added to the TypeScript allowlist, the SQL mirror, the
+  shared fixtures, the editor, and the renderer in the same change.
+- Open gates: D5 remains provisional, confirmed again on 2026-10-23 for Phase
+  10 (hosting deferred, no production domain yet, `NEXT_PUBLIC_SITE_NAME`
+  default "Yazılar" stays provisional). Launch needs those decisions plus the
+  README hosting checklist. Revisit D4 before public launch if draft images
+  must stay private.
 
 ## Deferred administration follow-ups
 
 Phase 4 needed category, tag, and author records to attach to a draft and
 proceeded with the seeded taxonomy and authors. On 2026-10-23 the user chose to
 ship both administration surfaces as separate increments after Phase 8 (Phase 8
-used the seeded records). Later the same day the user asked for Phase 9 first;
-both increments now follow Phase 9 and come before Phase 10 (Phase 9 archives
-also use the seeded records):
+used the seeded records). Later the same day the user asked for Phase 9 and
+then Phase 10 first; both increments now follow Phase 10 (Phases 9 and 10 also
+use the seeded records):
 
 - **Taxonomy administration (admin).** D1 gives admins create, rename, move, and
   delete for categories and tags. A minimal admin CRUD slice is the next
@@ -170,12 +195,12 @@ widening an active phase silently.
 | D2 | Workflow states and editing live posts | Phases 3, 8 | `draft` → `published` only; `review`/`archived` later; editors may edit published posts and `updated_at` is shown | **Answered 2026-10-22** |
 | D3 | Concurrency and revisions | Phases 3–5, 8 | One working copy with atomic revision comparison; no published snapshot initially; preview route for members | **Answered 2026-10-22** |
 | D4 | Media bucket visibility | Phase 6 | One public bucket, UUID object paths, app-level validation; document that draft media is fetchable by URL; revisit before launch | **Answered 2026-10-22** |
-| D5 | Language, brand, domain, hosting | Phases 8–10 | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–9 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`; site name from `NEXT_PUBLIC_SITE_NAME`, default "Yazılar"); real domain, brand, and hosting still open |
+| D5 | Language, brand, domain, hosting | Phases 8–10, launch | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–10 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`; site name from `NEXT_PUBLIC_SITE_NAME`, default "Yazılar"); for Phase 10 the user deferred hosting, has no production domain yet, and keeps the name provisional. Blocks launch only |
 | D6 | Reader accounts, bookmarks, and comments | Phases 11–13 | Private bookmarks only; reader accounts with email + password; post-moderation with reader reports and editor hide/delete; account deletion removes bookmarks and anonymizes comments. No public like counts, OAuth, or magic links initially | **Answered 2026-10-22** |
 
 D1, D2, D3, D4, and D6 were answered on 2026-10-22 and no longer block their
-phases. D5 was accepted provisionally on 2026-10-23 for Phases 8–9; the real
-domain, brand, and hosting remain open for Phase 10 and launch.
+phases. D5 was accepted provisionally on 2026-10-23 for Phases 8–10; the real
+domain, brand, and hosting remain open and block the public launch.
 
 ### Answered decisions
 
@@ -245,9 +270,9 @@ account-attribute decision, not a widening of the editorial role enum.
 | 5 | Editor | Tiptap JSON, content versioning, safe renderer | Phase 4, D3 | Done |
 | 6 | Media | Upload, media table, image node, alt text | Phase 5, D4 | Done |
 | 7 | Embeds | Allowlisted YouTube node, responsive render | Phase 5 | Done |
-| 8 | Publishing | Publish mutation, DB-backed public pages, slug redirects | Phases 3–5, optional 6, D2, D5 | L |
-| 9 | Discovery | SEO, OG, JSON-LD, sitemap, archives, share link | Phase 8, D5 | M |
-| 10 | Launch readiness | Cache invalidation, conflict handling, rate limits, backups | Phase 9 | M |
+| 8 | Publishing | Publish mutation, DB-backed public pages, slug redirects | Phases 3–5, optional 6, D2, D5 | Done |
+| 9 | Discovery | SEO, OG, JSON-LD, sitemap, archives, share link | Phase 8, D5 | Done |
+| 10 | Launch readiness | Cache invalidation, conflict handling, rate limits, backups | Phase 9 | Done |
 | 11 | Reader accounts | Optional reader sign-up, profile, account management | Phase 2, Phase 8, D6 | M |
 | 12 | Bookmarks | Private saved posts with strict per-user isolation | Phase 8, 11 | S |
 | 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | L |
@@ -847,6 +872,45 @@ Demo: share a post link, inspect preview metadata and sitemap output.
 
 Goal: the system stays correct under concurrent edits and can be operated.
 
+Status: complete on 2026-10-23 (done before the taxonomy and author identity
+administration increments at the user's request). D5 stays provisional: the
+user deferred hosting, has no production domain, and keeps "Yazılar" as a
+provisional name, so this phase documents and prepares but deploys nothing.
+Verified with lint, typecheck, 379 unit tests, 239 local-Supabase RLS tests,
+the production build, `npm run test:smoke`, and a browser journey on
+`next start`: two tabs edited the same published post; the second save showed
+the conflict alert and kept its title, excerpt, and Tiptap body while the
+database kept the first save; that save refreshed the listing, post, category
+and tag archives immediately; publishing the remaining draft turned its 404
+into a page and added it to the listing, its category archive, and the
+sitemap; with the publication budget exhausted, unpublish showed the
+rate-limit message and the post stayed live; with Supabase stopped, an
+expired public page showed the error boundary (light and dark) and "Tekrar
+dene" recovered it after restart; an unknown admin post showed the admin 404
+inside the admin layout; the admin loading skeleton streamed before page
+content; uploaded images rendered under the CSP without violations. The local
+backup drill (dump, reset, restore of Postgres and Storage) matched every
+count, fingerprint, and the image checksum.
+
+Implementation notes:
+
+- `updateTag` only works in Server Actions; route handlers or webhooks that
+  change content later must use `revalidateTag(tag, "max")` and the same route
+  list.
+- Updating a published post expires its cached HTML immediately (`updateTag`
+  semantics), so if Supabase is down right after a publish, that route returns
+  the error page instead of stale content until Supabase recovers.
+- React 19 resets uncontrolled form fields after a form action settles, which
+  can revert title, slug, excerpt, and category to the loaded values after a
+  rejected save. The action now returns the submitted values as the new
+  defaults and the category select is controlled; the browser journey
+  confirmed the kept input.
+- Rate limits count only successful writes (the event row rolls back with a
+  rejected write) and serialize per actor and action with a transaction
+  advisory lock.
+- `supabase db query` cannot execute a multi-statement dump; local restores use
+  `supabase db reset --sql-paths <dump>`.
+
 Scope:
 
 - Explicit cache tags and invalidation on publish, update, taxonomy, and slug
@@ -1023,11 +1087,14 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Phases 1–9 are complete. Next, ship the deferred administration increments in
+Phases 1–10 are complete. Next, ship the deferred administration increments in
 order: taxonomy administration (admin create, rename, move with database cycle
-protection, and delete with defined reassignment; mutations must expire
-`public-posts` and revalidate archives and the sitemap), then author identity
-administration (guest and member authors through a server-only path for
-`authors.user_id`). Then Phase 10 (launch readiness), which also needs the D5
-domain, brand, and hosting decisions. D6 is settled; reader work stays in
+protection, and delete with defined reassignment; mutations must apply
+`publicCacheInvalidation("taxonomy-changed")`, which expires `public-posts` and
+revalidates the listing, posts, archives, and the sitemap), then author
+identity administration (guest and member authors through a server-only path
+for `authors.user_id`, invalidating with `"author-changed"`). The public launch
+then needs the D5 domain, brand, and hosting decisions and the README hosting
+checklist (site URL, Auth redirects, HSTS, shared cache handler or single
+instance, hosted backups, D4 review, smoke test against the deployment). D6 is settled; reader work stays in
 Phases 11–13 after the editorial MVP.

@@ -119,7 +119,9 @@ export async function deleteMediaAction(formData: FormData): Promise<void> {
           ? "forbidden"
           : error.code === "P0002"
             ? "not-found"
-            : "failed";
+            : error.code === "PT429"
+              ? "rate-limited"
+              : "failed";
     redirect(`/admin/media?error=${reason}`);
   }
 

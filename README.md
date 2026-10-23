@@ -39,6 +39,9 @@ npm start
 works before the first build. `npm test` runs the Vitest unit tests; it does not
 need a Supabase instance. `npm start` serves the production build.
 
+`npm run test:smoke` checks a running server (see
+[Launch readiness](#launch-readiness-phase-10)).
+
 `npm run test:rls` runs the local-Supabase RLS integration suite. Start the local
 stack first; the runner reads `supabase status`. The suite creates and removes
 synthetic auth users, posts, taxonomy, credits, and audit rows, and temporarily
@@ -610,7 +613,8 @@ needs a migration: archives reuse the Phase 3 RLS policies and indexes.
   `updateTag("public-posts")` and revalidates `/`, `/posts/[slug]`,
   `/categories/[slug]`, `/tags/[slug]`, `/authors/[slug]`, and `/sitemap.xml`.
   Taxonomy and author changes have no admin UI yet; out-of-band changes appear
-  after the 5-minute fallback.
+  after the 5-minute fallback. Phase 10 moved this list into
+  `features/posts/cache.ts` (see [Launch readiness](#launch-readiness-phase-10)).
 
 Tests: `archives.rls.test.ts` runs the real query builders
 (`features/posts/queries.ts`) as anonymous, reader, and editor clients:
@@ -770,7 +774,8 @@ replacement, metadata validation, and the editorial author-read policy. The
 Phase 5 migration adds post bodies. The Phase 6 migrations add the `media`
 bucket, Storage policies, `public.media`, the media RPCs, and the image node.
 The Phase 7 migration adds the `youtube` node to the body validator. The Phase
-8 migration adds the publish/unpublish RPCs and slug redirects.
+8 migration adds the publish/unpublish RPCs and slug redirects. The Phase 10
+migration adds the write rate limits.
 Seeding is enabled: `supabase/seeds/seed.sql` loads synthetic taxonomy and
 posts, never production data. Create future migrations with
 `supabase migration new <name>` and keep all related changes in this repository.
@@ -817,21 +822,126 @@ page will not receive the fragment.
   Supabase [Storage access control](https://supabase.com/docs/guides/storage/security/access-control).
   The local Storage schema blocks direct SQL deletes from `storage.objects`
   (`storage.protect_delete`), so objects are removed through the Storage API.
+- Bundled Next.js 16.4.2 docs for [how revalidation works](node_modules/next/dist/docs/01-app/02-guides/how-revalidation-works.md)
+  (tags are per instance without a shared cache handler),
+  [`error.js`](node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/error.md)
+  (`retry`, `global-error`), [`loading.js`](node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/loading.md),
+  and the [Content Security Policy guide](node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md)
+  (nonces force dynamic rendering; static CSP without nonces); Supabase
+  [Backup and restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)
+  (checked 2026-10-23) and CLI 2.121.0 `db dump`/`db reset` help.
+
+## Launch readiness (Phase 10)
+
+Phase 10 hardens the editorial MVP. Hosting, the production domain, and the
+brand stay open (D5, confirmed provisional on 2026-10-23): nothing here deploys
+or creates hosted resources.
+
+- **Cache invalidation map.** `features/posts/cache.ts` names each kind of
+  public content change and returns what it expires; Server Actions apply it
+  with `updateTag` before `revalidatePath`. Publish, unpublish, and any save of
+  a published post (title, slug with its redirect, excerpt, body including
+  images and YouTube nodes, category, tags, credits) expire the `public-posts`
+  Data Cache tag and revalidate `/`, `/posts/[slug]`, `/categories/[slug]`,
+  `/tags/[slug]`, `/authors/[slug]`, and `/sitemap.xml`. Saving a draft no
+  longer touches public caches (the action reads the saved status; if it
+  cannot, it invalidates). Media upload and deletion change nothing public:
+  deletion is refused while a body references the image. Future taxonomy and
+  author administration must call the same map with `taxonomy-changed` or
+  `author-changed`. One tag is deliberate: every post card embeds taxonomy and
+  credits, and the listing, archives, and sitemap change with any published
+  post, so per-post tags would not save a regeneration. With several server
+  instances, tag expiry is local unless a shared cache handler is configured;
+  see the hosting checklist below.
+- **Concurrency.** Every content mutation (`update_post_metadata`,
+  `publish_post`, `unpublish_post`) compares `revision` atomically under a row
+  lock; `create_draft_post` has nothing to compare. A rejected save keeps the
+  user's title, slug, excerpt, category, tags, credits, and Tiptap body: React
+  resets uncontrolled fields after a form action, so the action returns the
+  submitted values as the new defaults, and category, tags, credits, and the
+  body are client state.
+- **Rate limits.** Migration `20261023120000_write_rate_limits.sql` adds
+  `public.rate_limit_events` (RLS on, no client grants) and BEFORE triggers on
+  `posts` and `media`, so every write path is limited per signed-in actor:
+  30 new posts per hour, 120 edits per 10 minutes, 30 publish/unpublish changes
+  per hour, 60 media deletions per 10 minutes. A denied write raises `PT429`
+  (HTTP 429) and rolls back; the UI says so and keeps the form input. Uploads
+  keep the Storage policy limit (20 per 10 minutes) and invitations the
+  audit-log limit (20 per hour). Service-role maintenance writes are not
+  limited. Sign-in and token endpoints use Supabase Auth's own limits
+  (`[auth.rate_limit]` in `supabase/config.toml`; configure the hosted project
+  to match).
+- **Loading, empty, and error states.** `app/error.tsx` (inside the root
+  layout, with retry and the error digest), `app/global-error.tsx`,
+  `app/admin/error.tsx`, `app/admin/not-found.tsx`, and an `app/admin/loading.tsx`
+  skeleton, all on shadcn/ui tokens for both system themes. Public ISR routes
+  deliberately have no `loading.tsx`: their HTML is prerendered, and a streaming
+  boundary could send the status before `notFound()` or a slug redirect. Empty
+  states already existed for the home listing and the admin lists. A public
+  page whose cache was just expired returns the error page (500) while Supabase
+  is unreachable; `retry()` recovers once it is back.
+- **Security headers.** `next.config.ts` sends the headers from
+  `lib/security-headers.ts` on every route and disables `X-Powered-By`. The CSP
+  is static, because nonces would force dynamic rendering of the ISR pages:
+  `script-src 'self' 'unsafe-inline'` (plus `'unsafe-eval'` only in
+  development), images and `connect-src` from the Supabase origin, `frame-src`
+  only `https://www.youtube-nocookie.com`, `object-src 'none'`,
+  `frame-ancestors 'none'`, and `upgrade-insecure-requests` unless Supabase is
+  on loopback. Also `nosniff`, `strict-origin-when-cross-origin` (YouTube needs
+  the origin as referrer), `X-Frame-Options: DENY`, and a restrictive
+  `Permissions-Policy`. HSTS belongs to the TLS-terminating host.
+- **Secrets review.** `.env.example` holds placeholders only; real env files are
+  ignored. `SUPABASE_SECRET_KEY` is read only in `lib/supabase/env.ts` and used
+  only by `lib/supabase/admin.ts` (`server-only`) for invitations and member
+  e-mails; the production build output contains neither the key nor its name
+  in `.next/static`. Normal user operations use the user's session and RLS.
+- **Backups.** [docs/backup-and-restore.md](./docs/backup-and-restore.md)
+  covers Postgres and Storage, local and hosted, with consistency checks and the
+  exercised local drill (dump, reset, restore, identical fingerprints and image
+  checksum).
+- **Smoke test.** `npm run test:smoke` (`SMOKE_BASE_URL`, default
+  `http://localhost:3000`) checks a running server anonymously: listing and
+  first post render with JSON-LD, unknown post and tag URLs return `noindex`
+  404s, `/admin` redirects to `/login`, `robots.txt` and `sitemap.xml` are
+  public-only, and every response has the security headers without eval.
+
+Hosting checklist (open until D5 is decided): set `NEXT_PUBLIC_SITE_URL` and
+`NEXT_PUBLIC_SITE_NAME` before the production build, add the origin to the
+Supabase Auth site URL and redirect allowlist, keep `SUPABASE_SECRET_KEY` in
+the host's server-only secrets, enable HSTS at the edge, configure a shared
+cache handler or a single instance so `updateTag` reaches every instance,
+review the hosted Auth rate limits and SMTP, schedule database and Storage
+backups, revisit D4 (draft images are public by URL), and run
+`npm run test:smoke` against the deployment.
+
+Tests: `launch-readiness.rls.test.ts` runs two simultaneous saves from the same
+revision (exactly one wins, the other gets `40001`), a stale publish after a
+concurrent edit, the publication and creation limits (the 31st call gets HTTP
+429 and changes nothing, limits are per actor and per action, service-role
+writes are exempt), and the final anonymous/reader/author/editor/admin matrix:
+post visibility, closed direct writes to content tables, hidden rate-limit
+bookkeeping, draft editing, publishing, and membership reads. Unit tests cover
+the invalidation map, security headers, and the new error keys.
 
 ## Next increment
 
-Phases 1–9 are implemented: authentication, editorial membership with
+Phases 1–10 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
 validated image uploads with reference-aware deletion, allowlisted YouTube
 embeds, publishing with database-backed public pages, explicit ISR and cache
-invalidation, and slug redirects, and SEO metadata, Article JSON-LD, sitemap,
-robots, sharing, and category/tag/author archives. See [ROADMAP.md](./ROADMAP.md) for the
-ordered increments and their decision gates.
+invalidation, and slug redirects, SEO metadata, Article JSON-LD, sitemap,
+robots, sharing, and category/tag/author archives, and launch readiness (cache
+invalidation map, conflict handling, write rate limits, error and loading
+states, security headers, backup runbook, smoke test). See
+[ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
 Next: the taxonomy administration and author identity administration
-increments (agreed on 2026-10-23 to follow Phase 8; Phase 9 was done first at
-the user's request), then Phase 10 (launch readiness). A new body node still changes the TypeScript allowlist, the database
-mirror, the fixtures, the editor, and the renderer together. Author credits must
-remain separate from edit and publish permissions.
+increments (Phase 10 was done first at the user's request). Their mutations
+must apply the `taxonomy-changed` and `author-changed` invalidations from
+`features/posts/cache.ts`. A new body node still changes the TypeScript
+allowlist, the database mirror, the fixtures, the editor, and the renderer
+together. Author credits must remain separate from edit and publish
+permissions. Launch itself still needs the D5 hosting, domain, and brand
+decisions.
