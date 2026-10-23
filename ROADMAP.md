@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-23 (taxonomy administration complete)
+Last updated: 2026-10-23 (Phase 12 bookmarks complete)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–11, complete)
+## Current baseline (Phases 1–12, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -94,8 +94,21 @@ does not add requirements on its own.
   stale-form protection, public slug redirects for categories and tags,
   category deletion that moves posts to a chosen target, and tag deletion that
   removes the tag from its posts.
-- 405 unit tests and 276 local-Supabase RLS tests (including the taxonomy
-  administration suite, the Phase 11
+- Author identity administration (deferred follow-up 2 of 2): admin-only
+  `/admin/authors` with create, rename, re-slug, describe, link, and delete
+  through audited, rate-limited security-definer RPCs, author slug redirects,
+  deletion refused while an author is credited, and account links limited to
+  active editorial members (a link grants no access).
+- Phase 12 bookmarks: a private `bookmarks` table (unique per user and post,
+  cascades from profiles and posts, inserts only for published posts, own rows
+  only for every role, a `bookmark.create` rate limit), removal in
+  `prepare_own_account_deletion()`, an optimistic `aria-pressed` toggle on the
+  post page and cards whose state loads in the browser so public pages stay
+  ISR, safe `?next=` return paths on sign-in, and a dynamic, `noindex`
+  `/account/saved` list filtered to published posts.
+- 429 unit tests and 311 local-Supabase RLS tests (including the bookmark
+  suite and matrix row, the author and taxonomy
+  administration suites, the Phase 11
   self-signed-up reader matrix and the Phase 10
   concurrent-save, rate-limit, and final anonymous/reader/author/editor/admin
   matrix tests) cover archive and sitemap
@@ -130,50 +143,55 @@ changed while a post is unpublished records no redirect, so a URL that was
 public before an unpublish/rename/republish cycle returns 404. A deleted tag's
 archive URL returns 404 by decision, as does a deleted author's. A credited
 author cannot be deleted until the credits are removed post by post (no bulk
-reassignment by decision).
+reassignment by decision). Bookmark toggles render as "not saved" until the
+browser read finishes after hydration (a short delay for signed-in users, by
+design to keep public pages cached), and a bookmark of a later-unpublished
+post keeps its row, so its owner can still see that post id through the API
+(never its content).
 
 ## Where to resume (session handoff)
 
-Phases 1–11 and taxonomy administration are on `origin/main` (latest
-`8081321`). Author identity administration is complete and verified in the
-working tree; commit only on request. Do not push without an explicit request.
+Phases 1–11, taxonomy administration (`8081321`), and author identity
+administration (`85dfe87`) are on `origin/main`. Phase 12 (bookmarks) is
+complete and verified in the working tree; commit only on request. Do not push
+without an explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (411 tests),
-  `npm run test:rls` (288 tests), and `npm run build` pass. A browser journey on
-  `next dev` covered: an admin changed the slug of a credited author and linked
-  an editor account (the old `/authors/deniz-ornek` URL answered 308 to the new
-  slug, and the sitemap listed the new slug at once); the account select listed
-  only editorial members; creating an author with the redirected old slug
-  showed the slug error with the form values kept; an author created with an
-  empty slug got one from its name and was deleted; the credited author's page
-  showed no delete form; an editor saw no "Yazarlar" link and was denied
-  `/admin/authors`.
-- Local database: `supabase db reset` applies all twelve migrations and the
-  seed. It creates no Auth users. The journeys changed seed data locally
-  (Tasarım slug `tasarim-arayuz`, Yazılım deleted into Tasarım, tag
-  "Birlikte üretmek" deleted, "Arayüz Notları" added, author Deniz Örnek
-  re-slugged to `deniz-ornek-kalem` and linked to a local editor); a reset
-  restores it.
-- Key files: author administration:
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (429 tests),
+  `npm run test:rls` (311 tests), `npm run build`, and `npm run test:smoke`
+  (against `next start`) pass after a clean `supabase db reset` (thirteen
+  migrations). The build lists `/` as static and `/posts/[slug]` and the
+  archives as SSG with ISR; `/account/saved` is dynamic. A browser journey on
+  `next dev` covered: an anonymous click on "Kaydet" led to
+  `/login?next=/posts/birlikte-yazmak`; reader A signed in, returned to the
+  post, saved it with the keyboard, and saw it pressed after a reload and in
+  `/account/saved`; signed-out `/account/saved` redirected with `next`; reader
+  B's list started empty, B saved the same post and another from home cards
+  and saw only those two; unpublishing the shared post removed it from B's
+  list with no title in the HTML; light and dark themes were readable.
+- Local database: the final `supabase db reset` applied all thirteen
+  migrations and the seed and removed every local Auth user, including the
+  journey accounts. If a stale ISR page refers to a post the reset removed,
+  clear `.next/cache/fetch-cache` before `next build`.
+- Key files: bookmarks:
+  `supabase/migrations/20261023200000_bookmarks.sql`, `src/features/bookmarks/`
+  (`actions.ts`, `queries.ts`, `data.ts`, `result.ts`, components),
+  `src/features/auth/return-path.ts`, `src/app/account/saved/`,
+  `src/features/posts/components/post-list.tsx`, `src/app/posts/[slug]/page.tsx`,
+  and `src/lib/supabase/bookmarks.rls.test.ts`. Author administration:
   `supabase/migrations/20261023180000_author_administration.sql`,
-  `src/features/authors/` (`actions.ts`, `admin-data.ts`, `validation.ts`,
-  `account-choices.ts`, components), `src/app/admin/authors/`,
-  `src/features/posts/data.ts` (archive redirects), and
-  `src/lib/supabase/author-admin.rls.test.ts`. Taxonomy administration:
-  `supabase/migrations/20261023160000_taxonomy_administration.sql`,
-  `src/features/taxonomy/`, `src/app/admin/{categories,tags}/`,
-  `src/features/posts/invalidate.ts`, and
-  `src/lib/supabase/taxonomy-admin.rls.test.ts`. Phase 11:
+  `src/features/authors/`, and `src/app/admin/authors/`. Taxonomy
+  administration: `supabase/migrations/20261023160000_taxonomy_administration.sql`,
+  `src/features/taxonomy/`, and `src/app/admin/{categories,tags}/`. Phase 11:
   `supabase/migrations/20261023140000_reader_accounts.sql`,
-  `src/features/auth/`, `src/features/account/`, and
-  `src/lib/supabase/reader-accounts.rls.test.ts`. Phase 10:
+  `src/features/auth/`, and `src/features/account/`. Phase 10:
   `supabase/migrations/20261023120000_write_rate_limits.sql`,
   `src/features/posts/cache.ts`, and `docs/backup-and-restore.md`. Earlier
   phases: the other migrations and `*.rls.test.ts` files.
-- Next slice: Phase 12 (bookmarks). Both deferred administration follow-ups
-  are done.
-- Phases 12–13 hook into `prepare_own_account_deletion()` (delete bookmarks,
-  anonymize comments) and need a display name before a reader comments.
+- Next slice: Phase 13 (comments). Both deferred administration follow-ups and
+  Phase 12 are done.
+- Phase 13 hooks into `prepare_own_account_deletion()` (anonymize comments
+  after the Phase 12 bookmark removal) and needs a display name before a
+  reader comments.
 - Open gates: D5 remains provisional (hosting deferred, no production domain,
   `NEXT_PUBLIC_SITE_NAME` default "Yazılar"). Launch needs those decisions plus
   the README hosting checklist. Revisit D4 before public launch if draft images
@@ -294,12 +312,12 @@ account-attribute decision, not a widening of the editorial role enum.
 | 9 | Discovery | SEO, OG, JSON-LD, sitemap, archives, share link | Phase 8, D5 | Done |
 | 10 | Launch readiness | Cache invalidation, conflict handling, rate limits, backups | Phase 9 | Done |
 | 11 | Reader accounts | Optional reader sign-up, profile, account management | Phase 2, Phase 8, D6 | Done |
-| 12 | Bookmarks | Private saved posts with strict per-user isolation | Phase 8, 11 | S |
+| 12 | Bookmarks | Private saved posts with strict per-user isolation | Phase 8, 11 | Done |
 | 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | L |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
-increments; Phases 12–13 still follow them unless the user reorders again.
+increments; Phase 12 followed both of them, and Phase 13 is next.
 
 Dependencies are transitive even where the table lists only the direct blocker.
 Phase 7 is optional for publishing; Phase 6 becomes required only when cover
@@ -1020,6 +1038,28 @@ Exit when the reader RLS matrix passes.
 ### Phase 12 — Bookmarks
 
 Goal: signed-in readers can save published posts privately and revisit them.
+
+Status: complete on 2026-10-23. Verified with lint, typecheck, 429 unit tests,
+311 local-Supabase RLS tests, the production build, the smoke test, a clean
+`supabase db reset`, and the browser journey in the handoff above.
+
+Implementation notes:
+
+- Any signed-in account may bookmark, editorial members included; RLS keeps
+  every account to its own rows, and the insert policy checks `published`
+  explicitly because members can read drafts.
+- Bookmark state is read in the browser after hydration (`BookmarkProvider`,
+  one RLS-scoped query per page), so `/posts/[slug]`, the home page, and the
+  archives stay shared ISR output; the Server Action revalidates nothing. See
+  the README "Bookmarks (Phase 12)" section for the reasoning.
+- Unpublishing keeps the bookmark row and the saved list hides the post;
+  deleting a post or an account cascades. The account-deletion preflight now
+  removes bookmarks explicitly.
+- Only creation is rate-limited (`bookmark.create`, 60 per 10 minutes): every
+  delete needs an earlier insert, and the deletion preflight must not hit a
+  limit.
+- `/login?next=` return paths were added for the signed-out toggle and the
+  `/account/*` Proxy redirect, validated by `safeReturnPath`.
 
 Scope:
 

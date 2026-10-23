@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BookmarkProvider } from "@/features/bookmarks/components/bookmark-provider";
+import { BookmarkToggle } from "@/features/bookmarks/components/bookmark-toggle";
 import { PostBody } from "@/features/posts/components/post-body";
 import { PostMeta } from "@/features/posts/components/post-meta";
 import { archivePaths, postPath } from "@/features/posts/archives";
@@ -21,7 +23,9 @@ import { absoluteSiteUrl, getConfiguredSiteUrl, getSiteName } from "@/lib/site-u
 // invalidated by the same actions). The interval is a fallback for
 // out-of-band database changes. Only anonymous, RLS-filtered reads happen
 // here; drafts and member previews (/admin/posts/[id]/preview, force-dynamic)
-// never enter this cache.
+// never enter this cache. The bookmark toggle reads the visitor's own state in
+// the browser after hydration, so the prerendered page stays identical for
+// every visitor.
 export const revalidate = 300;
 
 export async function generateStaticParams() {
@@ -72,6 +76,9 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
           <p className="text-lg leading-relaxed text-muted-foreground">{post.excerpt}</p>
         ) : null}
         <PostMeta post={post} />
+        <BookmarkProvider postIds={[post.id]}>
+          <BookmarkToggle postId={post.id} />
+        </BookmarkProvider>
       </header>
       <div className="py-10">
         <PostBody body={post.body} contentVersion={post.contentVersion} />

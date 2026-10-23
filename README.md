@@ -646,6 +646,7 @@ src/
     admin/posts/          # Draft list, create, edit, and members-only preview
     account/              # Reader account: display name, sign-out, deletion
     account/password/     # Change or recover the password (signed in)
+    account/saved/        # Private saved-posts list (dynamic, noindex)
     auth/confirm/         # Invite fragment/session confirmation
     auth/callback/        # Sign-up confirmation (PKCE code exchange)
     auth/recovery/        # Password recovery (PKCE code exchange)
@@ -661,7 +662,8 @@ src/
   components/ui/          # Generated shadcn/ui controls
   features/
     account/              # Display name and account deletion actions
-    auth/                 # Sign-in, sign-up, reset, password policy, Auth rate limits
+    auth/                 # Sign-in, sign-up, reset, password policy, Auth rate limits, return paths
+    bookmarks/            # Bookmark action, saved-list query, browser-side toggle state
     media/                # Upload validation, upload/delete actions, URLs
     members/              # Invite, role, and activation Server Actions
     seo/                  # Metadata, Article JSON-LD, sitemap and robots builders
@@ -696,6 +698,7 @@ src/
       archives.rls.test.ts        # Archives and sitemap input by role
       editorial-rls.rls.test.ts # Membership and audit RLS tests
       reader-accounts.rls.test.ts # Self-service reader matrix, deletion, limits
+      bookmarks.rls.test.ts       # Bookmark isolation, drafts, saved list, deletion
       taxonomy-admin.rls.test.ts  # Taxonomy RPCs, moves, redirects, deletion
     app-origin.ts         # Origin for Auth email redirects
   proxy.ts                # Next.js 16 token refresh (formerly middleware)
@@ -1027,8 +1030,8 @@ is the identity later reader features (bookmarks, comments) will attach to.
   admins are refused (another admin must change the role or deactivate the
   membership first), which also keeps at least one active admin; editors,
   authors, and deactivated members may delete their account and get a
-  `member.account_deletion` audit entry. Phase 12 deletes the user's bookmarks
-  and Phase 13 anonymizes their comments inside
+  `member.account_deletion` audit entry. Since Phase 12 the preflight also
+  deletes the user's bookmarks; Phase 13 will anonymize their comments inside
   `prepare_own_account_deletion()`, before the Auth user is deleted.
 - **Identity boundary.** No reader action accepts a user id, role, or email for
   authorization; `features/account/form-fields.test.ts` pins the accepted form
@@ -1148,9 +1151,81 @@ rules (readers, deactivated members, unknown ids, one author per account), and
 the `author.write` limit. Unit tests cover input validation and the account
 choices offered by the form.
 
+## Bookmarks (Phase 12)
+
+Signed-in users (readers and editorial members alike) can save published posts
+to a private list at `/account/saved`. Bookmarks are private by decision D6:
+there is no public bookmark or like count, and nobody else, admins included,
+can read another user's rows. Migration `20261023200000_bookmarks.sql` adds:
+
+- **Table.** `bookmarks(id, user_id, post_id, created_at)` with
+  `unique (user_id, post_id)`. `user_id` defaults to `auth.uid()` and references
+  `profiles` with `ON DELETE CASCADE` (profiles cascade from `auth.users`);
+  `post_id` references `posts` with `ON DELETE CASCADE`, so a post removal
+  leaves no orphans (no UI deletes posts yet). Unpublishing keeps the row: the
+  saved list hides the post and shows it again if it is republished. Indexes:
+  the unique pair (state lookups), `(user_id, created_at desc)` (the list), and
+  `post_id` (the cascade).
+- **RLS.** `authenticated` may select and delete only rows where
+  `user_id = auth.uid()`, and insert only as itself and only for a post whose
+  status is `published` right now. The status check is explicit because
+  editorial members can read drafts through the posts policy. There is no
+  update grant and no anonymous grant.
+- **Rate limit.** A `BEFORE INSERT` trigger consumes `bookmark.create`
+  (60 per user per 10 minutes, Phase 10 mechanism, HTTP 429). Deletes are not
+  limited: each needs an earlier insert, and account deletion may remove any
+  number of rows.
+- **Account deletion.** `prepare_own_account_deletion()` now deletes the
+  caller's bookmarks in its transaction; the profile cascade is the safety net.
+
+Application:
+
+- **Toggle.** `BookmarkToggle` (shadcn/ui `Button`, `aria-pressed`, constant
+  accessible name, the post title as screen-reader text on cards, a polite
+  live region for the result) appears on `/posts/[slug]`, on every post card
+  (home and archives), and on the saved list. It updates optimistically and
+  settles on the answer of `setBookmarkAction(postId, saved)`, an idempotent
+  Server Action that takes the user from the verified session and only a
+  post id from the client. A draft, a missing post, or a rate limit restores
+  the previous state with a message. A signed-out click (or an expired
+  session) goes to `/login?next=<current path>`.
+- **Return paths.** `/login` accepts `?next=` only through `safeReturnPath`
+  (same-origin absolute paths; no protocol-relative, backslash, or
+  control-character input; never `/login`, `/signup`, `/auth`, `/admin`, or
+  `/api`). Sign-in, an already-signed-in visit to `/login`, and the Proxy's
+  signed-out redirect for `/account/*` use it.
+- **Caching choice.** Public pages stay shared ISR output: the server renders
+  every toggle as "not saved", and `BookmarkProvider` reads the signed-in
+  user's rows for the posts on screen in the browser after hydration (one
+  query per page through the cookie-backed browser client, authorized by RLS).
+  This follows the Next.js guidance to read request-specific data on the
+  client when a route must stay static (`keeping-pages-static.md`); a
+  server-side read would need cookies and make `/posts/[slug]` and the
+  listings dynamic. The Server Action revalidates nothing, so a toggle never
+  re-renders or expires public output. `next build` still lists `/` as static
+  and `/posts/[slug]` and the archives as SSG with a 5-minute revalidate;
+  `npm run test:smoke` checks that `/` is not marked private.
+- **Saved list.** `/account/saved` reads through the session cookie, so it is
+  dynamic (`Cache-Control: no-store`) and inherits `noindex` from the account
+  layout. The query (`features/bookmarks/queries.ts`) embeds posts as an inner
+  join filtered to `published`, so a post unpublished after it was saved
+  disappears without its title or body reaching the page. It has empty and
+  error states, and `/account` links to it.
+
+Tests: `bookmarks.rls.test.ts` covers one bookmark per pair, two readers
+saving the same post independently, user isolation on read and delete, an
+insert in another user's name, no updates, drafts refused for readers,
+editors, and admins, a nonexistent post, anonymous denial, the
+`bookmark.create` limit, the saved list order, an unpublished post vanishing
+from the reader's and an editor's list without leaking, the post and account
+cascades, and the deletion preflight. The Phase 10 role matrix gains a
+bookmark row for anonymous, reader, author, editor, and admin. Unit tests cover
+`safeReturnPath`, the action's error mapping, saved-row mapping, and a guard
+that the action never takes a user id from the client.
+
 ## Next increment
 
-Phases 1–11 are implemented: authentication, editorial membership with
+Phases 1–12 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
@@ -1160,11 +1235,11 @@ invalidation, and slug redirects, SEO metadata, Article JSON-LD, sitemap,
 robots, sharing, and category/tag/author archives, and launch readiness (cache
 invalidation map, conflict handling, write rate limits, error and loading
 states, security headers, backup runbook, smoke test), self-service reader
-accounts (Phase 11), taxonomy administration, and author identity
-administration. See
+accounts (Phase 11), taxonomy administration, author identity
+administration, and private bookmarks (Phase 12). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-Next: Phase 12 (bookmarks) per ROADMAP.md. A new body node still changes the TypeScript
+Next: Phase 13 (comments) per ROADMAP.md. A new body node still changes the TypeScript
 allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

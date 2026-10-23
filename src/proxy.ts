@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { signInPathFor } from "@/features/auth/return-path";
 import {
   getSupabaseEnvironment,
   isSupabaseConfigured,
@@ -63,7 +64,11 @@ export async function proxy(request: NextRequest) {
     isUnder(pathname, editorialRoutePrefix) || isUnder(pathname, readerRoutePrefix);
 
   if (protectedRoute && !signedIn) {
-    const redirect = NextResponse.redirect(new URL("/login", request.url));
+    // Reader routes come back after sign-in; /admin keeps its role-based entry.
+    const signInPath = isUnder(pathname, readerRoutePrefix)
+      ? signInPathFor(`${pathname}${request.nextUrl.search}`)
+      : "/login";
+    const redirect = NextResponse.redirect(new URL(signInPath, request.url));
     // Keep any cookie changes (for example, a cleared invalid session).
     response.cookies.getAll().forEach((cookie) => {
       redirect.cookies.set(cookie);

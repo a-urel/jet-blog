@@ -10,7 +10,7 @@ import { signInAction, type SignInState } from "@/features/auth/actions";
 
 const initialState: SignInState = { error: null };
 
-export function SignInForm() {
+export function SignInForm({ returnPath }: { returnPath?: string | null }) {
   const [state, formAction, pending] = useActionState(
     signInAction,
     initialState,
@@ -18,6 +18,7 @@ export function SignInForm() {
 
   return (
     <form action={formAction} className="space-y-5">
+      {returnPath ? <input type="hidden" name="next" value={returnPath} /> : null}
       <div className="space-y-2">
         <Label htmlFor="email">E-posta</Label>
         <Input

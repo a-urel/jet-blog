@@ -13,6 +13,7 @@ import {
 } from "./password-policy";
 import { authRateLimitMessages, consumeAuthRateLimit } from "./rate-limit";
 import { normalizeEmail } from "./rate-limit-subjects";
+import { safeReturnPath } from "./return-path";
 import { validateDisplayName } from "./validation";
 
 export type SignInState = {
@@ -100,7 +101,10 @@ export async function signInAction(
     return { error: invalidCredentialsMessage };
   }
 
-  const home = await homePathFor(supabase, data.user.id);
+  // A validated ?next= path (for example the post a visitor tried to save)
+  // wins over the role-based home path.
+  const returnPath = safeReturnPath(formData.get("next"));
+  const home = returnPath ?? (await homePathFor(supabase, data.user.id));
 
   revalidateSignedInRoutes();
   redirect(home);

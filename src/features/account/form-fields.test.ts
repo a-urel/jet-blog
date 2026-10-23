@@ -12,6 +12,8 @@ const actionFiles = {
     "password",
     "confirmPassword",
     "displayName",
+    // Sign-in return path; validated by safeReturnPath, never an identity.
+    "next",
   ],
   "features/account/actions.ts": ["displayName", "password", "confirmDelete"],
 } as const;
@@ -44,6 +46,19 @@ describe("reader Server Action inputs", () => {
     );
 
     expect(source).toMatch(/admin\.auth\.admin\.deleteUser\(user\.id\)/);
+    expect(source).toMatch(/const user = await getSessionUser\(\)/);
+  });
+
+  // Phase 12: the bookmark action takes only a post id and the wanted state;
+  // the owner is the session user and RLS pins user_id to auth.uid().
+  it("bookmark writes never take a user id from the client", () => {
+    const source = readFileSync(
+      fileURLToPath(new URL("../bookmarks/actions.ts", import.meta.url)),
+      "utf8",
+    );
+
+    expect(source).toMatch(/\.insert\(\{ post_id: postId \}\)/);
+    expect(source).toMatch(/\.eq\("user_id", user\.id\)/);
     expect(source).toMatch(/const user = await getSessionUser\(\)/);
   });
 });

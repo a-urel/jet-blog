@@ -3,7 +3,7 @@
 //   SMOKE_BASE_URL=http://localhost:3000 npm run test:smoke
 //
 // Anonymous HTTP checks only: public pages render, unknown and draft URLs
-// return 404, admin redirects to sign-in, discovery files exist, and every
+// return 404, admin and reader routes redirect to sign-in, discovery files exist, and every
 // response carries the security headers. It needs no credentials and changes
 // no data, so it can also run against a staging deployment.
 
@@ -66,6 +66,23 @@ check(
   [302, 303, 307, 308].includes(admin.status) &&
     new URL(admin.headers.get("location") ?? "", baseUrl).pathname === "/login",
   `/admin: anonymous request was not redirected to /login (status ${admin.status})`,
+);
+
+// Reader routes redirect to sign-in with a return path and are never cached.
+const saved = await get("/account/saved");
+const savedLocation = new URL(saved.headers.get("location") ?? "", baseUrl);
+check(
+  [302, 303, 307, 308].includes(saved.status) &&
+    savedLocation.pathname === "/login" &&
+    savedLocation.searchParams.get("next") === "/account/saved",
+  `/account/saved: anonymous request was not redirected to /login?next= (status ${saved.status})`,
+);
+
+// Public pages stay shared, cacheable output: bookmark state loads in the
+// browser, so no per-user cookie may turn them private.
+check(
+  !(home.headers.get("cache-control") ?? "").includes("private"),
+  "/: public page is not publicly cacheable",
 );
 
 const robots = await get("/robots.txt");

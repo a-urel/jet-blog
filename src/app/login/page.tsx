@@ -16,6 +16,7 @@ import {
   SupabaseNotConfigured,
 } from "@/features/auth/components/auth-page-shell";
 import { SignInForm } from "@/features/auth/components/sign-in-form";
+import { safeReturnPath } from "@/features/auth/return-path";
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -41,7 +42,9 @@ export default async function SignInPage({
     invite,
     confirm,
     account,
+    next,
   } = await searchParams;
+  const returnPath = safeReturnPath(next);
 
   const notice = signedOut
     ? noticeMessages.signedOut
@@ -64,7 +67,7 @@ export default async function SignInPage({
   }
 
   const { user, membership } = await getEditorialContext();
-  if (user) redirect(membership ? "/admin" : "/account");
+  if (user) redirect(returnPath ?? (membership ? "/admin" : "/account"));
 
   return (
     <AuthPageShell
@@ -82,7 +85,12 @@ export default async function SignInPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SignInForm />
+          {returnPath ? (
+            <p className="text-sm text-muted-foreground">
+              Giriş yaptıktan sonra kaldığınız sayfaya döneceksiniz.
+            </p>
+          ) : null}
+          <SignInForm returnPath={returnPath} />
           <p className="text-sm">
             <Link
               href="/login/reset"

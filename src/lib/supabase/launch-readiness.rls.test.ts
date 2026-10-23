@@ -449,4 +449,54 @@ describe("final role matrix", () => {
     expect(ids.has(userIds.editor)).toBe(role === "editor" || role === "admin");
     expect(ids.has(userIds.author)).toBe(role === "author" || role === "admin");
   });
+
+  // Phase 12: bookmarks are private to their owner for every role, and only
+  // published posts can be bookmarked. The reader's own row is set up here.
+  it.each(roles)("%s reads, writes, and deletes only its own bookmarks", async (role) => {
+    const { error: setupError } = await clients.reader
+      .from("bookmarks")
+      .upsert(
+        { post_id: fixtures.published },
+        { onConflict: "user_id,post_id", ignoreDuplicates: true },
+      );
+    expect(setupError).toBeNull();
+
+    const client = clientFor(role);
+    const read = await client
+      .from("bookmarks")
+      .select("user_id")
+      .eq("user_id", userIds.reader);
+    // The owner's own delete is covered in bookmarks.rls.test.ts.
+    const remove =
+      role === "reader"
+        ? null
+        : await client
+            .from("bookmarks")
+            .delete()
+            .eq("user_id", userIds.reader)
+            .select("id");
+    const draft = await client.from("bookmarks").insert({ post_id: fixtures.draft });
+    const published = await client.from("bookmarks").insert({ post_id: fixtures.published });
+
+    const readerRows = await service
+      .from("bookmarks")
+      .select("post_id")
+      .eq("user_id", userIds.reader);
+
+    if (role === "anon") {
+      expect(read.error).not.toBeNull();
+      expect(published.error).not.toBeNull();
+    } else {
+      expect(read.data ?? []).toHaveLength(role === "reader" ? 1 : 0);
+      // Signed-in users bookmark published posts as themselves; the reader
+      // already has this one.
+      expect(published.error?.code ?? null).toBe(role === "reader" ? "23505" : null);
+    }
+
+    if (remove) {
+      expect(remove.error !== null || (remove.data ?? []).length === 0).toBe(true);
+    }
+    expect(draft.error).not.toBeNull();
+    expect(readerRows.data).toEqual([{ post_id: fixtures.published }]);
+  });
 });

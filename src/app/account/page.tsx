@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { Bookmark, KeyRound, LogOut, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -86,6 +86,23 @@ export default async function AccountPage({
           </CardContent>
         </Card>
       ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Kaydedilenler</CardTitle>
+          <CardDescription>
+            Kaydettiğiniz yazılar yalnızca size görünür.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline">
+            <Link href="/account/saved">
+              <Bookmark aria-hidden="true" />
+              Kaydedilen yazılar
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
