@@ -7,12 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PostBody } from "@/features/posts/components/post-body";
 import { PostMeta } from "@/features/posts/components/post-meta";
+import { archivePaths, postPath } from "@/features/posts/archives";
 import { findPublishedPost, listPublishedSlugs } from "@/features/posts/data";
+import { buildArticleJsonLd, serializeJsonLd } from "@/features/seo/json-ld";
+import { buildPostMetadata, noIndexMetadata } from "@/features/seo/metadata";
+import { ShareControls } from "@/features/sharing/components/share-controls";
+import { absoluteSiteUrl, getConfiguredSiteUrl, getSiteName } from "@/lib/site-url";
 
 // Published posts are prerendered at build time; posts published later render
 // on first request and are then cached (ISR). Publication Server Actions call
 // revalidatePath("/posts/[slug]", "page"), so publish, edit, slug change, and
-// unpublish are visible on the next request. The interval is a fallback for
+// unpublish are visible on the next request (archives and the sitemap are
+// invalidated by the same actions). The interval is a fallback for
 // out-of-band database changes. Only anonymous, RLS-filtered reads happen
 // here; drafts and member previews (/admin/posts/[id]/preview, force-dynamic)
 // never enter this cache.
@@ -27,13 +33,11 @@ export async function generateMetadata({
 }: PageProps<"/posts/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const lookup = await findPublishedPost(slug);
-  if (lookup.kind !== "post") return {};
+  // A redirecting old slug never renders, so only the current slug is
+  // canonical; missing and unpublished slugs 404 with noindex.
+  if (lookup.kind !== "post") return noIndexMetadata;
 
-  return {
-    title: lookup.post.title,
-    description: lookup.post.excerpt ?? undefined,
-    alternates: { canonical: `/posts/${lookup.post.slug}` },
-  };
+  return buildPostMetadata(lookup.post, getSiteName());
 }
 
 export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
@@ -44,14 +48,23 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
   if (lookup.kind === "missing") notFound();
 
   const { post } = lookup;
+  const siteUrl = getConfiguredSiteUrl();
+  const shareUrl = absoluteSiteUrl(postPath(post.slug), siteUrl);
+  const jsonLd = buildArticleJsonLd(post, { siteUrl, siteName: getSiteName() });
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-10 sm:py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
       <Button asChild variant="ghost" className="mb-10">
         <Link href="/"><ArrowLeft aria-hidden="true" /> Tüm yazılar</Link>
       </Button>
       <header className="space-y-6 border-b pb-8">
-        <Badge variant="secondary">{post.category.name}</Badge>
+        <Badge asChild variant="secondary">
+          <Link href={archivePaths.category(post.category.slug)}>{post.category.name}</Link>
+        </Badge>
         <h1 className="text-3xl leading-tight font-semibold tracking-tight sm:text-5xl">
           {post.title}
         </h1>
@@ -63,16 +76,23 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
       <div className="py-10">
         <PostBody body={post.body} contentVersion={post.contentVersion} />
       </div>
-      {post.tags.length > 0 ? (
-        <footer className="border-t pt-6">
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Etiketler</h2>
-          <ul className="flex flex-wrap gap-2">
-            {post.tags.map((tag) => (
-              <li key={tag.id}><Badge variant="outline">{tag.name}</Badge></li>
-            ))}
-          </ul>
-        </footer>
-      ) : null}
+      <footer className="space-y-8 border-t pt-6">
+        {post.tags.length > 0 ? (
+          <div>
+            <h2 className="mb-3 text-sm font-medium text-muted-foreground">Etiketler</h2>
+            <ul className="flex flex-wrap gap-2">
+              {post.tags.map((tag) => (
+                <li key={tag.id}>
+                  <Badge asChild variant="outline">
+                    <Link href={archivePaths.tag(tag.slug)}>{tag.name}</Link>
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {shareUrl ? <ShareControls url={shareUrl} title={post.title} /> : null}
+      </footer>
     </article>
   );
 }

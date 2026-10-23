@@ -14,19 +14,24 @@ export type RawPublicPost = {
   updated_at: string;
   body?: unknown;
   content_version?: number;
-  category: RelatedRecord<{ id: string; name: string; parent_id: string | null }>;
+  category: RelatedRecord<{
+    id: string;
+    name: string;
+    slug: string;
+    parent_id: string | null;
+  }>;
   post_authors: RelatedRecord<{
     sort_order: number;
-    author: RelatedRecord<{ id: string; name: string }>;
+    author: RelatedRecord<{ id: string; name: string; slug: string }>;
   }>;
   post_tags: RelatedRecord<{
-    tag: RelatedRecord<{ id: string; name: string }>;
+    tag: RelatedRecord<{ id: string; name: string; slug: string }>;
   }>;
 };
 
 // Columns the public listing needs. The post page adds the body.
 export const publicPostSummaryColumns =
-  "id, slug, title, excerpt, published_at, updated_at, category:categories(id, name, parent_id), post_authors(sort_order, author:authors(id, name)), post_tags(tag:tags(id, name))";
+  "id, slug, title, excerpt, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors(sort_order, author:authors(id, name, slug)), post_tags(tag:tags(id, name, slug))";
 
 export const publicPostColumns = `${publicPostSummaryColumns}, body, content_version`;
 
@@ -51,7 +56,7 @@ export function mapPublicPostSummary(row: RawPublicPost): PostSummary | null {
     .flatMap((credit) => {
       const author = firstRelated(credit.author);
       return author
-        ? [{ author: { id: author.id, name: author.name } satisfies Author, sortOrder: credit.sort_order }]
+        ? [{ author: { id: author.id, name: author.name, slug: author.slug } satisfies Author, sortOrder: credit.sort_order }]
         : [];
     })
     .sort((left, right) => left.sortOrder - right.sortOrder);
@@ -59,7 +64,7 @@ export function mapPublicPostSummary(row: RawPublicPost): PostSummary | null {
   const tags = manyRelated(row.post_tags)
     .flatMap((relation) => {
       const tag = firstRelated(relation.tag);
-      return tag ? [{ id: tag.id, name: tag.name } satisfies Tag] : [];
+      return tag ? [{ id: tag.id, name: tag.name, slug: tag.slug } satisfies Tag] : [];
     })
     .sort((left, right) => left.name.localeCompare(right.name, "tr"));
 
@@ -74,6 +79,7 @@ export function mapPublicPostSummary(row: RawPublicPost): PostSummary | null {
     category: {
       id: category.id,
       name: category.name,
+      slug: category.slug,
       parentId: category.parent_id,
     } satisfies Category,
     tags,

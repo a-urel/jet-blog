@@ -1,21 +1,16 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import type { Metadata } from "next";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { PostMeta } from "@/features/posts/components/post-meta";
+import { PostList } from "@/features/posts/components/post-list";
 import { listPublishedPosts } from "@/features/posts/data";
 
 // Prerendered from published rows and regenerated on demand: publication
 // Server Actions call revalidatePath("/"). The interval is only a fallback for
 // changes made outside the application (for example service-role scripts).
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function Home() {
   const posts = await listPublishedPosts();
@@ -42,44 +37,7 @@ export default async function Home() {
             Henüz yayınlanmış bir yazı yok.
           </p>
         ) : null}
-        <div className="grid gap-6 md:grid-cols-2">
-          {posts.map((post, index) => (
-            <article key={post.id} className={index === 0 ? "md:col-span-2" : ""}>
-              <Card className="h-full gap-5 p-2">
-                <CardHeader className="gap-4 pt-4">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {post.category.name}
-                  </span>
-                  <h3 className="text-2xl leading-snug font-semibold tracking-tight">
-                    <Link href={`/posts/${post.slug}`} className="rounded-sm hover:underline underline-offset-4">
-                      {post.title}
-                    </Link>
-                  </h3>
-                  <PostMeta post={post} />
-                </CardHeader>
-                <CardContent className="flex-1 space-y-5">
-                  {post.excerpt ? (
-                    <p className="max-w-2xl leading-relaxed text-muted-foreground">
-                      {post.excerpt}
-                    </p>
-                  ) : null}
-                  <ul aria-label="Etiketler" className="flex flex-wrap gap-2">
-                    {post.tags.map((tag) => (
-                      <li key={tag.id}><Badge variant="secondary">{tag.name}</Badge></li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter className="justify-end bg-transparent">
-                  <Button asChild variant="ghost">
-                    <Link href={`/posts/${post.slug}`} aria-label={`${post.title} — yazıyı oku`}>
-                      Yazıyı oku <ArrowRight aria-hidden="true" />
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-            </article>
-          ))}
-        </div>
+        <PostList posts={posts} />
       </section>
     </div>
   );

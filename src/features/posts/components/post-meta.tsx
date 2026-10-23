@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { archivePaths } from "../archives";
 import { wasUpdatedAfterPublication } from "../mapping";
 import type { PostSummary } from "../types";
 
@@ -9,14 +12,25 @@ const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
 });
 
 export function PostMeta({ post }: { post: PostSummary }) {
-  const authorNames = post.authors.map(({ author }) => author.name).join(", ");
   const updated = wasUpdatedAfterPublication(post);
 
   return (
     <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-      {authorNames ? (
+      {post.authors.length > 0 ? (
         <>
-          <span>{authorNames}</span>
+          <span>
+            {post.authors.map(({ author }, index) => (
+              <span key={author.id}>
+                {index > 0 ? ", " : null}
+                <Link
+                  href={archivePaths.author(author.slug)}
+                  className="rounded-sm hover:text-foreground hover:underline underline-offset-4"
+                >
+                  {author.name}
+                </Link>
+              </span>
+            ))}
+          </span>
           <span aria-hidden="true">/</span>
         </>
       ) : null}

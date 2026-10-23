@@ -1,17 +1,20 @@
 export type Author = {
   id: string;
   name: string;
+  slug: string;
 };
 
 export type Category = {
   id: string;
   name: string;
+  slug: string;
   parentId: string | null;
 };
 
 export type Tag = {
   id: string;
   name: string;
+  slug: string;
 };
 
 // Public read model for a published post. It never carries editorial fields

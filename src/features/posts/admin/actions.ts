@@ -163,17 +163,22 @@ function revalidatePostPaths(postId: string) {
   revalidatePath(`/admin/posts/${postId}/preview`);
 }
 
-// Public pages are ISR-cached (src/app/page.tsx, src/app/posts/[slug]/page.tsx)
-// and their Supabase reads sit in the Data Cache under publicPostsCacheTag.
-// Any change that can alter published output expires that data immediately
-// (updateTag: the next request waits for fresh rows) and invalidates the
-// listing and every post page. A slug change also affects the old URL, which
+// Public pages are ISR-cached (home, /posts/[slug], the category, tag, and
+// author archives, and sitemap.xml) and their Supabase reads sit in the Data
+// Cache under publicPostsCacheTag. Any change that can alter published output
+// (publish, unpublish, slug change, edit of a published post) expires that
+// data immediately (updateTag: the next request waits for fresh rows) and
+// invalidates every public route that lists or links posts. A slug change also affects the old URL, which
 // now redirects, so a route-pattern invalidation is simpler and safer than
 // tracking both slugs. Phase 10 may narrow this with per-post tags.
 function revalidatePublicPostPaths() {
   updateTag(publicPostsCacheTag);
   revalidatePath("/");
   revalidatePath("/posts/[slug]", "page");
+  revalidatePath("/categories/[slug]", "page");
+  revalidatePath("/tags/[slug]", "page");
+  revalidatePath("/authors/[slug]", "page");
+  revalidatePath("/sitemap.xml");
 }
 
 export async function createDraftPostAction(

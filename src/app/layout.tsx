@@ -1,18 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
-import { getConfiguredSiteUrl } from "@/lib/site-url";
+import { getConfiguredSiteUrl, getSiteName } from "@/lib/site-url";
 import "./globals.css";
 
+const siteUrl = getConfiguredSiteUrl();
+const siteName = getSiteName();
+const siteDescription = "Fikirler, notlar ve birlikte üretilen yazılar. Örnek blog.";
+
 export const metadata: Metadata = {
-  // Resolves relative canonical URLs such as /posts/[slug].
-  metadataBase: getConfiguredSiteUrl(),
+  // Resolves relative canonical and Open Graph URLs such as /posts/[slug].
+  metadataBase: siteUrl,
   title: {
-    default: "Yazılar",
-    template: "%s | Yazılar",
+    default: siteName,
+    template: `%s | ${siteName}`,
   },
-  description: "Fikirler, notlar ve birlikte üretilen yazılar. Örnek blog.",
-  robots: { index: false, follow: false },
+  description: siteDescription,
+  openGraph: {
+    type: "website",
+    siteName,
+    locale: "tr_TR",
+    title: siteName,
+    description: siteDescription,
+  },
+  // Public pages are indexable only with a configured site origin (canonical
+  // URLs need one). Admin, sign-in, invitation, and preview routes, plus every
+  // 404, override this with noindex.
+  robots: siteUrl ? { index: true, follow: true } : { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -29,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <BookOpen aria-hidden="true" className="size-5" />
-              Yazılar
+              {siteName}
             </Link>
             <span className="text-sm text-muted-foreground">Örnek içerikler</span>
           </div>

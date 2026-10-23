@@ -110,7 +110,8 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | Project API URL from Supabase's Connect dialog, or the local CLI output. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public publishable API key for that project. |
 | `SUPABASE_SECRET_KEY` | Server-only secret key used by the invitation action and admin client. Required for `/admin/members`. |
-| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical post URLs. It must match the Supabase Auth site URL and redirect allowlist. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
+| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical, Open Graph, JSON-LD, share-link, sitemap, and robots URLs. It must match the Supabase Auth site URL and redirect allowlist. Without it the site is `noindex`, `robots.txt` disallows everything, the sitemap is empty, and share controls are hidden. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
+| `NEXT_PUBLIC_SITE_NAME` | Optional publication name for titles, `og:site_name`, and the JSON-LD publisher. Defaults to the provisional `Yazılar`; the brand (D5) is still open. |
 
 Restart the development server after changing these values. `NEXT_PUBLIC_*`
 values are included in the browser bundle at build time. Never put a secret or
@@ -552,7 +553,7 @@ until launch; taxonomy and author identity administration follow Phase 8.
   verify cache behavior with `npm run build && npm run start`.
 - **Canonical URL.** Post metadata sets `alternates.canonical` to
   `/posts/<slug>`, resolved against `NEXT_PUBLIC_SITE_URL`; category and tag
-  never appear in the post URL. The site remains `noindex` until Phase 9.
+  never appear in the post URL. Phase 9 adds the rest of the SEO surface.
 
 Tests: `publishing.rls.test.ts` covers anonymous, reader, author, editor, and
 admin calls (denied publish/unpublish, publish without category, stale
@@ -563,6 +564,62 @@ after unpublish, and closed direct writes). `mapping.test.ts`,
 `publication.test.ts`, `permissions.test.ts`, and `site-url.test.ts` cover the
 mapping, "Güncellendi" rule, error keys, publish permission, and site URL
 parsing.
+
+## SEO, sharing, and archives
+
+Phase 9 makes published content discoverable and shareable. Nothing in it
+needs a migration: archives reuse the Phase 3 RLS policies and indexes.
+
+- **Post metadata.** `features/seo/metadata.ts` builds title, description,
+  canonical `/posts/<slug>`, Open Graph (`article` with published/modified
+  time, authors in credit order, section, tags, `tr_TR`, site name), and a
+  text-only Twitter `summary` card (posts have no cover image yet). Paths stay
+  relative; the root layout's `metadataBase` makes them absolute.
+- **Article JSON-LD.** `features/seo/json-ld.ts` renders a schema.org
+  `BlogPosting` with `headline`, `description`, `datePublished`,
+  `dateModified`, ordered `author` persons linking to their archives,
+  `articleSection`, `keywords`, `publisher`, and `mainEntityOfPage`. The
+  serializer escapes `<`, `>`, `&`, U+2028, and U+2029, so content cannot close
+  the `<script>` element; URLs are omitted without a site origin.
+- **Archives.** `/categories/[slug]` lists the category and every descendant
+  (`features/taxonomy/hierarchy.ts` walks the tree from the public category
+  table), with a parent trail and links to children that have posts.
+  `/tags/[slug]` and `/authors/[slug]` filter through a second, aliased
+  `!inner` embed so each card still shows all of its tags and credits. RLS
+  shows an author only while they are credited on a published post. Unknown
+  slugs and archives without a published post return 404 with `noindex`. All
+  archive cards link to the canonical post URL.
+- **Sitemap and robots.** `app/sitemap.ts` lists `/`, the current slug of every
+  published post, and non-empty archives, with `lastModified` from
+  `updated_at`. Inputs come from the anonymous client, so drafts, previews, and
+  redirected old slugs never appear. `app/robots.ts` allows `/`, disallows
+  `/admin`, `/login`, and `/auth`, and links the sitemap.
+- **Indexing.** Public pages send `index, follow` once `NEXT_PUBLIC_SITE_URL` is
+  set. Admin (including previews), sign-in, invitation, and every 404 (unknown
+  or unpublished posts and empty archives) send `noindex`.
+- **Sharing.** `features/sharing/` renders a copy-link button (shadcn/ui
+  `Button`, `role="status"` announcement, a pre-selected read-only field when
+  the Clipboard API is denied) and plain provider links for X, Facebook,
+  LinkedIn, WhatsApp, and e-mail. Both use the server-provided canonical URL,
+  never `window.location`, so query strings are not shared; external links use
+  `noopener noreferrer`. No social SDKs or APIs are loaded.
+- **Caching.** Archives and the sitemap export `revalidate = 300`, prerender
+  non-empty archives through `generateStaticParams`, and read through the same
+  `public-posts` tagged client. Every publish, unpublish, and post update
+  (including slug changes and edits of published posts) calls
+  `updateTag("public-posts")` and revalidates `/`, `/posts/[slug]`,
+  `/categories/[slug]`, `/tags/[slug]`, `/authors/[slug]`, and `/sitemap.xml`.
+  Taxonomy and author changes have no admin UI yet; out-of-band changes appear
+  after the 5-minute fallback.
+
+Tests: `archives.rls.test.ts` runs the real query builders
+(`features/posts/queries.ts`) as anonymous, reader, and editor clients:
+category archives include descendants and exclude drafts and unpublished
+posts, tag and author archives exclude drafts, draft-only authors stay hidden,
+`authors.user_id` stays unreadable, and sitemap input lists only current slugs
+of published posts and non-empty archives. Unit tests cover metadata, JSON-LD
+(including hostile titles), sitemap and robots output, share links, archive
+derivation, and the category hierarchy helpers.
 
 ## Structure and sample content
 
@@ -577,18 +634,27 @@ src/
     login/                # Invite-only sign-in
     login/password/       # Set-password step for invited users
     posts/[slug]/         # Public post page (ISR) with slug redirects
+    categories/[slug]/    # Category archive including descendants
+    tags/[slug]/          # Tag archive
+    authors/[slug]/       # Author archive
+    sitemap.ts, robots.ts # Published-content sitemap and crawler rules
   components/ui/          # Generated shadcn/ui controls
   features/
     auth/                 # Sign-in, invite confirmation, password actions
     media/                # Upload validation, upload/delete actions, URLs
     members/              # Invite, role, and activation Server Actions
+    seo/                  # Metadata, Article JSON-LD, sitemap and robots builders
+    sharing/              # Copy link and provider share links
+    taxonomy/             # Category hierarchy helpers
     posts/
       admin/              # Draft data, validation, permissions, form, editor, actions
       components/         # Shared post presentation and read-only body renderer
       content/            # Body allowlist, editor extensions, shared fixtures
       admin/publication.ts  # Publication error keys and copy
+      archives.ts         # Public paths and archive derivation
       cache.ts            # Data Cache tag for public post reads
       data.ts             # Anonymous, RLS-filtered public queries
+      queries.ts          # Query builders shared with the RLS tests
       mapping.ts          # Row-to-read-model mapping, "Güncellendi" rule
       types.ts            # Public read models, not database definitions
   lib/
@@ -606,6 +672,7 @@ src/
       post-body.rls.test.ts       # Body allowlist and visibility tests
       media.rls.test.ts           # Media table, Storage policy, deletion tests
       publishing.rls.test.ts      # Publish/unpublish, public reads, redirects
+      archives.rls.test.ts        # Archives and sitemap input by role
       editorial-rls.rls.test.ts # Membership and audit RLS tests
   proxy.ts                # Next.js 16 token refresh (formerly middleware)
 supabase/
@@ -629,9 +696,8 @@ Route paths and query parameters are English (`/login`, `/admin/members`,
 `/posts/[slug]`, `?status=updated`, `?error=category`) regardless of the
 interface language. Turkish copy and generic labels are provisional, not a
 brand or language decision (D5). Published pages are server-rendered HTML with
-no editor bundle. They have title, description, and canonical metadata and stay
-`noindex, nofollow` until Phase 9 adds sitemap, Open Graph, and Article
-structured data.
+no editor bundle. Phase 9 metadata, structured data, archives, and the
+sitemap are described above.
 
 ## UI and system theme
 
@@ -739,6 +805,12 @@ page will not receive the fragment.
   [`revalidatePath`](node_modules/next/dist/docs/01-app/03-api-reference/04-functions/revalidatePath.md),
   [`updateTag`](node_modules/next/dist/docs/01-app/03-api-reference/04-functions/updateTag.md),
   and [`generateStaticParams`](node_modules/next/dist/docs/01-app/03-api-reference/04-functions/generate-static-params.md).
+- Bundled Next.js 16.4.2 docs for [metadata and OG images](node_modules/next/dist/docs/01-app/01-getting-started/14-metadata-and-og-images.md),
+  [`generateMetadata`](node_modules/next/dist/docs/01-app/03-api-reference/04-functions/generate-metadata.md),
+  [JSON-LD](node_modules/next/dist/docs/01-app/02-guides/json-ld.md),
+  [`sitemap`](node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/01-metadata/sitemap.md),
+  and [`robots`](node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/01-metadata/robots.md)
+  (both are cached Route Handlers unless they use request-time APIs).
 - Bundled Next.js 16.4.2 docs for the [Image component](node_modules/next/dist/docs/01-app/03-api-reference/02-components/image.md)
   (`remotePatterns`, `maximumResponseBody`, `dangerouslyAllowLocalIP`) and
   [`serverActions.bodySizeLimit`](node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/serverActions.md);
@@ -748,17 +820,18 @@ page will not receive the fragment.
 
 ## Next increment
 
-Phases 1–8 are implemented: authentication, editorial membership with
+Phases 1–9 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
 validated image uploads with reference-aware deletion, allowlisted YouTube
-embeds, and publishing with database-backed public pages, explicit ISR and
-cache invalidation, and slug redirects. See [ROADMAP.md](./ROADMAP.md) for the
+embeds, publishing with database-backed public pages, explicit ISR and cache
+invalidation, and slug redirects, and SEO metadata, Article JSON-LD, sitemap,
+robots, sharing, and category/tag/author archives. See [ROADMAP.md](./ROADMAP.md) for the
 ordered increments and their decision gates.
 
 Next: the taxonomy administration and author identity administration
-increments (agreed to follow Phase 8), then Phase 9 (SEO, sharing, and
-archives). A new body node still changes the TypeScript allowlist, the database
+increments (agreed on 2026-10-23 to follow Phase 8; Phase 9 was done first at
+the user's request), then Phase 10 (launch readiness). A new body node still changes the TypeScript allowlist, the database
 mirror, the fixtures, the editor, and the renderer together. Author credits must
 remain separate from edit and publish permissions.
