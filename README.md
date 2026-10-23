@@ -363,6 +363,26 @@ Server Actions live in `features/posts/admin/actions.ts`; shared validation is i
 `src/lib/supabase/draft-authoring.rls.test.ts` covers the
 anonymous/reader/author/editor/admin matrix, conflicts, and invalid relations.
 
+## Post language
+
+Each post is written in one language: `tr` (default), `en`, or `de`. The
+value is stored in `posts.language` (BCP 47 primary subtag) and is required by
+`create_draft_post` and `update_post_metadata`; validation, the RPCs (`22023`),
+and a CHECK constraint (`23514`) reject anything else. The allowed set lives in
+`src/features/posts/language.ts` and must change together with the migration
+`20261024120000_post_language.sql`.
+
+- The post form's "Yazının dili" select also sets `lang` on the title, excerpt,
+  and editor, so spell checking follows the post.
+- Public post pages, listing cards, and the member preview set `lang` on the
+  title, excerpt, and body only. `<html lang="tr">` and the rest of the
+  interface stay Turkish.
+- Open Graph uses `tr_TR`, `en_US`, or `de_DE`; Article JSON-LD sets
+  `inLanguage` to the code.
+
+Translations are not linked to each other, and the interface is not
+localized; both are separate increments.
+
 ## Post body editor and renderer
 
 Phase 5 stores the post body as a Tiptap/ProseMirror JSON document in
@@ -1360,7 +1380,7 @@ redirects anonymous visitors to sign-in.
 
 ## Next increment
 
-Phases 1–13 are implemented: authentication, editorial membership with
+Phases 1–14 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
@@ -1371,11 +1391,11 @@ robots, sharing, and category/tag/author archives, and launch readiness (cache
 invalidation map, conflict handling, write rate limits, error and loading
 states, security headers, backup runbook, smoke test), self-service reader
 accounts (Phase 11), taxonomy administration, author identity
-administration, private bookmarks (Phase 12), and post-moderated comments
-(Phase 13). See
+administration, private bookmarks (Phase 12), post-moderated comments
+(Phase 13), and per-post language (Phase 14). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-All planned phases (1–13) are implemented; see ROADMAP.md for the open
+All planned phases (1–14) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

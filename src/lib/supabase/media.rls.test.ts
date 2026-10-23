@@ -112,6 +112,7 @@ async function createDraft(key: UserKey, slug: string, body: unknown) {
     p_credits: [],
     p_body: body,
     p_content_version: 1,
+    p_language: "tr",
   });
 }
 
@@ -438,6 +439,7 @@ describe("media deletion", () => {
       p_credits: [],
       p_body: emptyBody,
       p_content_version: 1,
+      p_language: "tr",
     });
     expect(update.error).toBeNull();
 

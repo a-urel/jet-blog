@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { postPath } from "@/features/posts/archives";
+import { openGraphLocale } from "@/features/posts/language";
 import type { PostSummary } from "@/features/posts/types";
 
 // Pure metadata builders. Paths stay relative; the root layout's metadataBase
@@ -26,7 +27,7 @@ export function buildPostMetadata(post: PostSummary, siteName: string): Metadata
       type: "article",
       url: path,
       siteName,
-      locale: "tr_TR",
+      locale: openGraphLocale(post.language),
       title: post.title,
       description,
       publishedTime: post.publishedAt,

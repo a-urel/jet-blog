@@ -30,6 +30,7 @@ export type SubmittedPostValues = {
   slug: string;
   excerpt: string;
   categoryId: string;
+  language: string;
 };
 
 export type PostFormState = {
@@ -63,6 +64,7 @@ function readRawMetadata(formData: FormData) {
     slug: getStringField(formData, "slug"),
     excerpt: getStringField(formData, "excerpt"),
     categoryId: getStringField(formData, "categoryId"),
+    language: getStringField(formData, "language"),
     tagIds: getTagFieldValues(formData),
     creditAuthorIds,
     creditSortOrders,
@@ -143,6 +145,12 @@ function mapRpcError(error: {
         });
       }
 
+      if (message.includes("Invalid language")) {
+        return errorState("Desteklenen bir dil seçin.", {
+          language: "Desteklenen bir dil seçin.",
+        });
+      }
+
       if (message.includes("Title")) {
         return errorState("Başlık geçersiz.", {
           title: "Başlık 1-200 karakter arasında olmalı.",
@@ -190,6 +198,7 @@ function keepSubmittedValues(
       slug: getStringField(formData, "slug"),
       excerpt: getStringField(formData, "excerpt"),
       categoryId: getStringField(formData, "categoryId"),
+      language: getStringField(formData, "language"),
     },
   };
 }
@@ -240,6 +249,7 @@ async function createDraftPost(formData: FormData): Promise<PostFormState> {
       })),
       p_body: validation.body,
       p_content_version: currentContentVersion,
+      p_language: validation.data.language,
     },
   );
 
@@ -305,6 +315,7 @@ async function updatePostMetadata(formData: FormData): Promise<PostFormState> {
       })),
       p_body: validation.body,
       p_content_version: currentContentVersion,
+      p_language: validation.data.language,
     },
   );
 

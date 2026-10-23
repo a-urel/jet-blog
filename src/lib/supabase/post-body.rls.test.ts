@@ -70,6 +70,7 @@ function updatePayload(body: unknown, contentVersion = 1) {
     p_credits: [],
     p_body: body,
     p_content_version: contentVersion,
+    p_language: "tr",
   };
 }
 
@@ -131,6 +132,7 @@ beforeAll(async () => {
     p_credits: [],
     p_body: formattedBody,
     p_content_version: 1,
+    p_language: "tr",
   });
 
   if (error) throw error;
@@ -218,6 +220,7 @@ describe("post body storage", () => {
       p_credits: [],
       p_body: { type: "doc", content: [{ type: "script" }] },
       p_content_version: 1,
+      p_language: "tr",
     });
 
     expect(error?.code).toBe("22023");

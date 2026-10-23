@@ -274,6 +274,7 @@ export default async function EditPostPage({
                 slug: post.slug,
                 excerpt: post.excerpt ?? "",
                 categoryId: post.categoryId ?? "",
+                language: post.language,
                 tagIds: post.tagIds,
                 credits: post.credits.map((credit) => ({
                   authorId: credit.authorId,

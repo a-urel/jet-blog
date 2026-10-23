@@ -9,6 +9,7 @@ const post: RawPublicPost = {
   slug: "kaydedilen-yazi",
   title: "Kaydedilen yazı",
   excerpt: null,
+  language: "tr",
   published_at: "2026-10-20T09:00:00+00:00",
   updated_at: "2026-10-20T09:00:00+00:00",
   category: { id: "c1", name: "Tasarım", slug: "tasarim", parent_id: null },

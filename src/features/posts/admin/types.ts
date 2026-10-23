@@ -1,3 +1,5 @@
+import type { PostLanguage } from "@/features/posts/language";
+
 export type PostStatus = "draft" | "published";
 
 export type CategoryOption = Readonly<{
@@ -47,6 +49,7 @@ export type AdminPostDetail = Readonly<{
   credits: { authorId: string; authorName: string; sortOrder: number }[];
   body: unknown;
   contentVersion: number;
+  language: PostLanguage;
   status: PostStatus;
   revision: number;
   updatedAt: string;

@@ -422,6 +422,7 @@ describe("self-signed-up reader is denied editorial operations", () => {
         p_credits: [],
         p_body: body,
         p_content_version: 1,
+        p_language: "tr",
       }),
       reader.rpc("update_post_metadata", {
         p_post_id: fixtures.draft,
@@ -434,6 +435,7 @@ describe("self-signed-up reader is denied editorial operations", () => {
         p_credits: [],
         p_body: body,
         p_content_version: 1,
+        p_language: "tr",
       }),
       reader.rpc("publish_post", {
         p_post_id: fixtures.draft,

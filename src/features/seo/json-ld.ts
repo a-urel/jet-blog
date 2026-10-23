@@ -26,7 +26,7 @@ export function buildArticleJsonLd(
     }),
     articleSection: post.category.name,
     ...(post.tags.length > 0 ? { keywords: post.tags.map((tag) => tag.name) } : {}),
-    inLanguage: "tr-TR",
+    inLanguage: post.language,
     publisher: { "@type": "Organization", name: options.siteName },
     ...(url ? { url, mainEntityOfPage: { "@type": "WebPage", "@id": url } } : {}),
   };

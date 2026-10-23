@@ -1,3 +1,5 @@
+import type { PostLanguage } from "./language";
+
 export type Author = {
   id: string;
   name: string;
@@ -24,6 +26,7 @@ export type PostSummary = {
   slug: string;
   title: string;
   excerpt: string | null;
+  language: PostLanguage;
   publishedAt: string;
   updatedAt: string;
   authors: { author: Author; sortOrder: number }[];

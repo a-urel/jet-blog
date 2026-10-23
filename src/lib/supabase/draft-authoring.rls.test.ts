@@ -80,6 +80,7 @@ async function insertOne<T extends Record<string, unknown>>(
 const bodyFields = {
   p_body: { type: "doc", content: [{ type: "paragraph" }] },
   p_content_version: 1,
+  p_language: "tr",
 };
 
 function draftPayload(overrides: Record<string, unknown> = {}) {
@@ -527,6 +528,64 @@ describe("draft authoring RPC and RLS", () => {
       .eq("id", fixtures.authorA);
 
     expect(accountLink.error).not.toBeNull();
+  });
+
+  it("stores the post language and rejects unsupported values", async () => {
+    const authorA = await signInAs("authorA");
+    const created = await authorA.rpc(
+      "create_draft_post",
+      draftPayload({
+        p_slug: `${slugPrefix}-language`,
+        p_title: `Language Draft ${runId}`,
+        p_language: "en",
+      }),
+    );
+
+    expect(created.error).toBeNull();
+    const postId = (created.data as { post_id: string }[])[0].post_id;
+
+    const updated = await authorA.rpc("update_post_metadata", {
+      ...draftPayload({ p_slug: `${slugPrefix}-language`, p_language: "de" }),
+      p_post_id: postId,
+      p_expected_revision: 1,
+    });
+
+    expect(updated.error).toBeNull();
+
+    for (const language of ["fr", "EN", "tr-TR", "", null]) {
+      const rejectedCreate = await authorA.rpc(
+        "create_draft_post",
+        draftPayload({
+          p_slug: `${slugPrefix}-language-rejected`,
+          p_language: language,
+        }),
+      );
+      expect(rejectedCreate.error?.code).toBe("22023");
+
+      const rejectedUpdate = await authorA.rpc("update_post_metadata", {
+        ...draftPayload({ p_slug: `${slugPrefix}-language`, p_language: language }),
+        p_post_id: postId,
+        p_expected_revision: 2,
+      });
+      expect(rejectedUpdate.error?.code).toBe("22023");
+    }
+
+    const { data } = await service
+      .from("posts")
+      .select("slug, language, revision")
+      .in("slug", [`${slugPrefix}-language`, `${slugPrefix}-language-rejected`]);
+
+    expect(data).toEqual([
+      { slug: `${slugPrefix}-language`, language: "de", revision: 2 },
+    ]);
+
+    // The CHECK constraint also covers writes that bypass the RPCs.
+    const direct = await service
+      .from("posts")
+      .update({ language: "fr" })
+      .eq("id", postId);
+
+    expect(direct.error?.code).toBe("23514");
   });
 
   it("keeps direct content writes closed to clients", async () => {

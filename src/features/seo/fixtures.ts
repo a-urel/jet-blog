@@ -6,6 +6,7 @@ export const publishedPost: PostSummary = {
   slug: "ornek-yazi",
   title: "Örnek yazı",
   excerpt: "Kısa özet.",
+  language: "tr",
   publishedAt: "2026-10-20T09:00:00+00:00",
   updatedAt: "2026-10-21T10:30:00+00:00",
   authors: [

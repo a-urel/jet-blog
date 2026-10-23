@@ -14,6 +14,7 @@ describe("buildPostMetadata", () => {
       title: publishedPost.title,
       description: publishedPost.excerpt,
       siteName: "Örnek Site",
+      locale: "tr_TR",
       publishedTime: publishedPost.publishedAt,
       modifiedTime: publishedPost.updatedAt,
       authors: ["Birinci Yazar", "İkinci Yazar"],
@@ -27,6 +28,12 @@ describe("buildPostMetadata", () => {
     expect(metadata.alternates?.canonical).toBe("/posts/ornek-yazi");
     expect(metadata.openGraph?.url).toBe("/posts/ornek-yazi");
     expect(JSON.stringify(metadata)).not.toMatch(/\/(categories|tags|authors)\//);
+  });
+
+  it("uses the post language for the Open Graph locale", () => {
+    expect(buildPostMetadata({ ...publishedPost, language: "en" }, "S").openGraph).toMatchObject({
+      locale: "en_US",
+    });
   });
 
   it("omits the description when there is no excerpt", () => {

@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–13, complete)
+## Current baseline (Phases 1–14, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -118,6 +118,15 @@ does not add requirements on its own.
   plus an `ON DELETE SET NULL` trigger), keeping bodies. Visible comments are
   server-rendered in the ISR post page under per-post cache tags; comment
   changes expire only that post's tag and path.
+- Phase 14 post language: `posts.language` (`tr`, `en`, `de`; default and
+  backfill `tr`) with a CHECK constraint and a required `p_language` on
+  `create_draft_post`/`update_post_metadata`. The post form has a language
+  select that also marks the title, excerpt, and editor with `lang`. Public
+  and preview pages mark the title, excerpt, and body (not the Turkish
+  interface), listing cards mark their title and excerpt, Open Graph uses the
+  matching locale (`tr_TR`, `en_US`, `de_DE`), and JSON-LD `inLanguage` the
+  language code. Translations are not linked; interface localization is a
+  separate concern.
 - 443 unit tests and 339 local-Supabase RLS tests (including the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
   administration suites, the Phase 11
@@ -170,8 +179,19 @@ its reports disappear with it.
 Phases 1–13, taxonomy and author identity administration, and the fixes from
 the all-roles browser test (`59771bc`) are on `origin/main`. The first-admin
 bootstrap command (`npm run admin:bootstrap`, migration
-`20261024100000_admin_bootstrap.sql`) followed on 2026-10-24; commit only on
-request. Do not push without an explicit request.
+`20261024100000_admin_bootstrap.sql`) followed on 2026-10-24, and Phase 14
+(post language, migration `20261024120000_post_language.sql`) the same day;
+commit only on request. Do not push without an explicit request.
+
+- Last verified (Phase 14): `npm run lint`, `npm run typecheck`, `npm test`
+  (484 tests), `npm run test:rls` (347 tests), `npm run build`, and
+  `npm run test:smoke` pass after a clean `supabase db reset` (sixteen
+  migrations). A browser journey on `next start` switched a published post to
+  English as an editor; the next anonymous request (`x-nextjs-cache: HIT`)
+  served `lang="en"` on the title, excerpt, and body, `og:locale` `en_US`, and
+  `inLanguage` `en`, and the home card carried `lang="en"`. Unsupported
+  languages are rejected by validation, the RPCs (`22023`), and the CHECK
+  constraint (`23514`).
 
 - First admin: there is no "first user becomes admin" rule. After a reset or a
   fresh deploy run `npm run admin:bootstrap -- --local --email <you>` (or the
@@ -341,6 +361,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 11 | Reader accounts | Optional reader sign-up, profile, account management | Phase 2, Phase 8, D6 | Done |
 | 12 | Bookmarks | Private saved posts with strict per-user isolation | Phase 8, 11 | Done |
 | 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | Done |
+| 14 | Post language | Per-post language (tr, en, de) in form, markup, OG, JSON-LD | Phase 9 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1181,6 +1202,30 @@ Demo: reader comments, it appears immediately, another reader reports it, an
 editor hides it, and it disappears publicly. Unauthorized moderation is denied.
 Exit when anonymous, reader, author, editor, and admin paths are verified.
 
+### Phase 14 — Post language
+
+Goal: each post declares the language it is written in, so browsers, screen
+readers, and search engines treat it correctly, without translating the
+interface or linking translations.
+
+Status: complete on 2026-10-24 (user request: support `en`, `de`, and `tr`).
+Verified as recorded in the handoff above.
+
+Implementation notes:
+
+- Level 1 of two: one language per post. Linking translations (a nullable
+  translation group plus `hreflang` alternates) can be added later without
+  changing `posts.language`. Interface localization (D5) is independent; the
+  admin interface stays Turkish for every post language.
+- The allowed set lives in `src/features/posts/language.ts` and is mirrored by
+  the CHECK constraint and `assert_post_language`; change all three together.
+- `<html lang>` stays `tr` for the interface. Only post-authored text carries
+  the post language, so Turkish labels, tags, and comments around an English
+  post are still announced in Turkish.
+
+Follow-ups, not requested: a language filter on archives, per-language
+sitemaps, and language-aware full-text search once search exists.
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1234,8 +1279,8 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Every phase in the table, both administration increments, and the first-admin
-bootstrap command are done. The remaining work is the launch gate: decide D5
+Every phase in the table (through Phase 14, post language), both
+administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with
 `npm run admin:bootstrap`, site URL and Auth redirects, reader-account Auth

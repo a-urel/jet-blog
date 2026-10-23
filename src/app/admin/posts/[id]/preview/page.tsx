@@ -14,6 +14,7 @@ import {
 import { getAdminPostDetail } from "@/features/posts/admin/data";
 import { canEditPost } from "@/features/posts/admin/permissions";
 import { PostBody } from "@/features/posts/components/post-body";
+import { postLanguageLabels } from "@/features/posts/language";
 import { getEditorialContext } from "@/lib/auth/editorial";
 
 export const metadata: Metadata = {
@@ -93,6 +94,7 @@ export default async function PostPreviewPage({
             <Badge variant={post.status === "published" ? "default" : "secondary"}>
               {post.status === "published" ? "Yayında" : "Taslak"}
             </Badge>
+            <Badge variant="outline">{postLanguageLabels[post.language]}</Badge>
             {post.categoryName ? (
               <Badge variant="outline">{post.categoryName}</Badge>
             ) : (
@@ -104,11 +106,14 @@ export default async function PostPreviewPage({
               </Badge>
             ))}
           </div>
-          <h1 className="text-3xl leading-tight font-semibold tracking-tight sm:text-5xl">
+          <h1
+            lang={post.language}
+            className="text-3xl leading-tight font-semibold tracking-tight sm:text-5xl"
+          >
             {post.title}
           </h1>
           {post.excerpt ? (
-            <p className="text-lg leading-relaxed text-muted-foreground">
+            <p lang={post.language} className="text-lg leading-relaxed text-muted-foreground">
               {post.excerpt}
             </p>
           ) : null}
@@ -131,7 +136,9 @@ export default async function PostPreviewPage({
           </p>
         </header>
 
-        <PostBody body={post.body} contentVersion={post.contentVersion} />
+        <div lang={post.language}>
+          <PostBody body={post.body} contentVersion={post.contentVersion} />
+        </div>
       </article>
     </div>
   );

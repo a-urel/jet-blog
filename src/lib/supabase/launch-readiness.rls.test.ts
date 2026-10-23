@@ -102,6 +102,7 @@ function createDraft(client: SupabaseClient, slug: string) {
     p_credits: [{ author_id: fixtures.author, sort_order: 0 }],
     p_body: body,
     p_content_version: 1,
+    p_language: "tr",
   });
 }
 
@@ -141,6 +142,7 @@ function saveTitle(
     p_credits: [{ author_id: fixtures.author, sort_order: 0 }],
     p_body: body,
     p_content_version: 1,
+    p_language: "tr",
   });
 }
 

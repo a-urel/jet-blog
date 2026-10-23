@@ -1,3 +1,4 @@
+import { isPostLanguage } from "./language";
 import type { Author, Category, Post, PostSummary, Tag } from "./types";
 
 // Pure mapping from PostgREST rows to the public read model. Kept free of
@@ -10,6 +11,7 @@ export type RawPublicPost = {
   slug: string;
   title: string;
   excerpt: string | null;
+  language: string;
   published_at: string | null;
   updated_at: string;
   body?: unknown;
@@ -31,7 +33,7 @@ export type RawPublicPost = {
 
 // Columns the public listing needs. The post page adds the body.
 export const publicPostSummaryColumns =
-  "id, slug, title, excerpt, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors(sort_order, author:authors(id, name, slug)), post_tags(tag:tags(id, name, slug))";
+  "id, slug, title, excerpt, language, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors(sort_order, author:authors(id, name, slug)), post_tags(tag:tags(id, name, slug))";
 
 export const publicPostColumns = `${publicPostSummaryColumns}, body, content_version`;
 
@@ -46,11 +48,11 @@ function manyRelated<T>(value: RelatedRecord<T>): T[] {
 }
 
 // Returns null for a row that cannot be shown publicly: a published post
-// always has a publication time and a category, so anything else is a
-// partial or inconsistent read and stays hidden.
+// always has a publication time, a category, and a supported language, so
+// anything else is a partial or inconsistent read and stays hidden.
 export function mapPublicPostSummary(row: RawPublicPost): PostSummary | null {
   const category = firstRelated(row.category);
-  if (!row.published_at || !category) return null;
+  if (!row.published_at || !category || !isPostLanguage(row.language)) return null;
 
   const authors = manyRelated(row.post_authors)
     .flatMap((credit) => {
@@ -73,6 +75,7 @@ export function mapPublicPostSummary(row: RawPublicPost): PostSummary | null {
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt,
+    language: row.language,
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
     authors,

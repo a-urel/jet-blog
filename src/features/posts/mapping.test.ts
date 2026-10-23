@@ -12,6 +12,7 @@ const row: RawPublicPost = {
   slug: "ornek-yazi",
   title: "Örnek yazı",
   excerpt: null,
+  language: "en",
   published_at: "2026-10-20T09:00:00+00:00",
   updated_at: "2026-10-20T09:00:00+00:00",
   body: { type: "doc", content: [{ type: "paragraph" }] },
@@ -45,6 +46,14 @@ describe("mapPublicPostSummary", () => {
       parentId: "c0",
     });
     expect(post?.publishedAt).toBe(row.published_at);
+    expect(post?.language).toBe("en");
+  });
+
+  it("hides rows with an unsupported or missing language", () => {
+    expect(mapPublicPostSummary({ ...row, language: "fr" })).toBeNull();
+    expect(
+      mapPublicPostSummary({ ...row, language: undefined as unknown as string }),
+    ).toBeNull();
   });
 
   it("hides rows without a publication time or category", () => {

@@ -17,6 +17,7 @@ describe("buildArticleJsonLd", () => {
       datePublished: publishedPost.publishedAt,
       dateModified: publishedPost.updatedAt,
       articleSection: "Yazılım",
+      inLanguage: "tr",
       keywords: ["Başlangıç", "Şema"],
       url: "https://example.test/posts/ornek-yazi",
       mainEntityOfPage: { "@type": "WebPage", "@id": "https://example.test/posts/ornek-yazi" },
@@ -26,6 +27,15 @@ describe("buildArticleJsonLd", () => {
       { "@type": "Person", name: "Birinci Yazar", url: "https://example.test/authors/birinci-yazar" },
       { "@type": "Person", name: "İkinci Yazar", url: "https://example.test/authors/ikinci-yazar" },
     ]);
+  });
+
+  it("declares the post's own language", () => {
+    const jsonLd = buildArticleJsonLd(
+      { ...publishedPost, language: "de" },
+      { siteUrl, siteName: "S" },
+    );
+
+    expect(jsonLd.inLanguage).toBe("de");
   });
 
   it("omits URLs without a site origin", () => {

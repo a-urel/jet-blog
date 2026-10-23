@@ -1,3 +1,8 @@
+import {
+  defaultPostLanguage,
+  isPostLanguage,
+  type PostLanguage,
+} from "@/features/posts/language";
 import { isValidSlug, normalizeName, slugify } from "@/lib/slug";
 
 export type PostMetadataInput = Readonly<{
@@ -5,13 +10,21 @@ export type PostMetadataInput = Readonly<{
   slug: string;
   excerpt: string | null;
   categoryId: string | null;
+  language: PostLanguage;
   tagIds: string[];
   credits: ReadonlyArray<{ authorId: string; sortOrder: number }>;
 }>;
 
 export type PostFieldErrors = Partial<
   Record<
-    "title" | "slug" | "excerpt" | "categoryId" | "tagIds" | "credits" | "body",
+    | "title"
+    | "slug"
+    | "excerpt"
+    | "categoryId"
+    | "language"
+    | "tagIds"
+    | "credits"
+    | "body",
     string
   >
 >;
@@ -21,6 +34,7 @@ export type RawPostMetadata = Readonly<{
   slug: string;
   excerpt: string;
   categoryId: string;
+  language: string;
   tagIds: string[];
   creditAuthorIds: string[];
   creditSortOrders: string[];
@@ -75,6 +89,15 @@ export function validatePostMetadata(
     } else {
       categoryId = categoryValue;
     }
+  }
+
+  const languageValue = raw.language.trim();
+  let language: PostLanguage = defaultPostLanguage;
+
+  if (isPostLanguage(languageValue)) {
+    language = languageValue;
+  } else {
+    fieldErrors.language = "Desteklenen bir dil seçin.";
   }
 
   const tagIds: string[] = [];
@@ -181,6 +204,7 @@ export function validatePostMetadata(
       slug,
       excerpt: excerpt.length > 0 ? excerpt : null,
       categoryId,
+      language,
       tagIds,
       credits,
     },

@@ -13,6 +13,7 @@ function raw(overrides: Partial<RawPostMetadata> = {}): RawPostMetadata {
     slug: "",
     excerpt: "  Kısa bir özet. ",
     categoryId: category,
+    language: "en",
     tagIds: [tagA],
     creditAuthorIds: [authorA, authorB],
     creditSortOrders: ["0", "1"],
@@ -30,6 +31,7 @@ describe("validatePostMetadata", () => {
     expect(result.data.title).toBe("Küçük adımlarla başlamak");
     expect(result.data.slug).toBe("kucuk-adimlarla-baslamak");
     expect(result.data.excerpt).toBe("Kısa bir özet.");
+    expect(result.data.language).toBe("en");
     expect(result.data.credits).toEqual([
       { authorId: authorA, sortOrder: 0 },
       { authorId: authorB, sortOrder: 1 },
@@ -47,6 +49,15 @@ describe("validatePostMetadata", () => {
     expect(result.data.excerpt).toBeNull();
     expect(result.data.categoryId).toBeNull();
     expect(result.data.credits).toEqual([]);
+  });
+
+  it.each(["", "fr", "EN", "tr-TR"])("rejects the unsupported language %j", (language) => {
+    const result = validatePostMetadata(raw({ language }));
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.fieldErrors.language).toBe("Desteklenen bir dil seçin.");
+    }
   });
 
   it("rejects an invalid or empty derived slug", () => {

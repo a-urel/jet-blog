@@ -31,6 +31,11 @@ import type {
   TagOption,
 } from "@/features/posts/admin/types";
 import type { BodyDocument } from "@/features/posts/content/schema";
+import {
+  postLanguageLabels,
+  postLanguages,
+  type PostLanguage,
+} from "@/features/posts/language";
 import { PostBodyEditor } from "./post-body-editor";
 import { useUnsavedChangesWarning } from "./use-unsaved-changes-warning";
 
@@ -57,6 +62,7 @@ type PostFormProps = {
     slug: string;
     excerpt: string;
     categoryId: string;
+    language: PostLanguage;
     tagIds: string[];
     credits: InitialCredit[];
     body: BodyDocument;
@@ -89,6 +95,7 @@ export function PostForm({
     initialValues.tagIds,
   );
   const [categoryId, setCategoryId] = useState(initialValues.categoryId);
+  const [language, setLanguage] = useState<string>(initialValues.language);
   const [authorToAdd, setAuthorToAdd] = useState("");
   // The revision the unsaved edits were made against. A successful save
   // re-renders this form with a newer revision, which clears the warning
@@ -201,6 +208,30 @@ export function PostForm({
       ) : null}
 
       <div className="space-y-2">
+        <Label htmlFor="post-language">Yazının dili</Label>
+        <NativeSelect
+          className="w-full sm:w-64"
+          id="post-language"
+          name="language"
+          value={language}
+          onChange={(event) => setLanguage(event.target.value)}
+          aria-invalid={state.fieldErrors.language ? true : undefined}
+          aria-describedby="post-language-help post-language-error"
+        >
+          {postLanguages.map((option) => (
+            <NativeSelectOption key={option} value={option}>
+              {postLanguageLabels[option]}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        <p id="post-language-help" className="text-sm text-muted-foreground">
+          Başlık, özet ve gövde bu dilde işaretlenir; yönetim arayüzünün dili
+          değişmez.
+        </p>
+        <FieldError id="post-language-error" message={state.fieldErrors.language} />
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="post-title">Başlık</Label>
         <Input
           id="post-title"
@@ -208,6 +239,7 @@ export function PostForm({
           type="text"
           required
           maxLength={200}
+          lang={language}
           defaultValue={values.title}
           aria-invalid={state.fieldErrors.title ? true : undefined}
           aria-describedby={
@@ -243,6 +275,7 @@ export function PostForm({
           name="excerpt"
           rows={4}
           maxLength={500}
+          lang={language}
           defaultValue={values.excerpt}
           aria-invalid={state.fieldErrors.excerpt ? true : undefined}
           aria-describedby={
@@ -263,6 +296,7 @@ export function PostForm({
           initialContent={initialValues.body}
           invalid={Boolean(state.fieldErrors.body)}
           describedBy="post-body-help post-body-error"
+          lang={language}
           onChange={markDirty}
         />
         <p id="post-body-help" className="text-sm text-muted-foreground">

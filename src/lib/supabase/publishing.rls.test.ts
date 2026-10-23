@@ -92,6 +92,7 @@ async function createDraft(
     p_credits: [{ author_id: fixtures.author, sort_order: 0 }],
     p_body: body,
     p_content_version: 1,
+    p_language: "tr",
   });
 
   if (error) throw error;
@@ -131,6 +132,7 @@ async function renamePost(client: SupabaseClient, postId: string, slug: string) 
     p_credits: [{ author_id: fixtures.author, sort_order: 0 }],
     p_body: body,
     p_content_version: 1,
+    p_language: "tr",
   });
 }
 
@@ -383,6 +385,7 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
       p_credits: [],
       p_body: body,
       p_content_version: 1,
+      p_language: "tr",
     });
     expect(created.error?.code).toBe("23505");
 

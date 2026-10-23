@@ -48,6 +48,9 @@ type PostBodyEditorProps = {
   initialContent: BodyDocument;
   invalid?: boolean;
   describedBy?: string;
+  // Language of the document, so spell checking and hyphenation follow the
+  // post instead of the Turkish interface.
+  lang?: string;
   // Called on every change to the document, for unsaved-changes tracking.
   onChange?: () => void;
 };
@@ -136,6 +139,7 @@ export function PostBodyEditor({
   initialContent,
   invalid,
   describedBy,
+  lang,
   onChange,
 }: PostBodyEditorProps) {
   const [serialized, setSerialized] = useState(() =>
@@ -501,7 +505,7 @@ export function PostBodyEditor({
         ) : null}
 
         {editor ? (
-          <EditorContent editor={editor} />
+          <EditorContent editor={editor} lang={lang} />
         ) : (
           <div
             aria-hidden="true"

@@ -37,7 +37,11 @@ export function PostList({
                   {post.category.name}
                 </Link>
                 <Heading className="text-2xl leading-snug font-semibold tracking-tight">
-                  <Link href={postPath(post.slug)} className="rounded-sm hover:underline underline-offset-4">
+                  <Link
+                    href={postPath(post.slug)}
+                    lang={post.language}
+                    className="rounded-sm hover:underline underline-offset-4"
+                  >
                     {post.title}
                   </Link>
                 </Heading>
@@ -45,7 +49,7 @@ export function PostList({
               </CardHeader>
               <CardContent className="flex-1 space-y-5">
                 {post.excerpt ? (
-                  <p className="max-w-2xl leading-relaxed text-muted-foreground">
+                  <p lang={post.language} className="max-w-2xl leading-relaxed text-muted-foreground">
                     {post.excerpt}
                   </p>
                 ) : null}
