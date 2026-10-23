@@ -82,3 +82,11 @@ export function canManageAuthors(
 ): boolean {
   return membership?.role === "admin";
 }
+
+// Phase 13: editors and admins moderate comments (hide, restore, delete);
+// the database enforces the same rule in moderate_comment().
+export function canModerateComments(
+  membership: EditorialMembership | null,
+): boolean {
+  return membership?.role === "admin" || membership?.role === "editor";
+}

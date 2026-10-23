@@ -643,6 +643,7 @@ src/
     admin/members/        # Admin-only member list and actions
     admin/categories/     # Admin-only category tree, create, edit, move, delete
     admin/tags/           # Admin-only tags, create, edit, delete
+    admin/comments/       # Editor/admin comment moderation queue
     admin/posts/          # Draft list, create, edit, and members-only preview
     account/              # Reader account: display name, sign-out, deletion
     account/password/     # Change or recover the password (signed in)
@@ -664,6 +665,7 @@ src/
     account/              # Display name and account deletion actions
     auth/                 # Sign-in, sign-up, reset, password policy, Auth rate limits, return paths
     bookmarks/            # Bookmark action, saved-list query, browser-side toggle state
+    comments/             # Comment actions, queries, cache tags, section and moderation UI
     media/                # Upload validation, upload/delete actions, URLs
     members/              # Invite, role, and activation Server Actions
     seo/                  # Metadata, Article JSON-LD, sitemap and robots builders
@@ -699,6 +701,7 @@ src/
       editorial-rls.rls.test.ts # Membership and audit RLS tests
       reader-accounts.rls.test.ts # Self-service reader matrix, deletion, limits
       bookmarks.rls.test.ts       # Bookmark isolation, drafts, saved list, deletion
+      comments.rls.test.ts        # Comments, reports, moderation, limits, anonymization
       taxonomy-admin.rls.test.ts  # Taxonomy RPCs, moves, redirects, deletion
     app-origin.ts         # Origin for Auth email redirects
   proxy.ts                # Next.js 16 token refresh (formerly middleware)
@@ -1031,8 +1034,9 @@ is the identity later reader features (bookmarks, comments) will attach to.
   membership first), which also keeps at least one active admin; editors,
   authors, and deactivated members may delete their account and get a
   `member.account_deletion` audit entry. Since Phase 12 the preflight also
-  deletes the user's bookmarks; Phase 13 will anonymize their comments inside
-  `prepare_own_account_deletion()`, before the Auth user is deleted.
+  deletes the user's bookmarks, and since Phase 13 it anonymizes their
+  comments inside `prepare_own_account_deletion()`, before the Auth user is
+  deleted (see "Comments (Phase 13)").
 - **Identity boundary.** No reader action accepts a user id, role, or email for
   authorization; `features/account/form-fields.test.ts` pins the accepted form
   fields.
@@ -1223,9 +1227,119 @@ bookmark row for anonymous, reader, author, editor, and admin. Unit tests cover
 `safeReturnPath`, the action's error mapping, saved-row mapping, and a guard
 that the action never takes a user id from the client.
 
+## Comments (Phase 13)
+
+Signed-in users with a display name comment on published posts. Comments are
+flat (no replies), plain text, and post-moderated by decision D6: a comment is
+public as soon as it is submitted, signed-in readers report it, and editors
+and admins hide (reversible) or soft-delete it at `/admin/comments`. Reports
+never hide a comment on their own; there is no auto-hide threshold. Migration
+`20261023220000_comments.sql` adds:
+
+- **Tables.** `comments(id, post_id, user_id, display_name, body, status,
+  created_at, updated_at)` with `status in ('visible','hidden','deleted')`
+  and a body CHECK of 1–2000 characters that must already be trimmed.
+  `post_id` cascades from `posts`; `user_id` defaults to `auth.uid()` and
+  references `profiles` with `ON DELETE SET NULL`. `comment_reports(id,
+  comment_id, reporter_id, reason, created_at)` with `unique (comment_id,
+  reporter_id)` and `reason in ('spam','abuse','off_topic','other')`; it
+  cascades from the comment and from the reporter's profile. Indexes: a
+  partial `(post_id, created_at) where status = 'visible'` (the public list),
+  `(status, created_at desc)` (the queue), `(user_id, post_id, created_at
+  desc)` (own comments, the duplicate guard, anonymization), and
+  `comment_reports(reporter_id)`.
+- **Column grants.** Clients can never select `comments.user_id` or
+  `comment_reports.reporter_id`, so public listings cannot link comments to
+  accounts and reporter identity stays private, even from moderators (the
+  queue shows reasons and counts). Inserts are granted on `(post_id, body)`
+  and `(comment_id, reason)` only; there is no update grant (no editing, and
+  status only changes through the RPC).
+- **RLS.** Comments: everyone selects `visible` rows of `published` posts;
+  the author also selects their own rows in any status; editors and admins
+  (`is_editor()`) select every row. Insert only as `auth.uid()`, with status
+  `visible`, for a post that is published now (explicit status check, because
+  members can read drafts). Delete only one's own row (a hard delete; its
+  reports go with it). Reports: insert only as the reporter, for a comment
+  that `is_reportable_comment()` says is visible, on a published post, and
+  not the caller's own; the reporter reads their own reports, moderators read
+  all. Anonymous visitors cannot write either table.
+- **Insert trigger.** `prepare_comment_insert()` copies the display name from
+  the author's profile into `display_name` (clients cannot choose it; a
+  profile without a display name fails with `23502`), consumes
+  `comment.create` (10 per user per hour, Phase 10 mechanism, `PT429`), and
+  refuses the same body on the same post by the same author within ten
+  minutes (`PT409`, a basic double-submit and paste-spam guard). Reports
+  consume `comment.report` (20 per user per hour). The snapshot is not
+  updated when the author later renames themselves.
+- **Moderation.** `moderate_comment(comment_id, status)` (security definer,
+  `is_editor()` only, `42501` otherwise) allows `visible ↔ hidden` and
+  `visible | hidden → deleted`; a soft-deleted comment cannot change again
+  (`23514`). Each change writes `comment.hide`, `comment.restore`, or
+  `comment.delete` to `editorial_audit_log` and returns the post id and slug
+  for cache invalidation.
+- **Own comments.** `list_own_comment_ids(post_id)` returns the caller's
+  visible comment ids on one post, so the browser can offer delete instead of
+  report without exposing `user_id`.
+- **Account deletion.** `prepare_own_account_deletion()` now also sets
+  `user_id = null` on the caller's comments after removing bookmarks. A
+  `BEFORE UPDATE OF user_id` trigger replaces the snapshot with the neutral
+  label "Silinmiş kullanıcı" whenever `user_id` becomes null, so the
+  `ON DELETE SET NULL` safety net anonymizes too. Bodies are kept; the
+  caller's reports go with the profile cascade.
+
+Application (`src/features/comments/`):
+
+- **Rendering and caching.** Visible comments and their count are
+  server-rendered into the ISR post page (`/posts/[slug]`, still SSG with a
+  5-minute fallback), read through the anonymous client, and HTML-escaped
+  plain text with preserved line breaks. Their Data Cache entries carry
+  `post-comments:<postId>` and `public-comments` (`comments/cache.ts`).
+  Creating, deleting, hiding, restoring, or soft-deleting a comment calls
+  `updateTag("post-comments:<postId>")` (read-your-own-writes, Server Actions
+  only) and `revalidatePath("/posts/<slug>")`, so only that post's page is
+  regenerated; no listing, archive, or the sitemap shows comments. Account
+  deletion calls `updateTag("public-comments")` and revalidates the
+  `/posts/[slug]` pattern, because anonymization may touch any post. Reports
+  change no public output and revalidate only `/admin/comments`.
+- **Per-visitor controls.** `CommentViewerProvider` loads the visitor's state
+  after hydration through the cookie-backed browser client (session, whether
+  the profile has a display name, own comment ids, own reports), like the
+  bookmark toggle, so nothing user-specific enters the shared page.
+  Anonymous visitors get a sign-in link with `?next=`; a reader without a
+  display name gets a link to `/account`.
+- **Actions.** `createCommentAction`, `deleteOwnCommentAction`,
+  `reportCommentAction`, and `moderateCommentAction` take the user from the
+  verified session and only ids, the body, a reason code, or a status from
+  the client. The body is normalized before insert (line endings, control
+  characters, blank-line runs, trim, 2000 code points). Errors map to Turkish
+  messages (`comments/model.ts`).
+- **UI.** shadcn/ui `Textarea`, `Button`, `RadioGroup` (added for report
+  reasons), `Badge`, and `Card`; delete and soft-delete ask for a second
+  click; status messages use live regions. `/admin/comments` (dynamic,
+  noindex via the admin layout) has `reported`, `visible`, `hidden`, and
+  `deleted` filters (`?filter=`) with the latest 100 rows each; authors and
+  readers get the access-denied view and no navigation link.
+
+Tests: `comments.rls.test.ts` covers immediate visibility under the profile
+name, anonymous denial, impersonation through `user_id`, `display_name`, or
+`status`, drafts and missing posts refused for every role, the display-name
+requirement, length and trim limits, the duplicate guard, the
+`comment.create` and `comment.report` limits, `user_id` and `reporter_id`
+never selectable, own-id listing, owner-only delete, no editing, one report
+per reader, no reports on own or hidden comments, report privacy, reported
+comments staying visible, moderation denied to anonymous, readers, and
+authors, editor hide/restore with audit entries, admin soft delete being
+final, moderators reading every status, unpublished posts hiding their
+comments, and anonymization by the preflight and by the `ON DELETE SET NULL`
+safety net. The Phase 10 role matrix gains a comment row. Unit tests cover
+body normalization, input guards, error mapping, row mapping, and cache tags;
+`npm run test:smoke` checks that post pages include the server-rendered
+comment section, stay publicly cacheable, and that `/admin/comments`
+redirects anonymous visitors to sign-in.
+
 ## Next increment
 
-Phases 1–12 are implemented: authentication, editorial membership with
+Phases 1–13 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
@@ -1236,11 +1350,12 @@ robots, sharing, and category/tag/author archives, and launch readiness (cache
 invalidation map, conflict handling, write rate limits, error and loading
 states, security headers, backup runbook, smoke test), self-service reader
 accounts (Phase 11), taxonomy administration, author identity
-administration, and private bookmarks (Phase 12). See
+administration, private bookmarks (Phase 12), and post-moderated comments
+(Phase 13). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-Next: Phase 13 (comments) per ROADMAP.md. A new body node still changes the TypeScript
-allowlist, the database mirror, the fixtures, the editor, and the renderer
+All planned phases (1–13) are implemented; see ROADMAP.md for the open
+gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand
 decisions.

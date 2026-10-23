@@ -48,6 +48,12 @@ if (postPath) {
 
   check(post.status === 200, `${postPath}: expected 200, got ${post.status}`);
   check(postHtml.includes('"@type":"BlogPosting"'), `${postPath}: missing Article JSON-LD`);
+  // Visible comments are server-rendered into the shared page.
+  check(postHtml.includes('id="comments-heading"'), `${postPath}: comments are not server-rendered`);
+  check(
+    !(post.headers.get("cache-control") ?? "").includes("private"),
+    `${postPath}: post page is not publicly cacheable`,
+  );
   checkSecurityHeaders(postPath, post);
 } else {
   console.warn("No published post on the home page; post checks skipped.");
@@ -66,6 +72,13 @@ check(
   [302, 303, 307, 308].includes(admin.status) &&
     new URL(admin.headers.get("location") ?? "", baseUrl).pathname === "/login",
   `/admin: anonymous request was not redirected to /login (status ${admin.status})`,
+);
+
+const moderation = await get("/admin/comments");
+check(
+  [302, 303, 307, 308].includes(moderation.status) &&
+    new URL(moderation.headers.get("location") ?? "", baseUrl).pathname === "/login",
+  `/admin/comments: anonymous request was not redirected to /login (status ${moderation.status})`,
 );
 
 // Reader routes redirect to sign-in with a return path and are never cached.

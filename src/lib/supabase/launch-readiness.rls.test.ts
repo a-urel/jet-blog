@@ -499,4 +499,61 @@ describe("final role matrix", () => {
     expect(draft.error).not.toBeNull();
     expect(readerRows.data).toEqual([{ post_id: fixtures.published }]);
   });
+
+  // Phase 13: signed-in users with a display name comment on published posts
+  // only; anyone signed in may report someone else's visible comment; only
+  // editors and admins change status. The reader's comment is the target.
+  it.each(roles)("%s comments, reports, and moderates only as allowed", async (role) => {
+    const { error: nameError } = await service
+      .from("profiles")
+      .update({ display_name: `Matris ${runId}` })
+      .in("id", [userIds.reader, userIds.author, userIds.editor, userIds.admin]);
+    expect(nameError).toBeNull();
+
+    const { data: target, error: targetError } = await service
+      .from("comments")
+      .insert({
+        post_id: fixtures.published,
+        user_id: userIds.reader,
+        display_name: "yok",
+        body: `Matris hedefi ${role} ${runId}`,
+      })
+      .select("id")
+      .single();
+    expect(targetError).toBeNull();
+
+    const client = clientFor(role);
+    const ownBody = `Matris yorumu ${role} ${runId}`;
+    const published = await client
+      .from("comments")
+      .insert({ post_id: fixtures.published, body: ownBody });
+    const draft = await client
+      .from("comments")
+      .insert({ post_id: fixtures.draft, body: `${ownBody} taslak` });
+    const report = await client
+      .from("comment_reports")
+      .insert({ comment_id: target!.id, reason: "spam" });
+    const moderation = await client.rpc("moderate_comment", {
+      p_comment_id: target!.id,
+      p_status: "hidden",
+    });
+    const visible = await client.from("comments").select("id").eq("id", target!.id);
+
+    const { data: row } = await service
+      .from("comments")
+      .select("status")
+      .eq("id", target!.id)
+      .single();
+
+    const moderator = role === "editor" || role === "admin";
+
+    expect(published.error === null).toBe(role !== "anon");
+    expect(draft.error).not.toBeNull();
+    // The reader owns the target and cannot report it.
+    expect(report.error === null).toBe(role !== "anon" && role !== "reader");
+    expect(moderation.error === null).toBe(moderator);
+    expect(row?.status).toBe(moderator ? "hidden" : "visible");
+    // Non-moderators read the still-visible comment; moderators read every status.
+    expect(visible.data).toEqual([{ id: target!.id }]);
+  });
 });

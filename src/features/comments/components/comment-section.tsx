@@ -1,0 +1,60 @@
+import type { PublicComment } from "../queries";
+import { CommentForm } from "./comment-form";
+import { CommentItemActions } from "./comment-item-actions";
+import { CommentViewerProvider } from "./comment-viewer-provider";
+
+const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Istanbul",
+});
+
+type CommentSectionProps = {
+  postId: string;
+  comments: PublicComment[];
+};
+
+// Server-rendered part of the post page: the visible comments and their count
+// are in the prerendered HTML. Bodies are plain text rendered as React text
+// (escaped), with line breaks preserved by CSS; no HTML is ever interpreted.
+// Per-visitor controls hydrate inside CommentViewerProvider.
+export function CommentSection({ postId, comments }: CommentSectionProps) {
+  return (
+    <section aria-labelledby="comments-heading" className="space-y-6 border-t pt-8">
+      <h2 id="comments-heading" className="text-xl font-semibold tracking-tight">
+        Yorumlar <span className="text-muted-foreground">({comments.length})</span>
+      </h2>
+      <CommentViewerProvider postId={postId} commentIds={comments.map((comment) => comment.id)}>
+        {comments.length > 0 ? (
+          <ol className="space-y-6">
+            {comments.map((comment) => (
+              <li key={comment.id} id={`comment-${comment.id}`} className="space-y-2">
+                <article aria-label={`${comment.displayName} adlı kişinin yorumu`}>
+                  <header className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                    <span className="font-medium">{comment.displayName}</span>
+                    <time
+                      dateTime={comment.createdAt}
+                      className="text-muted-foreground"
+                    >
+                      {dateFormatter.format(new Date(comment.createdAt))}
+                    </time>
+                  </header>
+                  <p className="mt-1 leading-relaxed break-words whitespace-pre-line">
+                    {comment.body}
+                  </p>
+                </article>
+                <CommentItemActions commentId={comment.id} authorName={comment.displayName} />
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-sm text-muted-foreground">Henüz yorum yok.</p>
+        )}
+        <CommentForm postId={postId} />
+      </CommentViewerProvider>
+    </section>
+  );
+}

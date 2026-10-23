@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-23 (Phase 12 bookmarks complete)
+Last updated: 2026-10-23 (Phase 13 comments complete)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–12, complete)
+## Current baseline (Phases 1–13, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -106,8 +106,20 @@ does not add requirements on its own.
   post page and cards whose state loads in the browser so public pages stay
   ISR, safe `?next=` return paths on sign-in, and a dynamic, `noindex`
   `/account/saved` list filtered to published posts.
-- 429 unit tests and 311 local-Supabase RLS tests (including the bookmark
-  suite and matrix row, the author and taxonomy
+- Phase 13 comments: flat, plain-text `comments` (display-name snapshot from
+  the profile, 2000-character limit, `visible`/`hidden`/`deleted`) and
+  `comment_reports` (one per reader and comment, reason code). Post-moderation:
+  visible on submit, reports never auto-hide, editors and admins hide, restore,
+  or soft-delete through the audited `moderate_comment()` RPC at
+  `/admin/comments`; owners hard-delete their own comment; no editing.
+  `user_id` and `reporter_id` are not client-selectable. Per-user
+  `comment.create` (10/hour) and `comment.report` (20/hour) limits and a
+  ten-minute duplicate guard. Account deletion anonymizes comments (preflight
+  plus an `ON DELETE SET NULL` trigger), keeping bodies. Visible comments are
+  server-rendered in the ISR post page under per-post cache tags; comment
+  changes expire only that post's tag and path.
+- 443 unit tests and 339 local-Supabase RLS tests (including the comment
+  suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
   administration suites, the Phase 11
   self-signed-up reader matrix and the Phase 10
   concurrent-save, rate-limit, and final anonymous/reader/author/editor/admin
@@ -147,32 +159,44 @@ reassignment by decision). Bookmark toggles render as "not saved" until the
 browser read finishes after hydration (a short delay for signed-in users, by
 design to keep public pages cached), and a bookmark of a later-unpublished
 post keeps its row, so its owner can still see that post id through the API
-(never its content).
+(never its content). Comment controls (delete, report, the form) likewise
+appear only after the browser read; the moderation queue lists the latest 100
+rows per filter without pagination; a comment's display name is a snapshot and
+does not follow later profile renames; an owner's delete is a hard delete, so
+its reports disappear with it.
 
 ## Where to resume (session handoff)
 
 Phases 1–11, taxonomy administration (`8081321`), and author identity
-administration (`85dfe87`) are on `origin/main`. Phase 12 (bookmarks) is
-complete and verified in the working tree; commit only on request. Do not push
-without an explicit request.
+administration (`85dfe87`) are on `origin/main`. Phase 12 (bookmarks,
+`d25e36a`) is committed locally, not pushed. Phase 13 (comments) is complete
+and verified in the working tree; commit only on request. Do not push without
+an explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (429 tests),
-  `npm run test:rls` (311 tests), `npm run build`, and `npm run test:smoke`
-  (against `next start`) pass after a clean `supabase db reset` (thirteen
-  migrations). The build lists `/` as static and `/posts/[slug]` and the
-  archives as SSG with ISR; `/account/saved` is dynamic. A browser journey on
-  `next dev` covered: an anonymous click on "Kaydet" led to
-  `/login?next=/posts/birlikte-yazmak`; reader A signed in, returned to the
-  post, saved it with the keyboard, and saw it pressed after a reload and in
-  `/account/saved`; signed-out `/account/saved` redirected with `next`; reader
-  B's list started empty, B saved the same post and another from home cards
-  and saw only those two; unpublishing the shared post removed it from B's
-  list with no title in the HTML; light and dark themes were readable.
-- Local database: the final `supabase db reset` applied all thirteen
-  migrations and the seed and removed every local Auth user, including the
-  journey accounts. If a stale ISR page refers to a post the reset removed,
+- Last verified (Phase 13): `npm run lint`, `npm run typecheck`, `npm test`
+  (443 tests), `npm run test:rls` (339 tests), `npm run build`, and
+  `npm run test:smoke` (against `next start`) pass after a clean
+  `supabase db reset` (fourteen migrations). The build still lists
+  `/posts/[slug]` as SSG with ISR; `/admin/comments` is dynamic. A browser
+  journey on `next start` covered: reader A commented on
+  `/posts/birlikte-yazmak` and saw it at once (the anonymous HTML had it
+  too); reader B reported it with a reason and it stayed public; B and an
+  author got the access-denied view at `/admin/comments` (no nav link); an
+  editor hid it from the "Bildirilen" queue, the anonymous page then showed
+  "Henüz yorum yok" while still served from the ISR cache (`x-nextjs-cache:
+  HIT`), and it appeared under "Gizlenen"; dark and light themes were
+  readable.
+- Local database: the final `supabase db reset` applied all fourteen
+  migrations and the seed and removed earlier local Auth users. Four synthetic
+  journey accounts (`demo-okur-a`, `demo-okur-b`, `demo-editor`,
+  `demo-yazar` at example.com) and one hidden comment were created afterwards;
+  the next reset removes them. If a stale ISR page refers to a post the reset removed,
   clear `.next/cache/fetch-cache` before `next build`.
-- Key files: bookmarks:
+- Key files: comments:
+  `supabase/migrations/20261023220000_comments.sql`, `src/features/comments/`
+  (`actions.ts`, `cache.ts`, `data.ts`, `model.ts`, `queries.ts`, components),
+  `src/app/admin/comments/`, `src/app/posts/[slug]/page.tsx`, and
+  `src/lib/supabase/comments.rls.test.ts`. Bookmarks:
   `supabase/migrations/20261023200000_bookmarks.sql`, `src/features/bookmarks/`
   (`actions.ts`, `queries.ts`, `data.ts`, `result.ts`, components),
   `src/features/auth/return-path.ts`, `src/app/account/saved/`,
@@ -187,11 +211,8 @@ without an explicit request.
   `supabase/migrations/20261023120000_write_rate_limits.sql`,
   `src/features/posts/cache.ts`, and `docs/backup-and-restore.md`. Earlier
   phases: the other migrations and `*.rls.test.ts` files.
-- Next slice: Phase 13 (comments). Both deferred administration follow-ups and
-  Phase 12 are done.
-- Phase 13 hooks into `prepare_own_account_deletion()` (anonymize comments
-  after the Phase 12 bookmark removal) and needs a display name before a
-  reader comments.
+- Next slice: none planned. Every phase in the table is done; the remaining
+  work is the D5 launch gate (and D4 if draft media must stay private).
 - Open gates: D5 remains provisional (hosting deferred, no production domain,
   `NEXT_PUBLIC_SITE_NAME` default "Yazılar"). Launch needs those decisions plus
   the README hosting checklist. Revisit D4 before public launch if draft images
@@ -313,11 +334,12 @@ account-attribute decision, not a widening of the editorial role enum.
 | 10 | Launch readiness | Cache invalidation, conflict handling, rate limits, backups | Phase 9 | Done |
 | 11 | Reader accounts | Optional reader sign-up, profile, account management | Phase 2, Phase 8, D6 | Done |
 | 12 | Bookmarks | Private saved posts with strict per-user isolation | Phase 8, 11 | Done |
-| 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | L |
+| 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
-increments; Phase 12 followed both of them, and Phase 13 is next.
+increments; Phase 12 followed both of them, and Phase 13 completed the reader
+branch.
 
 Dependencies are transitive even where the table lists only the direct blocker.
 Phase 7 is optional for publishing; Phase 6 becomes required only when cover
@@ -1088,6 +1110,28 @@ passes.
 
 Goal: readers can discuss published posts under post-moderation without exposing
 unpublished content or other users' data.
+
+Status: complete on 2026-10-23. Verified with lint, typecheck, 443 unit tests,
+339 local-Supabase RLS tests, the production build, the smoke test, a clean
+`supabase db reset`, and the browser journey in the handoff above.
+
+Implementation notes:
+
+- Visible comments render server-side inside the ISR post page through the
+  anonymous client, tagged `post-comments:<postId>` and `public-comments`.
+  Comment Server Actions call `updateTag` for the post's tag and
+  `revalidatePath` for its literal path, so a comment change regenerates one
+  page; account deletion expires `public-comments` and the `/posts/[slug]`
+  pattern. Per-visitor controls load in the browser after hydration.
+- The display name is a snapshot copied from the profile by an insert
+  trigger; a profile without one cannot comment (`23502`). `user_id` and
+  `reporter_id` have no client select grant; the browser learns its own
+  comment ids through `list_own_comment_ids()`.
+- Owners hard-delete their own comment (RLS delete policy); editors and
+  admins soft-delete through `moderate_comment()`, which is final and
+  audited. Hide/restore are audited too.
+- Readers cannot report their own comment, and only visible comments on
+  published posts are reportable.
 
 Scope:
 

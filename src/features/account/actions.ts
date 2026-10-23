@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 import { authRateLimitMessages, consumeAuthRateLimit } from "@/features/auth/rate-limit";
 import { validateDisplayName } from "@/features/auth/validation";
+import { publicCommentsCacheTag } from "@/features/comments/cache";
 import { getSessionUser } from "@/lib/auth/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
@@ -148,6 +149,11 @@ export async function deleteAccountAction(
   // The Auth user and its sessions are gone; clear the local cookies.
   await supabase.auth.signOut({ scope: "local" }).catch(() => null);
 
+  // The preflight anonymized the caller's comments, possibly on many posts:
+  // drop every cached comment read and regenerate post pages so the old
+  // display name leaves public output (src/features/comments/cache.ts).
+  updateTag(publicCommentsCacheTag);
+  revalidatePath("/posts/[slug]", "page");
   revalidatePath("/account", "layout");
   revalidatePath("/admin", "layout");
   redirect("/login?account=deleted");

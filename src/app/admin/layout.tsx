@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
+  MessageSquare,
   PenLine,
   Tags,
   Users,
@@ -20,6 +21,7 @@ import {
   canManageAuthors,
   canManageMembership,
   canManageTaxonomy,
+  canModerateComments,
   getEditorialContext,
   type EditorialRole,
 } from "@/lib/auth/editorial";
@@ -85,6 +87,15 @@ export default async function AdminLayout({
               <ImageIcon aria-hidden="true" className="size-4" />
               Medya
             </Link>
+            {canModerateComments(membership) ? (
+              <Link
+                href="/admin/comments"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/80"
+              >
+                <MessageSquare aria-hidden="true" className="size-4" />
+                Yorumlar
+              </Link>
+            ) : null}
             {canManageTaxonomy(membership) ? (
               <>
                 <Link

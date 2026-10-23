@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookmarkProvider } from "@/features/bookmarks/components/bookmark-provider";
 import { BookmarkToggle } from "@/features/bookmarks/components/bookmark-toggle";
+import { CommentSection } from "@/features/comments/components/comment-section";
+import { listVisibleComments } from "@/features/comments/data";
 import { PostBody } from "@/features/posts/components/post-body";
 import { PostMeta } from "@/features/posts/components/post-meta";
 import { archivePaths, postPath } from "@/features/posts/archives";
@@ -26,6 +28,13 @@ import { absoluteSiteUrl, getConfiguredSiteUrl, getSiteName } from "@/lib/site-u
 // never enter this cache. The bookmark toggle reads the visitor's own state in
 // the browser after hydration, so the prerendered page stays identical for
 // every visitor.
+//
+// Visible comments are part of this cached output (anonymous read, tagged per
+// post; see src/features/comments/cache.ts). Comment Server Actions expire
+// that post's comment tag and revalidate its literal path, so a new, deleted,
+// hidden, or restored comment shows on the next request without regenerating
+// other pages. Per-visitor comment controls load in the browser like the
+// bookmark toggle.
 export const revalidate = 300;
 
 export async function generateStaticParams() {
@@ -52,6 +61,7 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
   if (lookup.kind === "missing") notFound();
 
   const { post } = lookup;
+  const comments = await listVisibleComments(post.id);
   const siteUrl = getConfiguredSiteUrl();
   const shareUrl = absoluteSiteUrl(postPath(post.slug), siteUrl);
   const jsonLd = buildArticleJsonLd(post, { siteUrl, siteName: getSiteName() });
@@ -100,6 +110,9 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
         ) : null}
         {shareUrl ? <ShareControls url={shareUrl} title={post.title} /> : null}
       </footer>
+      <div className="mt-10">
+        <CommentSection postId={post.id} comments={comments} />
+      </div>
     </article>
   );
 }
