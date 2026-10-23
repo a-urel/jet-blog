@@ -132,11 +132,11 @@ configured. Invalid URLs still fail loudly rather than being silently ignored.
 
 ## Authentication and editorial membership
 
-Editorial access is invite-only. There is no public sign-up route and the local
-Supabase configuration disables new sign-ups. Sign-in uses email and password
-through Supabase Auth. Public reader accounts are planned for Phase 11; they will
-not grant editorial access, and an authenticated user without an active
-editorial membership is treated as a reader.
+Editorial access is invite-only. Since Phase 11 anyone may create a reader
+account at `/signup` (see [Reader accounts](#reader-accounts-phase-11)); a reader
+account never grants editorial access, and an authenticated user without an
+active editorial membership is treated as a reader. Sign-in uses email and
+password through Supabase Auth for both.
 
 ### Roles
 
@@ -153,8 +153,8 @@ publish permissions.
 
 ### Routes and request checks
 
-- `/login` signs in an existing user and redirects signed-in visitors to
-  `/admin`.
+- `/login` signs in an existing user (reader or editorial member) and sends
+  active members to `/admin` and everyone else to `/account`.
 - `/admin` is a protected layout. The server verifies the session on every
   request with `supabase.auth.getClaims()`, loads the current membership, and
   denies users without an active grant. Missing or invalid sessions are
@@ -172,7 +172,10 @@ publish permissions.
   password before continuing to `/admin`.
 - `src/proxy.ts` refreshes expired Auth tokens and copies refreshed cookies to
   both the Server Components and the browser response. Proxy matchers cover
-  `/admin` and `/login`, so public pages do not pay for session checks.
+  `/admin`, `/account`, `/login`, and `/signup`, so public pages do not pay for
+  session checks. It keeps the editorial (`/admin`) and reader (`/account`)
+  route groups separate and only redirects signed-out visitors of either to
+  `/login`; editorial access is decided by the admin layout, never by Proxy.
 - Admin and invitation routes send `noindex, nofollow`.
 - The sign-in form uses a Server Action. Error messages stay generic so the form
   does not reveal whether an email exists.
@@ -207,7 +210,8 @@ supabase status
 
 Open the `Studio` URL from the status output, go to **Authentication > Users**,
 and choose **Add user**. Enter an email and password and enable **Auto Confirm
-User** (local email confirmations are disabled by default). Then open the SQL
+User** (email confirmation is required since Phase 11, and editorial membership
+refuses an unconfirmed self-service account). Then open the SQL
 Editor and grant the first admin:
 
 ```sql
@@ -235,13 +239,12 @@ not commit real credentials. Once signed in, invite additional admins through
 
 Deleting an Auth user cascades to its profile and membership. The last-admin
 trigger blocks role demotion and deactivation, not Auth-user deletion, so ensure
-another active admin exists before deleting an account.
+another active admin exists before deleting an account from Studio. The
+`/account` deletion flow refuses active admins (see
+[Reader accounts](#reader-accounts-phase-11)).
 
-The local configuration disables new registrations at the project level while
-keeping the email provider enabled so existing users can sign in with a
-password. Restart the stack after changing `supabase/config.toml` so the local
-Auth service picks up the change. Self-service reader sign-up belongs to a later
-phase.
+Restart the stack after changing `supabase/config.toml` so the local Auth
+service picks up the change.
 
 ### Invitations and local email
 
@@ -634,9 +637,15 @@ src/
     admin/media/          # Media library with reference-aware deletion
     admin/members/        # Admin-only member list and actions
     admin/posts/          # Draft list, create, edit, and members-only preview
+    account/              # Reader account: display name, sign-out, deletion
+    account/password/     # Change or recover the password (signed in)
     auth/confirm/         # Invite fragment/session confirmation
-    login/                # Invite-only sign-in
+    auth/callback/        # Sign-up confirmation (PKCE code exchange)
+    auth/recovery/        # Password recovery (PKCE code exchange)
+    login/                # Sign-in for readers and editorial members
     login/password/       # Set-password step for invited users
+    login/reset/          # Password reset request
+    signup/               # Self-service reader sign-up
     posts/[slug]/         # Public post page (ISR) with slug redirects
     categories/[slug]/    # Category archive including descendants
     tags/[slug]/          # Tag archive
@@ -644,7 +653,8 @@ src/
     sitemap.ts, robots.ts # Published-content sitemap and crawler rules
   components/ui/          # Generated shadcn/ui controls
   features/
-    auth/                 # Sign-in, invite confirmation, password actions
+    account/              # Display name and account deletion actions
+    auth/                 # Sign-in, sign-up, reset, password policy, Auth rate limits
     media/                # Upload validation, upload/delete actions, URLs
     members/              # Invite, role, and activation Server Actions
     seo/                  # Metadata, Article JSON-LD, sitemap and robots builders
@@ -678,9 +688,11 @@ src/
       publishing.rls.test.ts      # Publish/unpublish, public reads, redirects
       archives.rls.test.ts        # Archives and sitemap input by role
       editorial-rls.rls.test.ts # Membership and audit RLS tests
+      reader-accounts.rls.test.ts # Self-service reader matrix, deletion, limits
+    app-origin.ts         # Origin for Auth email redirects
   proxy.ts                # Next.js 16 token refresh (formerly middleware)
 supabase/
-  config.toml             # Local auth config, sign-ups disabled, seeds enabled
+  config.toml             # Local auth config, reader sign-up, seeds enabled
   migrations/             # Versioned schema, RLS, functions, and triggers
   seeds/seed.sql          # Synthetic taxonomy and posts, never production data
 scripts/
@@ -830,6 +842,13 @@ page will not receive the fragment.
   (nonces force dynamic rendering; static CSP without nonces); Supabase
   [Backup and restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)
   (checked 2026-10-23) and CLI 2.121.0 `db dump`/`db reset` help.
+- Phase 11: Supabase [password-based auth](https://supabase.com/docs/guides/auth/passwords)
+  (checked 2026-10-23: SSR confirmation and recovery through `token_hash`
+  templates and `verifyOtp`), and the installed `@supabase/auth-js` 2.118.0
+  reference for `signUp` (obfuscated user only with email and phone
+  confirmations on), `resetPasswordForEmail`, and `exchangeCodeForSession`
+  (`sb_flow_id`); bundled Next.js docs for
+  [authentication and Proxy optimistic checks](node_modules/next/dist/docs/01-app/02-guides/authentication.md).
 
 ## Launch readiness (Phase 10)
 
@@ -868,9 +887,10 @@ or creates hosted resources.
   (HTTP 429) and rolls back; the UI says so and keeps the form input. Uploads
   keep the Storage policy limit (20 per 10 minutes) and invitations the
   audit-log limit (20 per hour). Service-role maintenance writes are not
-  limited. Sign-in and token endpoints use Supabase Auth's own limits
-  (`[auth.rate_limit]` in `supabase/config.toml`; configure the hosted project
-  to match).
+  limited. Since Phase 11, sign-up, sign-in, and password reset also have
+  application limits (see [Reader accounts](#reader-accounts-phase-11)); token
+  endpoints use Supabase Auth's own limits (`[auth.rate_limit]` in
+  `supabase/config.toml`; configure the hosted project to match).
 - **Loading, empty, and error states.** `app/error.tsx` (inside the root
   layout, with retry and the error digest), `app/global-error.tsx`,
   `app/admin/error.tsx`, `app/admin/not-found.tsx`, and an `app/admin/loading.tsx`
@@ -910,7 +930,11 @@ Hosting checklist (open until D5 is decided): set `NEXT_PUBLIC_SITE_URL` and
 Supabase Auth site URL and redirect allowlist, keep `SUPABASE_SECRET_KEY` in
 the host's server-only secrets, enable HSTS at the edge, configure a shared
 cache handler or a single instance so `updateTag` reaches every instance,
-review the hosted Auth rate limits and SMTP, schedule database and Storage
+review the hosted Auth rate limits and SMTP, apply the reader-account Auth
+settings (confirm email and confirm phone on, `letters_digits` password rule,
+the `/auth/callback` and `/auth/recovery` redirect URLs, production SMTP, and
+reviewed Turkish confirmation and recovery templates using the `token_hash`
+links), schedule database and Storage
 backups, revisit D4 (draft images are public by URL), and run
 `npm run test:smoke` against the deployment.
 
@@ -923,6 +947,101 @@ post visibility, closed direct writes to content tables, hidden rate-limit
 bookkeeping, draft editing, publishing, and membership reads. Unit tests cover
 the invalidation map, security headers, and the new error keys.
 
+## Reader accounts (Phase 11)
+
+Reader accounts are optional: public reading stays anonymous. A reader account
+is the identity later reader features (bookmarks, comments) will attach to.
+
+- **Reader state is derived.** `supabase/config.toml` enables sign-up with
+  required email confirmation. Sign-up creates an Auth user and, through the
+  Phase 2 trigger, a `profiles` row with the submitted display name, and
+  nothing else: no `editorial_members` row, author link, or audit entry. There
+  is no `reader` role value and no self-service path to editorial access; RLS
+  and every RPC treat an authenticated non-member like a reader. User metadata
+  is never read for authorization (a sign-up that submits `role: "admin"` gets
+  nothing).
+- **Unconfirmed accounts cannot become members.** Anyone can register an email
+  they do not own, and an admin invitation of an existing email grants
+  membership to that account. A trigger
+  (`editorial_members_require_confirmed_account`) therefore requires a confirmed
+  or Auth-invited account before a membership becomes active, and
+  `/admin/members` explains the refusal.
+- **Routes.** `/signup` (display name, email, password), `/login` (readers and
+  members), `/login/reset` (reset request), `/auth/callback` (sign-up
+  confirmation), `/auth/recovery` (reset link), `/account` (display name,
+  password change, sign-out, deletion), and `/account/password`. All are
+  dynamic and `noindex`; the public header links to `/account` statically so
+  public pages stay prerendered.
+- **Email links.** `/auth/callback` and `/auth/recovery` accept two link
+  shapes and always redirect to fixed paths (no open redirect).
+  `?token_hash=…&type=…` is Supabase's documented SSR pattern: the route calls
+  `verifyOtp` (only `signup`/`email` on the callback, only `recovery` on the
+  recovery route) and works in any browser. It needs custom email templates
+  (`{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email` and
+  `{{ .SiteURL }}/auth/recovery?token_hash={{ .TokenHash }}&type=recovery`);
+  configure them for the hosted project. The local native stack cannot serve
+  custom templates, so locally the default template's `?code=…` (PKCE) link is
+  used: the sign-up and reset Server Actions run `@supabase/ssr` with the PKCE
+  flow, which stores the code verifier in a cookie, and the route exchanges the
+  code. That link must be opened in the same browser; otherwise the callback
+  shows a neutral message (Supabase has already confirmed the email). Both
+  callback URLs are on the redirect allowlist.
+- **Password policy.** At least 8 characters with a letter and a digit
+  (`minimum_password_length = 8`, `password_requirements = "letters_digits"`),
+  mirrored in `features/auth/password-policy.ts` for Turkish messages, with a
+  72-byte maximum (bcrypt). Invite and recovery password forms use the same
+  rule.
+- **No account enumeration.** Sign-up answers identically for new and
+  registered emails: Supabase returns an obfuscated user only when both email
+  and phone confirmations are on (SMS itself stays disabled), and the action
+  maps `user_already_exists` to the same message as a safety net. Password
+  reset always returns the same message, whatever Supabase answers. Sign-in
+  reveals "not confirmed" only after a correct password.
+- **Rate limits.** Migration `20261023140000_reader_accounts.sql` adds
+  `public.auth_rate_limit_events` and `consume_auth_rate_limit`, the Phase 10
+  sliding-window mechanism keyed by SHA-256 digests of the normalized email and
+  the client IP (raw values are never stored). Every attempt counts. Sign-up: 3
+  per email and 10 per IP per hour; sign-in (also the password check before
+  account deletion): 10 per email and 30 per IP per 10 minutes; password reset:
+  3 per email and 10 per IP per hour. Only the server's secret-key client may
+  call the function, so nobody can spend another person's budget directly; the
+  flows fail closed without `SUPABASE_SECRET_KEY`. The client IP comes from the
+  first `X-Forwarded-For` entry, which is trustworthy only behind a proxy that
+  overwrites it; confirm this for the chosen host (D5) and add CAPTCHA
+  (`[auth.captcha]`) if abuse appears.
+- **Account deletion.** `/account` asks for the current password (checked with
+  a stateless client and the sign-in limit) and a confirmation. The action
+  calls `prepare_own_account_deletion()` as the user, then deletes the Auth user
+  with the admin API using the session's user id, and clears the cookies.
+  Deletion cascades to `profiles`, `editorial_members`, and rate-limit rows;
+  `posts.created_by`, `media.uploaded_by`, `authors.user_id`, and audit
+  references become null, so authored posts, credits, and media stay. Active
+  admins are refused (another admin must change the role or deactivate the
+  membership first), which also keeps at least one active admin; editors,
+  authors, and deactivated members may delete their account and get a
+  `member.account_deletion` audit entry. Phase 12 deletes the user's bookmarks
+  and Phase 13 anonymizes their comments inside
+  `prepare_own_account_deletion()`, before the Auth user is deleted.
+- **Identity boundary.** No reader action accepts a user id, role, or email for
+  authorization; `features/account/form-fields.test.ts` pins the accepted form
+  fields.
+
+Tests: `reader-accounts.rls.test.ts` signs readers up through the public Auth
+API and covers profile-only sign-up (with role-like metadata), the session-less
+response before confirmation, `email_not_confirmed` only with the right
+password, the unconfirmed-membership guard (RPC and secret key), the reader
+denial matrix (membership RPCs, direct writes, drafts, media upload, register
+and delete, create/update/publish/unpublish, other profiles, rate-limit
+bookkeeping), identical reset responses, the Auth rate-limit rules, and
+deletion (only the caller's data, active admin refused, an editor's posts and
+credit kept). Unit tests cover the password policy, display-name validation,
+rate-limit subjects, and the form-field allowlist.
+
+Before launch: production SMTP, Turkish confirmation and recovery templates
+with `token_hash` links,
+`max_frequency` and Auth rate limits for the hosted project, and the hosted
+Auth settings listed in the hosting checklist above.
+
 ## Next increment
 
 Phases 1–10 are implemented: authentication, editorial membership with
@@ -934,11 +1053,12 @@ embeds, publishing with database-backed public pages, explicit ISR and cache
 invalidation, and slug redirects, SEO metadata, Article JSON-LD, sitemap,
 robots, sharing, and category/tag/author archives, and launch readiness (cache
 invalidation map, conflict handling, write rate limits, error and loading
-states, security headers, backup runbook, smoke test). See
+states, security headers, backup runbook, smoke test), and self-service reader
+accounts (Phase 11). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
 Next: the taxonomy administration and author identity administration
-increments (Phase 10 was done first at the user's request). Their mutations
+increments (Phases 10 and 11 were done first at the user's request). Their mutations
 must apply the `taxonomy-changed` and `author-changed` invalidations from
 `features/posts/cache.ts`. A new body node still changes the TypeScript
 allowlist, the database mirror, the fixtures, the editor, and the renderer

@@ -45,7 +45,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <BookOpen aria-hidden="true" className="size-5" />
               {siteName}
             </Link>
-            <span className="text-sm text-muted-foreground">Örnek içerikler</span>
+            {/* A static link keeps public pages prerendered; /account reads the
+                session itself and sends signed-out visitors to /login. */}
+            <Link
+              href="/account"
+              className="rounded-sm text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+            >
+              Hesabım
+            </Link>
           </div>
         </header>
         <main id="main-content" tabIndex={-1} className="flex-1">

@@ -1,14 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
   getEditorialContext,
   isEditorialRole,
 } from "@/lib/auth/editorial";
-import { getConfiguredSiteUrl } from "@/lib/site-url";
+import { getAppOrigin } from "@/lib/app-origin";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -27,32 +26,6 @@ export type InviteMemberState = {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-async function getAppOrigin() {
-  // Fall back to the request origin when the public site URL is invalid.
-  const configuredSiteUrl = getConfiguredSiteUrl();
-  if (configuredSiteUrl) return configuredSiteUrl.origin;
-
-  const headerStore = await headers();
-  const origin = headerStore.get("origin");
-
-  if (origin) {
-    const parsed = new URL(origin);
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-      return parsed.origin;
-    }
-  }
-
-  const forwardedHost =
-    headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  const forwardedProto = headerStore.get("x-forwarded-proto") ?? "http";
-
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-
-  throw new Error("Could not determine the application origin.");
 }
 
 async function findAuthUserByEmail(email: string) {
@@ -214,6 +187,23 @@ export async function inviteMemberAction(
         return {
           status: "error",
           message: "Bu e-posta kayıtlı görünüyor ancak kullanıcı bulunamadı.",
+        };
+      }
+
+      // Public sign-up lets anyone register an email they do not own. Granting
+      // membership to that unconfirmed account would hand editorial access to
+      // whoever chose its password. The database trigger enforces the same.
+      if (!existingUser.email_confirmed_at && !existingUser.invited_at) {
+        await supabase.rpc("record_editorial_audit", {
+          p_action: "member.invite_failed",
+          p_target_profile_id: existingUser.id,
+          p_details: { reason: "unconfirmed_account" },
+        });
+
+        return {
+          status: "error",
+          message:
+            "Bu e-posta ile doğrulanmamış bir hesap var. Kişi önce e-posta adresini doğrulamalı.",
         };
       }
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-23 (Phase 10 complete)
+Last updated: 2026-10-23 (Phase 11 complete)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–10, complete)
+## Current baseline (Phases 1–11, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -24,9 +24,9 @@ does not add requirements on its own.
   renderer. Sample fixtures are removed.
 - Supabase config, native local stack, migrations/seeds folders, and anonymous
   public-only clients.
-- Invite-only email/password sign-in at `/login`, a server-verified protected
-  `/admin` layout, sign-out, and Next.js 16 Proxy token refresh. Local sign-ups
-  are disabled; no public registration route exists.
+- Email/password sign-in at `/login`, a server-verified protected `/admin`
+  layout, sign-out, and Next.js 16 Proxy token refresh. Editorial access is
+  invite-only; since Phase 11, public sign-up creates reader accounts only.
 - Phase 2 profiles, editorial membership, public author identities, audit log,
   last-admin protection, RLS helpers, invite acceptance/set-password routes, and
   admin member administration at `/admin/members`.
@@ -78,7 +78,18 @@ does not add requirements on its own.
   a secrets review, a Postgres + Storage backup runbook with an exercised local
   drill (`docs/backup-and-restore.md`), and an anonymous smoke test
   (`npm run test:smoke`).
-- 379 unit tests and 239 local-Supabase RLS tests (including the Phase 10
+- Phase 11 reader accounts: public sign-up at `/signup` with required email
+  confirmation (display name collected at sign-up), PKCE and `token_hash`
+  email callbacks (`/auth/callback`, `/auth/recovery`), password reset at
+  `/login/reset` without account enumeration, a letters-and-digits password
+  policy, `/account` (display name, password change, sign-out, deletion),
+  hashed per-email/per-IP rate limits on sign-up, sign-in, and reset, a guard
+  that keeps unconfirmed self-service accounts out of editorial membership, and
+  account deletion through `prepare_own_account_deletion()` plus the Auth admin
+  API (active admins refused; authored content kept). Reader state stays
+  derived from the absence of an editorial grant.
+- 395 unit tests and 263 local-Supabase RLS tests (including the Phase 11
+  self-signed-up reader matrix and the Phase 10
   concurrent-save, rate-limit, and final anonymous/reader/author/editor/admin
   matrix tests) cover archive and sitemap
   visibility by role, metadata and JSON-LD, share links, and publishing by role,
@@ -116,63 +127,59 @@ the seeded records.
 
 ## Where to resume (session handoff)
 
-Phases 1–7 are on `origin/main` (latest `c77bca8`). Phase 8 (`e246034`) and
-Phase 9 (`159d60c`) are committed locally and not pushed. Phase 10 is complete
-and verified in the working tree; commit only on request. Do not push without
-an explicit request.
+Phases 1–10 are on `origin/main` (latest `a258914`). Phase 11 is complete and
+verified in the working tree; commit only on request. Do not push without an
+explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (379 tests),
-  `npm run test:rls` (239 tests), `npm run build`, and `npm run test:smoke`
-  against `next start` pass.
-- Local database: `supabase db reset` applies all nine migrations and
-  `supabase/seeds/seed.sql` (3 published posts and 1 uncategorized draft with
-  bodies, 3 categories, 3 tags, 2 author profiles). It creates no Auth users.
-  Follow the README to bootstrap the first admin when a browser journey needs a
-  signed-in user. `supabase db reset --sql-paths <dump>` restores a data dump
-  instead of the seed (see `docs/backup-and-restore.md`).
-- Key files: Phase 10: `supabase/migrations/20261023120000_write_rate_limits.sql`,
-  `src/features/posts/cache.ts`, `src/features/posts/admin/actions.ts`,
-  `src/lib/security-headers.ts`, `next.config.ts`, `src/app/error.tsx`,
-  `src/app/global-error.tsx`, `src/app/admin/{error,loading,not-found}.tsx`,
-  `src/components/status/route-error.tsx`, `scripts/storage-*.mjs`,
-  `scripts/smoke.mjs`, `docs/backup-and-restore.md`, and
-  `src/lib/supabase/launch-readiness.rls.test.ts`. Phase 8:
-  `supabase/migrations/20261023100000_publishing.sql`,
-  `src/features/posts/data.ts`, `src/features/posts/mapping.ts`,
-  `src/features/posts/admin/publication.ts`, `src/app/page.tsx`,
-  `src/app/posts/[slug]/page.tsx`, `src/app/admin/posts/[id]/page.tsx`, and
-  `src/lib/supabase/publishing.rls.test.ts`. Phase 9:
-  `src/features/seo/`, `src/features/sharing/`, `src/features/posts/queries.ts`,
-  `src/features/posts/archives.ts`, `src/features/taxonomy/hierarchy.ts`,
-  `src/app/{categories,tags,authors}/[slug]/page.tsx`, `src/app/sitemap.ts`,
-  `src/app/robots.ts`, and `src/lib/supabase/archives.rls.test.ts`. Earlier
-  phases: the other migrations in `supabase/migrations/`,
-  `src/features/media/`, `src/features/posts/content/`,
-  `src/features/posts/components/post-body.tsx`, and the other
-  `*.rls.test.ts` files.
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (395 tests),
+  `npm run test:rls` (263 tests), and `npm run build` pass. A browser journey on
+  `next dev` with local Mailpit covered sign-up (weak password rejected),
+  sign-in refused before confirmation, the PKCE confirmation link, display-name
+  change, denied `/admin/posts` and `/admin/members`, identical reset answers
+  for unknown and registered emails, the recovery link, the new password,
+  account deletion (wrong password refused, then only that user's rows gone),
+  an active admin's deletion refused on `/account`, invalid callback links,
+  the `token_hash` recovery link, and an admin inviting an editor who accepted
+  in Mailpit, set a password, and reached `/admin` as before.
+- Local database: `supabase db reset` applies all ten migrations and the seed.
+  It creates no Auth users. `supabase/config.toml` changed in Phase 11 (sign-up,
+  email and phone confirmations, password rule, redirect URLs): restart the
+  local stack after pulling.
+- Key files: Phase 11: `supabase/migrations/20261023140000_reader_accounts.sql`,
+  `supabase/config.toml`, `src/features/auth/` (`actions.ts`,
+  `password-policy.ts`, `rate-limit*.ts`, `code-exchange.ts`, `validation.ts`,
+  components), `src/features/account/`, `src/app/{signup,account,login/reset}`,
+  `src/app/auth/{callback,recovery}/route.ts`, `src/proxy.ts`,
+  `src/lib/app-origin.ts`, and `src/lib/supabase/reader-accounts.rls.test.ts`.
+  Phase 10: `supabase/migrations/20261023120000_write_rate_limits.sql`,
+  `src/features/posts/cache.ts`, `src/lib/security-headers.ts`,
+  `docs/backup-and-restore.md`, and `src/lib/supabase/launch-readiness.rls.test.ts`.
+  Earlier phases: the other migrations, `src/features/posts/`,
+  `src/features/media/`, and the other `*.rls.test.ts` files.
 - Next slice: taxonomy administration, then author identity administration.
   Both were agreed on 2026-10-23 to follow Phase 8; the user then asked for
-  Phase 9 and later Phase 10 first, so they now follow Phase 10. Taxonomy and
-  author mutations must apply `publicCacheInvalidation("taxonomy-changed")` /
-  `("author-changed")` from `src/features/posts/cache.ts` (expires
-  `public-posts` and revalidates the listing, post, archive routes, and the
-  sitemap) and should get a rate-limit rule in the same trigger style. A new
-  body node must be added to the TypeScript allowlist, the SQL mirror, the
-  shared fixtures, the editor, and the renderer in the same change.
-- Open gates: D5 remains provisional, confirmed again on 2026-10-23 for Phase
-  10 (hosting deferred, no production domain yet, `NEXT_PUBLIC_SITE_NAME`
-  default "Yazılar" stays provisional). Launch needs those decisions plus the
-  README hosting checklist. Revisit D4 before public launch if draft images
-  must stay private.
+  Phases 9, 10, and 11 first, so they now follow Phase 11. Taxonomy and author
+  mutations must apply `publicCacheInvalidation("taxonomy-changed")` /
+  `("author-changed")` from `src/features/posts/cache.ts` and should get a
+  rate-limit rule in the same trigger style. Author administration must keep
+  `authors.user_id` server-only; linking an account must not grant editorial
+  access (reader accounts can now exist for any email).
+- Phases 12–13 hook into `prepare_own_account_deletion()` (delete bookmarks,
+  anonymize comments) and need a display name before a reader comments.
+- Open gates: D5 remains provisional (hosting deferred, no production domain,
+  `NEXT_PUBLIC_SITE_NAME` default "Yazılar"). Launch needs those decisions plus
+  the README hosting checklist, which now includes the reader-account Auth
+  settings, production SMTP, and `token_hash` email templates. Revisit D4
+  before public launch if draft images must stay private.
 
 ## Deferred administration follow-ups
 
 Phase 4 needed category, tag, and author records to attach to a draft and
 proceeded with the seeded taxonomy and authors. On 2026-10-23 the user chose to
 ship both administration surfaces as separate increments after Phase 8 (Phase 8
-used the seeded records). Later the same day the user asked for Phase 9 and
-then Phase 10 first; both increments now follow Phase 10 (Phases 9 and 10 also
-use the seeded records):
+used the seeded records). Later the same day the user asked for Phases 9, 10,
+and then 11 (reader accounts) first; both increments now follow Phase 11
+(Phases 9–11 also use the seeded records):
 
 - **Taxonomy administration (admin).** D1 gives admins create, rename, move, and
   delete for categories and tags. A minimal admin CRUD slice is the next
@@ -273,12 +280,13 @@ account-attribute decision, not a widening of the editorial role enum.
 | 8 | Publishing | Publish mutation, DB-backed public pages, slug redirects | Phases 3–5, optional 6, D2, D5 | Done |
 | 9 | Discovery | SEO, OG, JSON-LD, sitemap, archives, share link | Phase 8, D5 | Done |
 | 10 | Launch readiness | Cache invalidation, conflict handling, rate limits, backups | Phase 9 | Done |
-| 11 | Reader accounts | Optional reader sign-up, profile, account management | Phase 2, Phase 8, D6 | M |
+| 11 | Reader accounts | Optional reader sign-up, profile, account management | Phase 2, Phase 8, D6 | Done |
 | 12 | Bookmarks | Private saved posts with strict per-user isolation | Phase 8, 11 | S |
 | 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | L |
 
-Phases 11–13 follow the editorial MVP launch. They do not block Phases 1–10.
-D6 is answered; the remaining reader work still must not be pulled forward.
+Phases 11–13 were planned after the editorial MVP launch and do not block
+Phases 1–10. The user asked for Phase 11 before the deferred administration
+increments; Phases 12–13 still follow them unless the user reorders again.
 
 Dependencies are transitive even where the table lists only the direct blocker.
 Phase 7 is optional for publishing; Phase 6 becomes required only when cover
@@ -932,6 +940,38 @@ invalidates listing, post, taxonomy, and sitemap caches; restore drill documente
 Goal: a visitor can create and manage a reader account with email and password
 without gaining any editorial access.
 
+Status: complete on 2026-10-23, before the taxonomy and author identity
+administration increments at the user's request. Verified with lint,
+typecheck, 395 unit tests, 263 local-Supabase RLS tests, the production build,
+and the browser journey in the handoff above.
+
+Implementation notes:
+
+- Decisions taken in this phase: the display name is required at sign-up and
+  editable on `/account`; `/login` serves readers and members (members land in
+  `/admin`, readers in `/account`); an **active admin cannot delete their
+  account** (another admin must demote or deactivate first, which also keeps
+  the last-admin guarantee), while editors, authors, and deactivated members
+  can, keeping their posts, credits, and media (`ON DELETE SET NULL`) with a
+  `member.account_deletion` audit entry.
+- Enabling public sign-up opened one escalation path: an unconfirmed account
+  registered for someone else's email would receive membership when an admin
+  invites that email. A trigger now requires a confirmed or Auth-invited
+  account before a membership becomes active.
+- Supabase hides whether an email is registered on sign-up only when both
+  email and phone confirmations are enabled; phone confirmations are on for
+  that reason (SMS stays disabled).
+- The Phase 10 rate-limit table is keyed by Auth user, so the anonymous Auth
+  flows use a sibling table keyed by SHA-256 subject digests, callable only
+  with the secret key. Every attempt counts, not only successful ones.
+- Supabase documents `token_hash` templates plus `verifyOtp` for SSR. The
+  local native stack cannot serve custom templates, so the callbacks accept
+  both that shape and the default PKCE `?code=` link; hosted projects need
+  the custom templates.
+- Account deletion verifies the password with a stateless client, runs
+  `prepare_own_account_deletion()` as the user (the Phase 12/13 hook point),
+  then calls the Auth admin API with the session's user id.
+
 Scope:
 
 - Public self-service sign-up and sign-in with email + password. Configure email
@@ -973,7 +1013,7 @@ Scope:
 - `bookmarks` with `(user_id, post_id)` as the unique pair, foreign keys, and
   timestamps. `user_id` references `profiles` with `ON DELETE CASCADE`; a post
   removal cannot leave orphan rows. No hard-delete post UI in this phase.
-- Toggle on the post page and cards; a private `/hesabim/kaydedilenler` list with
+- Toggle on the post page and cards; a private `/account/saved` list with
   empty and error states. Optimistic UI confirmed by the server.
 - RLS: select, insert, and delete only the current user's rows; insert only for
   published posts and only as the authenticated user; anonymous access denied.
@@ -1080,6 +1120,10 @@ request and its own moderation/permission design.
   public author columns under an editorial-only policy. Future author
   administration must use a server-only path for the account link instead of
   widening the public grant.
+- Public sign-up exposes the Auth endpoints to abuse. Application limits use
+  the first `X-Forwarded-For` entry, which is only trustworthy behind a proxy
+  that overwrites it; confirm with the host (D5) and add CAPTCHA if abuse
+  appears.
 - Reader-generated content adds spam, moderation load, abuse handling, and
   account-deletion obligations. Phases 11–13 must ship with rate limits,
   reporting, and the documented deletion policy. Post-moderation only works with
@@ -1087,14 +1131,17 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Phases 1–10 are complete. Next, ship the deferred administration increments in
+Phases 1–11 are complete. Next, ship the deferred administration increments in
 order: taxonomy administration (admin create, rename, move with database cycle
 protection, and delete with defined reassignment; mutations must apply
 `publicCacheInvalidation("taxonomy-changed")`, which expires `public-posts` and
 revalidates the listing, posts, archives, and the sitemap), then author
 identity administration (guest and member authors through a server-only path
-for `authors.user_id`, invalidating with `"author-changed"`). The public launch
-then needs the D5 domain, brand, and hosting decisions and the README hosting
-checklist (site URL, Auth redirects, HSTS, shared cache handler or single
-instance, hosted backups, D4 review, smoke test against the deployment). D6 is settled; reader work stays in
-Phases 11–13 after the editorial MVP.
+for `authors.user_id`, invalidating with `"author-changed"`; linking a reader
+account to an author must not grant editorial access). Phases 12 (bookmarks)
+and 13 (comments) follow and plug into `prepare_own_account_deletion()`. The
+public launch then needs the D5 domain, brand, and hosting decisions and the
+README hosting checklist (site URL, Auth redirects, reader-account Auth
+settings, production SMTP and `token_hash` templates, HSTS, shared cache
+handler or single instance, hosted backups, D4 review, smoke test against the
+deployment).

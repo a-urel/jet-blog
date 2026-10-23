@@ -6,6 +6,17 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/env";
 
+// Route groups stay separate: /admin requires an active editorial membership
+// (checked by the admin layout), /account only a signed-in user. Proxy does an
+// optimistic signed-out redirect for both and never decides editorial access;
+// every page and Server Action re-verifies the session and membership itself.
+const editorialRoutePrefix = "/admin";
+const readerRoutePrefix = "/account";
+
+function isUnder(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -37,16 +48,37 @@ export async function proxy(request: NextRequest) {
     },
   });
 
+  let signedIn = false;
+
   try {
     // Refreshes expired tokens and verifies the session before rendering.
-    await supabase.auth.getClaims();
+    const { data } = await supabase.auth.getClaims();
+    signedIn = Boolean(data?.claims?.sub);
   } catch {
     // Pages verify the session themselves and fail closed.
+  }
+
+  const { pathname } = request.nextUrl;
+  const protectedRoute =
+    isUnder(pathname, editorialRoutePrefix) || isUnder(pathname, readerRoutePrefix);
+
+  if (protectedRoute && !signedIn) {
+    const redirect = NextResponse.redirect(new URL("/login", request.url));
+    // Keep any cookie changes (for example, a cleared invalid session).
+    response.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie);
+    });
+    return redirect;
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login", "/login/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/account/:path*",
+    "/login/:path*",
+    "/signup",
+  ],
 };

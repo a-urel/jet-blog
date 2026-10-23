@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,8 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AuthPageShell,
+  StatusNotice,
+  SupabaseNotConfigured,
+} from "@/features/auth/components/auth-page-shell";
 import { SignInForm } from "@/features/auth/components/sign-in-form";
-import { getSessionUser } from "@/lib/auth/session";
+import { getEditorialContext } from "@/lib/auth/editorial";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const metadata: Metadata = {
@@ -20,91 +24,88 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const noticeMessages = {
+  signedOut: "Oturumunuz kapatıldı.",
+  inviteNoSession: "Parola belirlemek için davet bağlantısını yeniden açın.",
+  inviteInvalid: "Davet bağlantısı geçersiz veya süresi dolmuş.",
+  confirmFailed:
+    "Doğrulama bağlantısı bu tarayıcıda tamamlanamadı. Bağlantı geçerliyse e-postanız doğrulanmıştır; giriş yapmayı deneyin.",
+  accountDeleted: "Hesabınız ve hesabınıza bağlı veriler silindi.",
+} as const;
+
 export default async function SignInPage({
   searchParams,
 }: PageProps<"/login">) {
-  const { "signed-out": signedOut, invite } = await searchParams;
+  const {
+    "signed-out": signedOut,
+    invite,
+    confirm,
+    account,
+  } = await searchParams;
 
-  const inviteMessage =
-    invite === "no-session"
-      ? "Parola belirlemek için davet bağlantısını yeniden açın."
+  const notice = signedOut
+    ? noticeMessages.signedOut
+    : invite === "no-session"
+      ? noticeMessages.inviteNoSession
       : invite === "invalid"
-        ? "Davet bağlantısı geçersiz veya süresi dolmuş."
-        : null;
+        ? noticeMessages.inviteInvalid
+        : confirm === "failed"
+          ? noticeMessages.confirmFailed
+          : account === "deleted"
+            ? noticeMessages.accountDeleted
+            : null;
 
   if (!isSupabaseConfigured()) {
     return (
-      <div className="mx-auto flex max-w-md flex-col gap-6 px-6 py-16 sm:py-24">
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">Yönetim</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Giriş</h1>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Supabase yapılandırılmadı</CardTitle>
-            <CardDescription>
-              Yönetim alanını kullanmak için <code>.env.local</code> dosyasına
-              Supabase URL ve publishable key değerlerini ekleyin.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/">Yazılara dön</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <AuthPageShell eyebrow="Hesap" title="Giriş">
+        <SupabaseNotConfigured action="Giriş yapmak" />
+      </AuthPageShell>
     );
   }
 
-  const user = await getSessionUser();
-  if (user) redirect("/admin");
+  const { user, membership } = await getEditorialContext();
+  if (user) redirect(membership ? "/admin" : "/account");
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 px-6 py-16 sm:py-24">
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-muted-foreground">Yönetim</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Giriş</h1>
-        <p className="text-muted-foreground">
-          Yönetim alanı yalnızca davet edilen editörlere açıktır.
-        </p>
-      </div>
-
-      {signedOut ? (
-        <p
-          role="status"
-          className="rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
-        >
-          Oturumunuz kapatıldı.
-        </p>
-      ) : null}
-
-      {inviteMessage ? (
-        <p
-          role="status"
-          className="rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
-        >
-          {inviteMessage}
-        </p>
-      ) : null}
+    <AuthPageShell
+      eyebrow="Hesap"
+      title="Giriş"
+      description="Okur hesabınızla veya davet edildiğiniz editöryal hesapla giriş yapın."
+    >
+      {notice ? <StatusNotice>{notice}</StatusNotice> : null}
 
       <Card>
         <CardHeader>
           <CardTitle>Hesabınızla giriş yapın</CardTitle>
           <CardDescription>
-            Genel kayıt yoktur. Erişim için bir yöneticiden davet isteyin.
+            Yönetim alanı yalnızca davet edilen editöryal üyelere açıktır.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <SignInForm />
+          <p className="text-sm">
+            <Link
+              href="/login/reset"
+              className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              Parolamı unuttum
+            </Link>
+          </p>
         </CardContent>
       </Card>
+
+      <p className="text-sm text-muted-foreground">
+        Hesabınız yok mu?{" "}
+        <Link href="/signup" className="font-medium text-foreground underline underline-offset-4">
+          Okur hesabı oluşturun
+        </Link>
+      </p>
 
       <p className="flex items-start gap-2 text-sm text-muted-foreground">
         <LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
         Oturum bilgileri güvenli çerezlerde tutulur ve her istekte sunucuda
         doğrulanır.
       </p>
-    </div>
+    </AuthPageShell>
   );
 }

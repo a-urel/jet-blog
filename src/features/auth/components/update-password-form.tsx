@@ -10,6 +10,10 @@ import {
   updatePasswordAction,
   type UpdatePasswordState,
 } from "@/features/auth/actions";
+import {
+  passwordMinLength,
+  passwordPolicyHint,
+} from "@/features/auth/password-policy";
 
 const initialState: UpdatePasswordState = { error: null };
 
@@ -28,12 +32,12 @@ export function UpdatePasswordForm() {
           name="password"
           type="password"
           autoComplete="new-password"
-          minLength={8}
+          minLength={passwordMinLength}
           required
           aria-invalid={state.error ? true : undefined}
           aria-describedby={state.error ? "password-error" : undefined}
         />
-        <p className="text-xs text-muted-foreground">En az 8 karakter.</p>
+        <p className="text-xs text-muted-foreground">{passwordPolicyHint}</p>
       </div>
 
       <div className="space-y-2">
@@ -43,7 +47,7 @@ export function UpdatePasswordForm() {
           name="confirmPassword"
           type="password"
           autoComplete="new-password"
-          minLength={8}
+          minLength={passwordMinLength}
           required
           aria-invalid={state.error ? true : undefined}
           aria-describedby={state.error ? "password-error" : undefined}

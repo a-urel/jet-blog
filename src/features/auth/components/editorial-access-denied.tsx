@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,9 @@ export function EditorialAccessDenied({
               Oturum: <span className="font-medium">{email}</span>
             </p>
           ) : null}
+          <Button asChild className="w-full">
+            <Link href="/account">Hesabıma git</Link>
+          </Button>
           <form action={signOutAction}>
             <Button type="submit" variant="outline" className="w-full">
               Çıkış yap

@@ -34,7 +34,7 @@ export default async function AdminLayout({
     return (
       <EditorialAccessDenied
         title="Yönetim erişimi yok"
-        description="Bu alan yalnızca davet edilen editöryal üyelere açıktır. Erişim için bir yöneticiden davet isteyin."
+        description="Bu alan yalnızca davet edilen editöryal üyelere açıktır. Okur hesapları yönetim alanına erişemez; editöryal erişim yalnızca bir adminin davetiyle verilir."
         email={user.email}
       />
     );
