@@ -2,7 +2,19 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 
 import { mediaPublicUrl } from "@/features/media/url";
-import { headingLevels, isSafeHref, mediaIdPattern } from "./schema";
+import {
+  headingLevels,
+  isSafeHref,
+  maxVideoStart,
+  mediaIdPattern,
+  videoIdPattern,
+} from "./schema";
+import {
+  youtubeEmbedUrl,
+  youtubeIframeAllow,
+  youtubeIframeReferrerPolicy,
+  youtubeIframeSandbox,
+} from "./youtube";
 
 function parseDimension(value: string | null): number | null {
   const parsed = Number.parseInt(value ?? "", 10);
@@ -88,6 +100,83 @@ export const PostImage = Node.create({
   },
 });
 
+function parseStart(value: string | null): number | null {
+  const parsed = parseDimension(value);
+  return parsed !== null && parsed >= 1 && parsed <= maxVideoStart ? parsed : null;
+}
+
+// Block YouTube embed that stores only the video id, an accessible title, and
+// an optional start offset. It is not the Tiptap YouTube extension: that stores
+// an arbitrary `src` URL and accepts pasted iframes. Here pasted <iframe> tags
+// match no rule and are dropped; only this node's own markup (for copy and
+// paste inside the editor) is parsed back, and only with a valid id.
+export const PostYouTube = Node.create({
+  name: "youtube",
+  group: "block",
+  atom: true,
+  draggable: true,
+  selectable: true,
+
+  addAttributes() {
+    return {
+      videoId: { default: null },
+      title: { default: "" },
+      start: { default: null },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "figure[data-youtube-video-id]",
+        getAttrs: (element) => {
+          const videoId = element.getAttribute("data-youtube-video-id") ?? "";
+          if (!videoIdPattern.test(videoId)) return false;
+
+          return {
+            videoId,
+            title: element.querySelector("iframe")?.getAttribute("title") ?? "",
+            start: parseStart(element.getAttribute("data-youtube-start")),
+          };
+        },
+      },
+    ];
+  },
+
+  // Mirrors the renderer in ../components/post-body.tsx. In the editor the
+  // iframe ignores pointer events (see globals.css) so a click selects the
+  // node instead of starting playback.
+  renderHTML({ node }) {
+    const { videoId, title, start } = node.attrs;
+    const src = typeof videoId === "string" ? youtubeEmbedUrl(videoId, start) : null;
+
+    return [
+      "figure",
+      {
+        class: "post-video",
+        "data-youtube-video-id": videoId,
+        ...(start ? { "data-youtube-start": String(start) } : {}),
+      },
+      [
+        "div",
+        { class: "post-video-frame" },
+        [
+          "iframe",
+          {
+            src: src ?? "about:blank",
+            title: title ?? "",
+            loading: "lazy",
+            allow: youtubeIframeAllow,
+            referrerpolicy: youtubeIframeReferrerPolicy,
+            sandbox: youtubeIframeSandbox,
+            tabindex: "-1",
+          },
+        ],
+      ],
+    ];
+  },
+});
+
 // The editor schema must stay inside the stored-body allowlist in ./schema.ts.
 // editor-extensions.test.ts compares the generated Tiptap schema with it.
 export const postBodyExtensions = [
@@ -102,4 +191,5 @@ export const postBodyExtensions = [
     },
   }),
   PostImage,
+  PostYouTube,
 ];

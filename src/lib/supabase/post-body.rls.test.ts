@@ -262,6 +262,28 @@ describe("post body storage", () => {
     expect(error?.code).toBe("23514");
   });
 
+  it("rejects a youtube URL in a direct service-role write", async () => {
+    const { error } = await service
+      .from("posts")
+      .update({
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "youtube",
+              attrs: {
+                videoId: "https://evil.example/embed/dQw4w9WgXcQ",
+                title: "x",
+              },
+            },
+          ],
+        },
+      })
+      .eq("id", fixtures.draft);
+
+    expect(error?.code).toBe("23514");
+  });
+
   it("keeps a draft body hidden from anonymous readers", async () => {
     const anon = anonymousClient();
     const { data, error } = await anon

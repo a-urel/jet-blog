@@ -11,7 +11,14 @@ import {
   type InlineNode,
   type ListItemNode,
   type TextNode,
+  type YouTubeAttrs,
 } from "../content/schema";
+import {
+  youtubeEmbedUrl,
+  youtubeIframeAllow,
+  youtubeIframeReferrerPolicy,
+  youtubeIframeSandbox,
+} from "../content/youtube";
 
 // Read-only renderer shared by the member preview and public pages. It imports
 // no Tiptap code, so public HTML is complete without the editor bundle. Every
@@ -101,6 +108,29 @@ function renderImage(attrs: ImageAttrs, key: number): ReactNode {
   );
 }
 
+// Same structure as the editor node view (PostYouTube in
+// ../content/editor-extensions.ts). The embed URL is derived from the
+// validated id on the privacy-enhanced domain; the wrapper keeps 16:9.
+function renderYouTube(attrs: YouTubeAttrs, key: number): ReactNode {
+  const src = youtubeEmbedUrl(attrs.videoId, attrs.start);
+  if (!src) return null;
+
+  return (
+    <figure key={key} className="post-video">
+      <div className="post-video-frame">
+        <iframe
+          src={src}
+          title={attrs.title}
+          loading="lazy"
+          allow={youtubeIframeAllow}
+          referrerPolicy={youtubeIframeReferrerPolicy}
+          sandbox={youtubeIframeSandbox}
+        />
+      </div>
+    </figure>
+  );
+}
+
 function renderBlock(node: BlockNode, key: number): ReactNode {
   switch (node.type) {
     case "paragraph":
@@ -131,6 +161,8 @@ function renderBlock(node: BlockNode, key: number): ReactNode {
       return <hr key={key} />;
     case "image":
       return renderImage(node.attrs, key);
+    case "youtube":
+      return renderYouTube(node.attrs, key);
   }
 }
 

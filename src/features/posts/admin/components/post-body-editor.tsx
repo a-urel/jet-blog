@@ -21,6 +21,7 @@ import {
   Quote,
   Redo2,
   SquareCode,
+  SquarePlay,
   Strikethrough,
   Undo2,
   Unlink,
@@ -34,9 +35,11 @@ import {
   isSafeHref,
   type BodyDocument,
   type ImageAttrs,
+  type YouTubeAttrs,
 } from "@/features/posts/content/schema";
 import { cn } from "@/lib/utils";
 import { PostImagePanel } from "./post-image-panel";
+import { PostVideoPanel } from "./post-video-panel";
 
 type PostBodyEditorProps = {
   id: string;
@@ -116,6 +119,7 @@ function useToolbarState(editor: Editor | null) {
         blockquote: current.isActive("blockquote"),
         codeBlock: current.isActive("codeBlock"),
         image: current.isActive("image"),
+        youtube: current.isActive("youtube"),
         canUndo: current.can().undo(),
         canRedo: current.can().redo(),
       };
@@ -141,6 +145,11 @@ export function PostBodyEditor({
     { mode: "insert" } | { mode: "edit"; attrs: ImageAttrs } | null
   >(null);
   const [imagePanelKey, setImagePanelKey] = useState(0);
+  // null: closed; otherwise insert a new video or edit the selected one.
+  const [videoPanel, setVideoPanel] = useState<
+    { mode: "insert" } | { mode: "edit"; attrs: YouTubeAttrs } | null
+  >(null);
+  const [videoPanelKey, setVideoPanelKey] = useState(0);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
@@ -173,16 +182,30 @@ export function PostBodyEditor({
     setLinkValue((editor.getAttributes("link").href as string | undefined) ?? "");
     setLinkError(null);
     setImagePanel(null);
+    setVideoPanel(null);
     setLinkOpen(true);
   }
 
   function openImagePanel() {
     if (!editor) return;
     setLinkOpen(false);
+    setVideoPanel(null);
     setImagePanelKey((key) => key + 1);
     setImagePanel(
       editor.isActive("image")
         ? { mode: "edit", attrs: editor.getAttributes("image") as ImageAttrs }
+        : { mode: "insert" },
+    );
+  }
+
+  function openVideoPanel() {
+    if (!editor) return;
+    setLinkOpen(false);
+    setImagePanel(null);
+    setVideoPanelKey((key) => key + 1);
+    setVideoPanel(
+      editor.isActive("youtube")
+        ? { mode: "edit", attrs: editor.getAttributes("youtube") as YouTubeAttrs }
         : { mode: "insert" },
     );
   }
@@ -364,6 +387,14 @@ export function PostBodyEditor({
           >
             <ImagePlus aria-hidden="true" />
           </ToolbarButton>
+          <ToolbarButton
+            label={state?.youtube ? "Videoyu düzenle" : "YouTube videosu ekle"}
+            active={state?.youtube}
+            disabled={disabled}
+            onClick={openVideoPanel}
+          >
+            <SquarePlay aria-hidden="true" />
+          </ToolbarButton>
           <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
           <ToolbarButton
             label="Geri al"
@@ -445,6 +476,15 @@ export function PostBodyEditor({
             editor={editor}
             selected={imagePanel.mode === "edit" ? imagePanel.attrs : null}
             onClose={() => setImagePanel(null)}
+          />
+        ) : null}
+
+        {editor && videoPanel ? (
+          <PostVideoPanel
+            key={videoPanelKey}
+            editor={editor}
+            selected={videoPanel.mode === "edit" ? videoPanel.attrs : null}
+            onClose={() => setVideoPanel(null)}
           />
         ) : null}
 

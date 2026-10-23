@@ -17,6 +17,11 @@ const imageAttrs = {
   alt: "Deniz kıyısında gün batımı",
 };
 
+const videoAttrs = {
+  videoId: "dQw4w9WgXcQ",
+  title: "Örnek video: kurulum adımları",
+};
+
 export const validBodyFixtures: ReadonlyArray<{ name: string; doc: unknown }> = [
   {
     name: "empty paragraph",
@@ -174,10 +179,101 @@ export const validBodyFixtures: ReadonlyArray<{ name: string; doc: unknown }> = 
       ],
     },
   },
+  {
+    name: "youtube video with start time and escaped title",
+    doc: {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "İzleyin" }] },
+        {
+          type: "youtube",
+          attrs: { videoId: "a-B_c1D2e3F", title: "Başlık <b>kalın</b> & \"tırnak\"", start: 90 },
+        },
+      ],
+    },
+  },
+  {
+    name: "youtube video in a quote and a list item",
+    doc: {
+      type: "doc",
+      content: [
+        { type: "blockquote", content: [{ type: "youtube", attrs: videoAttrs }] },
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "Madde" }] },
+                { type: "youtube", attrs: { ...videoAttrs, start: 86400 } },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  },
+];
+
+// URL inputs for the editor's YouTube parser (./youtube.ts). Only the
+// extracted id reaches the stored body, so the database never sees these.
+export const validYouTubeUrlFixtures: ReadonlyArray<{
+  input: string;
+  videoId: string;
+  start?: number;
+}> = [
+  { input: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", videoId: "dQw4w9WgXcQ" },
+  { input: "https://youtube.com/watch?v=dQw4w9WgXcQ&t=90", videoId: "dQw4w9WgXcQ", start: 90 },
+  { input: "http://m.youtube.com/watch?feature=share&v=a-B_c1D2e3F", videoId: "a-B_c1D2e3F" },
+  { input: "  www.youtube.com/watch?v=dQw4w9WgXcQ&t=1m30s  ", videoId: "dQw4w9WgXcQ", start: 90 },
+  { input: "https://youtu.be/dQw4w9WgXcQ", videoId: "dQw4w9WgXcQ" },
+  { input: "https://youtu.be/dQw4w9WgXcQ?si=abc&t=1h2m3s", videoId: "dQw4w9WgXcQ", start: 3723 },
+  { input: "youtu.be/dQw4w9WgXcQ/", videoId: "dQw4w9WgXcQ" },
+  { input: "https://www.youtube.com/shorts/a-B_c1D2e3F", videoId: "a-B_c1D2e3F" },
+  { input: "https://www.youtube.com/embed/dQw4w9WgXcQ?start=42", videoId: "dQw4w9WgXcQ", start: 42 },
+  { input: "HTTPS://WWW.YOUTUBE.COM/watch?v=dQw4w9WgXcQ", videoId: "dQw4w9WgXcQ" },
+  // Unparseable or out-of-range offsets are dropped, not rejected.
+  { input: "https://youtu.be/dQw4w9WgXcQ?t=abc", videoId: "dQw4w9WgXcQ" },
+  { input: "https://youtu.be/dQw4w9WgXcQ?t=0", videoId: "dQw4w9WgXcQ" },
+  { input: "https://youtu.be/dQw4w9WgXcQ?t=86401", videoId: "dQw4w9WgXcQ" },
+];
+
+export const invalidYouTubeUrlFixtures: ReadonlyArray<{ name: string; input: string }> = [
+  { name: "empty input", input: "" },
+  { name: "bare id", input: "dQw4w9WgXcQ" },
+  { name: "other host", input: "https://evil.example/watch?v=dQw4w9WgXcQ" },
+  { name: "lookalike host", input: "https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ" },
+  { name: "host suffix", input: "https://notyoutube.com/watch?v=dQw4w9WgXcQ" },
+  { name: "vimeo", input: "https://vimeo.com/76979871" },
+  { name: "nocookie embed host", input: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" },
+  { name: "credentials", input: "https://user@www.youtube.com/watch?v=dQw4w9WgXcQ" },
+  { name: "custom port", input: "https://www.youtube.com:8443/watch?v=dQw4w9WgXcQ" },
+  { name: "ftp scheme", input: "ftp://youtu.be/dQw4w9WgXcQ" },
+  { name: "javascript scheme", input: "javascript:alert(1)//youtu.be/dQw4w9WgXcQ" },
+  { name: "mixed-case javascript scheme", input: "JaVaScRiPt:alert('https://youtu.be/dQw4w9WgXcQ')" },
+  { name: "data URL", input: "data:text/html,<script>alert(1)</script>" },
+  { name: "iframe markup", input: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>' },
+  { name: "script in id", input: "https://youtu.be/<script>alert(1)</script>" },
+  { name: "quote injection", input: 'https://youtu.be/dQw4w9WgXcQ"onload="alert(1)' },
+  { name: "short id", input: "https://youtu.be/dQw4w9WgXc" },
+  { name: "long id", input: "https://youtu.be/dQw4w9WgXcQQ" },
+  { name: "id with invalid character", input: "https://www.youtube.com/watch?v=dQw4w9WgX.Q" },
+  { name: "encoded id", input: "https://www.youtube.com/watch?v=dQw4w9WgX%3CQ" },
+  { name: "duplicate v parameter", input: "https://www.youtube.com/watch?v=dQw4w9WgXcQ&v=a-B_c1D2e3F" },
+  { name: "missing v parameter", input: "https://www.youtube.com/watch?list=PL123" },
+  { name: "channel page", input: "https://www.youtube.com/@channel" },
+  { name: "extra path segment", input: "https://www.youtube.com/embed/dQw4w9WgXcQ/extra" },
+  { name: "youtu.be with extra segment", input: "https://youtu.be/dQw4w9WgXcQ/extra" },
+  { name: "embedded whitespace", input: "https://youtu.be/dQw4w9 WgXcQ" },
+  { name: "control character", input: "https://youtu.be/dQw4w9WgXcQ\u0000" },
 ];
 
 function imageWith(attrs: unknown) {
   return { type: "doc", content: [{ type: "image", attrs }] };
+}
+
+function videoWith(attrs: unknown) {
+  return { type: "doc", content: [{ type: "youtube", attrs }] };
 }
 
 function paragraphWith(node: unknown) {
@@ -253,6 +349,57 @@ export const invalidBodyFixtures: ReadonlyArray<{ name: string; doc: unknown }> 
       ],
     },
   },
+  { name: "youtube without attributes", doc: { type: "doc", content: [{ type: "youtube" }] } },
+  {
+    name: "youtube with a watch URL instead of an id",
+    doc: videoWith({ ...videoAttrs, videoId: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }),
+  },
+  {
+    name: "youtube with an id from another host",
+    doc: videoWith({ ...videoAttrs, videoId: "evil.example/dQw4w9WgXcQ" }),
+  },
+  {
+    name: "youtube with a javascript URL as id",
+    doc: videoWith({ ...videoAttrs, videoId: "javascript:alert(1)" }),
+  },
+  {
+    name: "youtube with script in id",
+    doc: videoWith({ ...videoAttrs, videoId: "<script>x</script>" }),
+  },
+  { name: "youtube with short id", doc: videoWith({ ...videoAttrs, videoId: "dQw4w9WgXc" }) },
+  { name: "youtube with long id", doc: videoWith({ ...videoAttrs, videoId: "dQw4w9WgXcQQ" }) },
+  { name: "youtube with dotted id", doc: videoWith({ ...videoAttrs, videoId: "dQw4w9WgX.Q" }) },
+  { name: "youtube with numeric id", doc: videoWith({ ...videoAttrs, videoId: 12345678901 }) },
+  {
+    name: "youtube with an extra src attribute",
+    doc: videoWith({ ...videoAttrs, src: "https://evil.example/embed" }),
+  },
+  {
+    name: "youtube with an extra provider attribute",
+    doc: videoWith({ ...videoAttrs, provider: "vimeo" }),
+  },
+  {
+    name: "youtube with an iframe html attribute",
+    doc: videoWith({ ...videoAttrs, html: '<iframe src="javascript:alert(1)"></iframe>' }),
+  },
+  { name: "youtube without title", doc: videoWith({ videoId: videoAttrs.videoId }) },
+  { name: "youtube with blank title", doc: videoWith({ ...videoAttrs, title: "  " }) },
+  { name: "youtube with too long title", doc: videoWith({ ...videoAttrs, title: "a".repeat(201) }) },
+  { name: "youtube title with control character", doc: videoWith({ ...videoAttrs, title: "a\u0007" }) },
+  { name: "youtube with zero start", doc: videoWith({ ...videoAttrs, start: 0 }) },
+  { name: "youtube with negative start", doc: videoWith({ ...videoAttrs, start: -5 }) },
+  { name: "youtube with fractional start", doc: videoWith({ ...videoAttrs, start: 1.5 }) },
+  { name: "youtube with string start", doc: videoWith({ ...videoAttrs, start: "90" }) },
+  { name: "youtube with start beyond a day", doc: videoWith({ ...videoAttrs, start: 86401 }) },
+  {
+    name: "youtube with content",
+    doc: {
+      type: "doc",
+      content: [{ type: "youtube", attrs: videoAttrs, content: [{ type: "paragraph" }] }],
+    },
+  },
+  { name: "youtube inside a paragraph", doc: paragraphWith({ type: "youtube", attrs: videoAttrs }) },
+  { name: "iframe node", doc: { type: "doc", content: [{ type: "iframe", attrs: { src: "https://www.youtube.com/embed/dQw4w9WgXcQ" } }] } },
   {
     name: "html node",
     doc: paragraphWith({ type: "html", text: "<img src=x onerror=alert(1)>" }),

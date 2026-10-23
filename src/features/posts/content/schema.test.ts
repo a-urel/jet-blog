@@ -212,6 +212,44 @@ describe("image normalization", () => {
   });
 });
 
+describe("youtube normalization", () => {
+  it("drops an empty start from editor output and keeps the title", () => {
+    expect(
+      normalizeEditorDocument({
+        type: "doc",
+        content: [
+          { type: "youtube", attrs: { videoId: "dQw4w9WgXcQ", title: "Örnek", start: null } },
+        ],
+      }),
+    ).toEqual({
+      type: "doc",
+      content: [{ type: "youtube", attrs: { videoId: "dQw4w9WgXcQ", title: "Örnek" } }],
+    });
+  });
+
+  it("keeps an empty title so strict validation rejects it", () => {
+    const normalized = normalizeEditorDocument({
+      type: "doc",
+      content: [{ type: "youtube", attrs: { videoId: "dQw4w9WgXcQ", title: "", start: null } }],
+    });
+
+    expect(validateBodyDocument(normalized)).toEqual({
+      ok: false,
+      error: "Invalid video title",
+    });
+  });
+
+  it("counts title length in code points like PostgreSQL", () => {
+    const doc = (title: string) => ({
+      type: "doc",
+      content: [{ type: "youtube", attrs: { videoId: "dQw4w9WgXcQ", title } }],
+    });
+
+    expect(validateBodyDocument(doc("😀".repeat(200))).ok).toBe(true);
+    expect(validateBodyDocument(doc("😀".repeat(201))).ok).toBe(false);
+  });
+});
+
 describe("parseSubmittedBody", () => {
   it("treats an empty payload as the empty document", () => {
     expect(parseSubmittedBody("")).toEqual({ ok: true, doc: emptyBodyDocument });

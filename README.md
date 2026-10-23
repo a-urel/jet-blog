@@ -343,12 +343,12 @@ Title, slug, excerpt, and taxonomy stay outside the document.
 
 - **One allowlist.** `src/features/posts/content/schema.ts` defines the supported
   nodes (`paragraph`, `heading` levels 2–4, `bulletList`, `orderedList`,
-  `listItem`, `blockquote`, `codeBlock`, `horizontalRule`, `image`,
+  `listItem`, `blockquote`, `codeBlock`, `horizontalRule`, `image`, `youtube`,
   `hardBreak`, `text`), marks (`bold`, `italic`, `strike`, `code`, `link`),
   attribute keys, parent/child rules, a 200,000-character size limit, and a
   nesting limit. Unknown nodes, marks, or attribute keys are rejected, not
-  dropped. YouTube embeds are deferred to Phase 7; images are described in
-  [Media uploads](#media-uploads).
+  dropped. Images are described in [Media uploads](#media-uploads) and videos
+  in [YouTube embeds](#youtube-embeds).
 - **Safe links.** Only `http(s)://`, `mailto:`, site-relative `/…`, and in-page
   `#…` hrefs are accepted. `javascript:`, `data:`, protocol-relative `//host`,
   backslash paths, whitespace, and control characters are rejected. The renderer
@@ -366,7 +366,7 @@ Title, slug, excerpt, and taxonomy stay outside the document.
   `create_draft_post` and `update_post_metadata` take `p_body` and
   `p_content_version` and re-validate with `public.post_body_error`, a PL/pgSQL
   mirror of the allowlist (latest definition in
-  `supabase/migrations/20261022190100_post_body_image.sql`). A `posts_body_valid` CHECK constraint applies the
+  `supabase/migrations/20261022200000_post_body_youtube.sql`). A `posts_body_valid` CHECK constraint applies the
   same function, so service-role scripts and seeds cannot store an invalid
   version-1 document either. Unsupported versions raise `22023`.
 - **Renderer.** `features/posts/components/post-body.tsx` maps validated nodes to
@@ -448,6 +448,50 @@ anonymous/reader/author/editor/admin uploads, path and type restrictions,
 overwrite denial, the rate limit, registration ownership, media row visibility,
 public delivery, unknown-media rejection, and reference-aware deletion.
 
+## YouTube embeds
+
+Phase 7 adds a `youtube` block node. YouTube is the only allowlisted embed
+provider; arbitrary iframes and HTML are never accepted.
+
+- **Stored shape.** `{ type: "youtube", attrs: { videoId, title, start? } }`.
+  `videoId` is exactly 11 characters of `[A-Za-z0-9_-]`; `title` is required
+  (1–200 code points, no control characters) and labels the iframe for screen
+  readers; `start` is optional whole seconds (1–86,400). URLs are never stored.
+  `supabase/migrations/20261022200000_post_body_youtube.sql` mirrors the rules
+  in `public.post_body_node_error`.
+- **URL parsing.** `features/posts/content/youtube.ts` `parseYouTubeUrl`
+  accepts only `youtube.com/watch?v=`, `youtu.be/`, `youtube.com/shorts/`, and
+  `youtube.com/embed/` on `youtube.com`, `www.youtube.com`, `m.youtube.com`, and
+  `youtu.be` over http(s). Other hosts (including lookalikes), other schemes
+  such as `javascript:`, credentials, ports, extra path segments, duplicate `v`
+  parameters, quotes, angle brackets, whitespace, and malformed ids are
+  rejected. A `t`/`start` offset (`90`, `90s`, `1m30s`, `1h2m3s`) is kept; an
+  unparseable or out-of-range offset is dropped.
+- **Editor.** The toolbar's video button opens a panel for the URL and the
+  title; an invalid URL shows an inline error. Selecting a video and pressing
+  the button again edits or removes it. `PostYouTube` in
+  `editor-extensions.ts` is a custom atom node, not the Tiptap YouTube
+  extension: pasted `<iframe>` tags match no parse rule and are dropped. In the
+  editor the iframe ignores pointer events so a click selects the node.
+- **Rendering.** Editor and renderer both output
+  `figure.post-video > div.post-video-frame > iframe` with a 16:9
+  `aspect-video` wrapper, `src=https://www.youtube-nocookie.com/embed/<id>`
+  (plus `?start=`), the stored `title`, `loading="lazy"`,
+  `allow="encrypted-media; fullscreen; picture-in-picture"`,
+  `referrerpolicy="strict-origin-when-cross-origin"`, and
+  `sandbox="allow-scripts allow-same-origin allow-presentation allow-popups
+  allow-popups-to-escape-sandbox"`. The player refuses requests without a
+  referrer (error 153), so the origin is sent; playback works under this
+  sandbox.
+- **CSP.** The application sets no Content-Security-Policy yet. When one is
+  added (Phase 10), `frame-src` must allow `https://www.youtube-nocookie.com`.
+
+Tests: `youtube.test.ts` runs shared valid and invalid URL fixtures through the
+parser; the shared body fixtures add valid videos and invalid nodes (URLs or
+`javascript:` as id, malformed ids, extra `src`/`provider`/`html` attributes,
+bad titles and start values, iframe nodes) that run in TypeScript, the Tiptap
+schema, the renderer, and the database.
+
 ## Structure and sample content
 
 ```text
@@ -508,8 +552,8 @@ publishing mutations are still later phases.
 
 Sample bodies use the stored version-1 document format and render through the
 same `PostBody` component as the member preview. The seed stores the same
-documents for the published sample posts. The sample bodies contain no images;
-YouTube embeds remain a later increment.
+documents for the published sample posts. The sample bodies contain no images
+or videos.
 
 Route paths and query parameters are English (`/login`, `/admin/members`,
 `/posts/[slug]`, `?status=updated`) regardless of the interface language.
@@ -589,6 +633,7 @@ migration adds the draft-authoring RPCs, revision compare-and-swap, relation
 replacement, metadata validation, and the editorial author-read policy. The
 Phase 5 migration adds post bodies. The Phase 6 migrations add the `media`
 bucket, Storage policies, `public.media`, the media RPCs, and the image node.
+The Phase 7 migration adds the `youtube` node to the body validator.
 Seeding is enabled: `supabase/seeds/seed.sql` loads synthetic taxonomy and
 posts, never production data. Publishing mutations and public database reads
 are still later phases. Create future migrations with
@@ -628,15 +673,16 @@ page will not receive the fragment.
 
 ## Next increment
 
-Phases 1–6 are implemented: authentication, editorial membership with
+Phases 1–7 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
-and validated image uploads with reference-aware deletion. Public pages still
+validated image uploads with reference-aware deletion, and allowlisted YouTube
+embeds. Public pages still
 use the sample fixtures. See [ROADMAP.md](./ROADMAP.md) for the ordered
 increments and their decision gates.
 
-Phase 7 (allowlisted YouTube embeds) or Phase 8 (publishing) can follow; a new
+Phase 8 (publishing and public reading from the database) is next; a new
 body node again changes the TypeScript allowlist, the database mirror, the
 fixtures, the editor, and the renderer together. Taxonomy and author identity
 administration remain explicit follow-up increments. Answer D5 before Phase 8

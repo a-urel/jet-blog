@@ -116,4 +116,37 @@ describe("PostBody", () => {
       expect(html).toContain("Görsel şu anda yüklenemiyor.");
     });
   });
+
+  describe("youtube", () => {
+    it("renders a responsive, sandboxed, privacy-enhanced embed", () => {
+      const html = render(validBodyFixtures[5].doc);
+
+      expect(html).toContain(
+        '<figure class="post-video"><div class="post-video-frame"><iframe src="https://www.youtube-nocookie.com/embed/a-B_c1D2e3F?start=90"',
+      );
+      expect(html).toContain(
+        'title="Başlık &lt;b&gt;kalın&lt;/b&gt; &amp; &quot;tırnak&quot;"',
+      );
+      expect(html).toContain('loading="lazy"');
+      expect(html).toContain('allow="encrypted-media; fullscreen; picture-in-picture"');
+      expect(html).toContain('referrerPolicy="strict-origin-when-cross-origin"');
+      expect(html).toContain('sandbox="allow-scripts allow-same-origin');
+      expect(html).not.toContain("youtube.com/watch");
+    });
+
+    it("renders nested videos without a start parameter", () => {
+      const html = render(validBodyFixtures[6].doc);
+
+      expect(html).toContain(
+        '<blockquote><figure class="post-video"><div class="post-video-frame"><iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"',
+      );
+      expect(html).toContain("embed/dQw4w9WgXcQ?start=86400");
+    });
+
+    it("never renders an iframe for invalid video nodes", () => {
+      for (const { doc } of invalidBodyFixtures) {
+        expect(render(doc)).not.toContain("<iframe");
+      }
+    });
+  });
 });

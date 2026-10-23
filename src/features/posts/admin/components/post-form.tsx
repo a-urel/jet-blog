@@ -237,7 +237,8 @@ export function PostForm({
         <p id="post-body-help" className="text-sm text-muted-foreground">
           Araç çubuğunda ok tuşlarıyla gezinebilirsiniz. Görseller için
           alternatif metin gerekir; seçili görseli düzenlemek için görsel
-          düğmesini kullanın. Video desteği sonraki artışta eklenecek.
+          düğmesini kullanın. YouTube videoları bağlantıyla eklenir ve
+          ekran okuyucular için bir başlık gerektirir.
         </p>
         <FieldError id="post-body-error" message={state.fieldErrors.body} />
       </div>

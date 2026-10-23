@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-22 (Phase 6 complete; D4 answered)
+Last updated: 2026-10-22 (Phase 7 complete)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–6, complete)
+## Current baseline (Phases 1–7, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -51,7 +51,15 @@ does not add requirements on its own.
   upload rate limit, signature-based server validation (no SVG), an `image` body
   node with occurrence alt text and caption, `next/image` delivery, and
   reference-aware deletion at `/admin/media`.
-- 199 unit tests and 146 local-Supabase RLS tests cover media upload
+- Phase 7 embeds: a `youtube` body node storing only an 11-character video id,
+  a required accessible title, and an optional start offset; a strict URL
+  parser for youtube.com watch/shorts/embed and youtu.be links; a toolbar panel
+  in the editor; and a sandboxed, lazy, 16:9 iframe on
+  `www.youtube-nocookie.com` shared by the editor node view and the renderer.
+- 325 unit tests and 173 local-Supabase RLS tests cover YouTube URL parsing
+  (invalid and lookalike hosts, `javascript:` and markup input, malformed ids),
+  youtube-node parity across TypeScript, Tiptap, the renderer, and the
+  database, media upload
   validation, Storage policies by role, the upload rate limit, media
   registration and visibility, reference-aware deletion, image-node parity, body allowlist parity
   (TypeScript, Tiptap schema, renderer, and database share fixtures), unsafe
@@ -73,12 +81,13 @@ records.
 
 ## Where to resume (session handoff)
 
-Phases 1–5 are complete, verified, and committed. Phase 6 is complete and
-verified; commit only on request. Do not push without an explicit request.
+Phases 1–6 are complete, verified, and committed (Phase 6 is commit `23b4ab7`,
+local only until pushed). Phase 7 is complete and verified; commit only on
+request. Do not push without an explicit request.
 
-- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (199 tests),
-  `npm run test:rls` (146 tests), and `npm run build` pass.
-- Local database: `supabase db reset` applies all six migrations and
+- Last verified: `npm run lint`, `npm run typecheck`, `npm test` (325 tests),
+  `npm run test:rls` (173 tests), and `npm run build` pass.
+- Local database: `supabase db reset` applies all seven migrations and
   `supabase/seeds/seed.sql` (3 published posts and 1 draft with bodies, 3
   categories, 3 tags, 2 author profiles). It creates no Auth users. Follow the README to bootstrap the
   first admin when a browser journey needs a signed-in user.
@@ -87,14 +96,15 @@ verified; commit only on request. Do not push without an explicit request.
   `supabase/migrations/20261022170000_draft_authoring.sql`,
   `supabase/migrations/20261022180000_post_body.sql`,
   `supabase/migrations/20261022190000_media.sql`,
-  `supabase/migrations/20261022190100_post_body_image.sql`, `src/features/media/`,
+  `supabase/migrations/20261022190100_post_body_image.sql`,
+  `supabase/migrations/20261022200000_post_body_youtube.sql`, `src/features/media/`,
   `src/lib/slug.ts`,
   `src/features/posts/admin/`, `src/features/posts/content/`,
   `src/features/posts/components/post-body.tsx`, and
   `src/lib/supabase/post-body.rls.test.ts`, and
   `src/lib/supabase/media.rls.test.ts`.
-- Next slice: Phase 7 (YouTube embeds) or Phase 8 (publishing). A new body node
-  must be added to the TypeScript allowlist, the SQL mirror, the shared
+- Next slice: Phase 8 (publishing and public reading from the database), after
+  D5. A new body node must be added to the TypeScript allowlist, the SQL mirror, the shared
   fixtures, the editor, and the renderer in the same change.
 - Open gates: D5 before Phase 8 canonical URLs and sitemap output. Revisit D4
   before public launch if draft images must stay private.
@@ -198,8 +208,8 @@ account-attribute decision, not a widening of the editorial role enum.
 | 3 | Content schema | Posts, taxonomy, credits, public read rules, integrity | Phase 2, D2, D3 | Done |
 | 4 | Draft authoring | Admin list/form, category, tags, ordered credits, validation | Phase 3 | Done |
 | 5 | Editor | Tiptap JSON, content versioning, safe renderer | Phase 4, D3 | Done |
-| 6 | Media | Upload, media table, image node, alt text | Phase 5, D4 | M |
-| 7 | Embeds | Allowlisted YouTube node, responsive render | Phase 5 | S |
+| 6 | Media | Upload, media table, image node, alt text | Phase 5, D4 | Done |
+| 7 | Embeds | Allowlisted YouTube node, responsive render | Phase 5 | Done |
 | 8 | Publishing | Publish mutation, DB-backed public pages, slug redirects | Phases 3–5, optional 6, D2, D5 | L |
 | 9 | Discovery | SEO, OG, JSON-LD, sitemap, archives, share link | Phase 8, D5 | M |
 | 10 | Launch readiness | Cache invalidation, conflict handling, rate limits, backups | Phase 9 | M |
@@ -655,6 +665,31 @@ render is responsive. Exit when Storage policies and validation tests pass.
 
 Goal: supported videos render as structured, responsive embeds.
 
+Status: complete on 2026-10-22. Verified with lint, typecheck, 325 unit tests,
+173 local-Supabase RLS tests, a clean `supabase db reset`, the production
+build, and a browser journey on the production server: a lookalike-host URL
+rejected with an inline error, a `youtu.be` link with `?t=30` inserted with a
+title, the draft saved and reloaded with the node intact, the member preview
+playing the sandboxed embed from 0:30, a 16:9 frame at desktop and 375 px
+widths without horizontal overflow, light and dark themes, and the selected
+video reopening the panel in edit mode.
+
+Implementation notes:
+
+- Stored shape: `{ videoId, title, start? }`. The embed URL is derived on
+  render; the editor form prefills a canonical watch URL when editing.
+- `src/features/posts/content/youtube.ts` holds the parser, the embed URL
+  builder, and the shared iframe `allow`, `sandbox`, and `referrerPolicy`
+  values. A no-referrer policy breaks the player (error 153), so
+  `strict-origin-when-cross-origin` is used.
+- Accepted hosts: `youtube.com`, `www.youtube.com`, `m.youtube.com`, and
+  `youtu.be`. `youtube-nocookie.com` input URLs are not accepted. Invalid
+  `t`/`start` offsets are dropped rather than rejecting the URL.
+- No CSP exists yet; Phase 10 must add `frame-src https://www.youtube-nocookie.com`
+  when it introduces one.
+- The editor iframe ignores pointer events so clicks select the node; playback
+  is checked in the preview.
+
 Scope:
 
 - Allowlisted provider node with strict URL parsing (YouTube watch/short URLs),
@@ -895,10 +930,10 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Phases 1–5 are complete. Answer D4 (media bucket visibility), then implement
-Phase 6 (media uploads): add the image node to the TypeScript allowlist, the SQL
-mirror, the shared fixtures, the editor, and the renderer in one change, and
-validate uploads server-side. Keep taxonomy and author identity administration
-as the deferred follow-ups above. D5 is needed before Phase 8 finalizes
-canonical URLs and sitemap output. D6 is settled; reader work stays in Phases
+Phases 1–7 are complete. Answer D5 (canonical URLs and sitemap output), then
+implement Phase 8 (publishing and public reading from the database): the
+server-side publish mutation with the category requirement, DB-backed public
+pages replacing `features/posts/data.ts`, and slug redirects. Decide whether
+taxonomy and author identity administration (the deferred follow-ups above)
+ship before or alongside Phase 8. D6 is settled; reader work stays in Phases
 11–13 after the editorial MVP.

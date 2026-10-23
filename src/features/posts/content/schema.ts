@@ -2,7 +2,7 @@
 // renderer, the Server Action boundary, and the database function
 // `post_body_error` all apply these rules. Change them together: the database
 // mirror is `public.post_body_node_error` (latest definition in
-// supabase/migrations/20261022190100_post_body_image.sql), and the shared
+// supabase/migrations/20261022200000_post_body_youtube.sql), and the shared
 // fixtures in ./fixtures.ts run against both.
 
 export const currentContentVersion = 1;
@@ -15,6 +15,9 @@ export const maxHrefLength = 2048;
 export const maxImageAltLength = 300;
 export const maxImageCaptionLength = 500;
 export const maxImageDimension = 10_000;
+export const maxVideoTitleLength = 200;
+// Start offsets are whole seconds, at most 24 hours.
+export const maxVideoStart = 86_400;
 
 export const headingLevels = [2, 3, 4] as const;
 
@@ -27,6 +30,7 @@ export const blockNodeTypes = [
   "codeBlock",
   "horizontalRule",
   "image",
+  "youtube",
 ] as const;
 
 export const inlineNodeTypes = ["text", "hardBreak"] as const;
@@ -85,6 +89,15 @@ export type ImageAttrs = {
   decorative?: true;
 };
 export type ImageNode = { type: "image"; attrs: ImageAttrs };
+// A YouTube video is stored as its id only; the embed URL is derived on
+// render. Never store a URL, iframe, or HTML. The title labels the iframe for
+// assistive technology.
+export type YouTubeAttrs = {
+  videoId: string;
+  title: string;
+  start?: number;
+};
+export type YouTubeNode = { type: "youtube"; attrs: YouTubeAttrs };
 
 export type BlockNode =
   | ParagraphNode
@@ -94,7 +107,8 @@ export type BlockNode =
   | OrderedListNode
   | CodeBlockNode
   | HorizontalRuleNode
-  | ImageNode;
+  | ImageNode
+  | YouTubeNode;
 
 export type BodyDocument = { type: "doc"; content: BlockNode[] };
 
@@ -117,6 +131,7 @@ const controlCharacterPattern = /[\u0000-\u001f\u007f]/;
 const languagePattern = /^[a-z0-9+#-]{1,32}$/;
 export const mediaIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const videoIdPattern = /^[A-Za-z0-9_-]{11}$/;
 const nonWhitespacePattern = /\S/;
 
 // Count code points, matching PostgreSQL char_length.
@@ -175,6 +190,7 @@ const contentRules: Record<NodeType, ContentRule> = {
   codeBlock: "text*",
   horizontalRule: "none",
   image: "none",
+  youtube: "none",
   hardBreak: "none",
   text: "none",
 };
@@ -253,6 +269,9 @@ function validateAttrs(node: JsonObject, type: NodeType): void {
     case "image":
       validateImageAttrs(attrs);
       return;
+    case "youtube":
+      validateYouTubeAttrs(attrs);
+      return;
     default:
       if (attrs !== undefined) fail(`Node ${type} does not accept attributes`);
   }
@@ -300,6 +319,35 @@ function validateImageAttrs(attrs: unknown): void {
     ) {
       fail("Invalid image caption");
     }
+  }
+}
+
+function validateYouTubeAttrs(attrs: unknown): void {
+  if (!isObject(attrs) || !hasOnlyKeys(attrs, ["videoId", "title", "start"])) {
+    fail("Invalid video attributes");
+  }
+
+  if (typeof attrs.videoId !== "string" || !videoIdPattern.test(attrs.videoId)) {
+    fail("Invalid video id");
+  }
+
+  const title = attrs.title;
+  if (
+    typeof title !== "string" ||
+    codePointLength(title) > maxVideoTitleLength ||
+    controlCharacterPattern.test(title) ||
+    !nonWhitespacePattern.test(title)
+  ) {
+    fail("Invalid video title");
+  }
+
+  if (
+    attrs.start !== undefined &&
+    (!Number.isInteger(attrs.start) ||
+      (attrs.start as number) < 1 ||
+      (attrs.start as number) > maxVideoStart)
+  ) {
+    fail("Invalid video start time");
   }
 }
 
@@ -452,6 +500,10 @@ export function normalizeEditorDocument(value: unknown): unknown {
       if (attrs.decorative === null || attrs.decorative === false) {
         delete attrs.decorative;
       }
+    }
+
+    if (node.type === "youtube" && (attrs.start === null || attrs.start === 0)) {
+      delete attrs.start;
     }
 
     if (Object.keys(attrs).length === 0) delete node.attrs;

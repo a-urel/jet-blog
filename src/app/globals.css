@@ -190,6 +190,16 @@
   .post-body figure img {
     @apply mx-auto h-auto max-w-full rounded-lg border border-border bg-muted;
   }
+  .post-body .post-video-frame {
+    @apply relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted;
+  }
+  .post-body .post-video-frame iframe {
+    @apply absolute inset-0 size-full border-0;
+  }
+  /* In the editor a click selects the video node instead of playing it. */
+  .post-body.ProseMirror .post-video-frame iframe {
+    @apply pointer-events-none;
+  }
   .post-body figcaption {
     @apply mt-2 text-center text-sm leading-6 text-muted-foreground not-italic;
   }
