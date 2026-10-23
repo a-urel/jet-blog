@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 
-// Resolves the Supabase API URL and secret key for the Storage backup scripts.
+// Resolves the Supabase API URL and secret key for the operational scripts
+// (Storage backup/restore, admin bootstrap).
 // --local reads them from `supabase status`; otherwise SUPABASE_URL and
 // SUPABASE_SECRET_KEY must be set in the environment (never pass the key as an
 // argument, so it stays out of shell history and process lists).

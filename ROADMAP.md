@@ -167,11 +167,15 @@ its reports disappear with it.
 
 ## Where to resume (session handoff)
 
-Phases 1–11, taxonomy administration (`8081321`), and author identity
-administration (`85dfe87`) are on `origin/main`. Phase 12 (bookmarks,
-`d25e36a`) is committed locally, not pushed. Phase 13 (comments) is complete
-and verified in the working tree; commit only on request. Do not push without
-an explicit request.
+Phases 1–13, taxonomy and author identity administration, and the fixes from
+the all-roles browser test (`59771bc`) are on `origin/main`. The first-admin
+bootstrap command (`npm run admin:bootstrap`, migration
+`20261024100000_admin_bootstrap.sql`) followed on 2026-10-24; commit only on
+request. Do not push without an explicit request.
+
+- First admin: there is no "first user becomes admin" rule. After a reset or a
+  fresh deploy run `npm run admin:bootstrap -- --local --email <you>` (or the
+  hosted variant in the README); it refuses while an active admin exists.
 
 - Last verified (Phase 13): `npm run lint`, `npm run typecheck`, `npm test`
   (443 tests), `npm run test:rls` (339 tests), `npm run build`, and
@@ -269,7 +273,9 @@ domain, brand, and hosting remain open and block the public launch.
   existing taxonomy, but cannot manage categories/tags or invite members. Author
   creates and edits own drafts but cannot publish. Reader membership is open to
   everyone; editorial/writer access is invite-only and granted by an admin. The
-  first admin is bootstrapped locally through Studio/SQL, with no public route.
+  first admin is bootstrapped out of band with no public route: originally
+  through Studio/SQL, since 2026-10-24 with the service-role-only
+  `npm run admin:bootstrap` command.
 - **D2 (2026-10-22):** Workflow starts with `draft` → `published` only.
   `review` and `archived` remain later increments. Editors and admins may edit
   published posts directly; `updated_at` is shown on the public post when it is
@@ -1228,14 +1234,11 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Phases 1–11 and taxonomy administration are complete. Next, ship author
-identity administration (guest and member authors through a server-only path
-for `authors.user_id`, invalidating with `"author-changed"` through
-`features/posts/invalidate.ts`; linking a reader account to an author must not
-grant editorial access; decide slug-change and deletion behavior for credited
-authors first). Phases 12 (bookmarks) and 13 (comments) follow and plug into
-`prepare_own_account_deletion()`. The public launch then needs the D5 domain,
-brand, and hosting decisions and the README hosting checklist (site URL, Auth
-redirects, reader-account Auth settings, production SMTP and `token_hash`
-templates, HSTS, shared cache handler or single instance, hosted backups, D4
-review, smoke test against the deployment).
+Every phase in the table, both administration increments, and the first-admin
+bootstrap command are done. The remaining work is the launch gate: decide D5
+(domain, brand, hosting), revisit D4 if draft images must stay private, then
+follow the README hosting checklist (bootstrap the first admin with
+`npm run admin:bootstrap`, site URL and Auth redirects, reader-account Auth
+settings, production SMTP and `token_hash` templates, HSTS, shared cache
+handler or single instance, hosted backups, and `npm run test:smoke` against
+the deployment).

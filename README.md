@@ -199,20 +199,45 @@ security-definer RPCs re-check admin access, enforce the last-admin rule, and
 write the audit row in the same transaction. Direct reads are constrained by
 RLS.
 
-### Bootstrap the first local admin
+### Bootstrap the first admin
 
-Start the local stack and read its dynamic URLs:
+Editorial access is invite-only, so a fresh project has nobody who can send the
+first invitation. The first admin is granted once, out of band, with a
+server-only command:
 
 ```bash
-supabase start --runtime native
-supabase status
+npm run admin:bootstrap -- --local --email you@example.com
 ```
 
-Open the `Studio` URL from the status output, go to **Authentication > Users**,
-and choose **Add user**. Enter an email and password and enable **Auto Confirm
-User** (email confirmation is required since Phase 11, and editorial membership
-refuses an unconfirmed self-service account). Then open the SQL
-Editor and grant the first admin:
+`--local` reads the API URL and secret key from `supabase status` and uses
+`http://localhost:3000` for the invite link. For a hosted project, set
+`SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `NEXT_PUBLIC_SITE_URL` in the shell
+(never pass the key as an argument) and omit `--local`; `--site-url <origin>`
+overrides the invite origin.
+
+- If the email has no account, Supabase sends an invite. The invitee opens it,
+  sets a password at `/login/password`, and lands in `/admin` as admin. Locally
+  the email arrives in Mailpit.
+- If the email already has a confirmed account (for example a reader), that
+  account becomes admin without an email. An unconfirmed self-service account is
+  refused until its address is confirmed, so nobody can pre-register an email
+  they do not own and inherit admin.
+- The command refuses while any active admin exists. It cannot add admins later
+  and re-running it is harmless; invite further admins at `/admin/members`.
+
+The command calls `public.bootstrap_first_admin`
+(`supabase/migrations/20261024100000_admin_bootstrap.sql`), which only
+`service_role` may execute. The function takes an advisory lock, re-checks that
+no active admin exists, grants the membership, and writes a
+`member.bootstrap_admin` audit entry with no actor. The confirmed-account
+trigger still applies. There is deliberately no "first user becomes admin"
+rule: with public reader sign-up enabled, whoever registered first on a fresh
+deployment would own the site, and the rule would re-arm after a reset or a
+restore without admins.
+
+If the command cannot be used (for example more than 10,000 Auth users to
+search), the same grant works from the SQL Editor as the table owner, for a
+confirmed account only:
 
 ```sql
 insert into public.editorial_members (profile_id, role)
@@ -224,18 +249,8 @@ on conflict (profile_id) do update
 set role = 'admin', deactivated_at = null;
 ```
 
-Replace the placeholder email. The profile trigger creates the `profiles` row.
-Verify the result and then sign in at `/login`:
-
-```sql
-select auth.users.email, editorial_members.role, editorial_members.deactivated_at
-from public.editorial_members
-join auth.users on auth.users.id = editorial_members.profile_id;
-```
-
-This is a local/hosted bootstrap operation, not seed data or a public route. Do
-not commit real credentials. Once signed in, invite additional admins through
-`/admin/members`; do not bootstrap every account manually.
+This is an operator action, not seed data or a public route. Do not commit real
+credentials.
 
 Deleting an Auth user cascades to its profile and membership. The last-admin
 trigger blocks role demotion and deactivation, not Auth-user deletion, so ensure
@@ -699,6 +714,7 @@ src/
       publishing.rls.test.ts      # Publish/unpublish, public reads, redirects
       archives.rls.test.ts        # Archives and sitemap input by role
       editorial-rls.rls.test.ts # Membership and audit RLS tests
+      admin-bootstrap.rls.test.ts # First-admin RPC: grants, refusal, rollback
       reader-accounts.rls.test.ts # Self-service reader matrix, deletion, limits
       bookmarks.rls.test.ts       # Bookmark isolation, drafts, saved list, deletion
       comments.rls.test.ts        # Comments, reports, moderation, limits, anonymization
@@ -710,6 +726,8 @@ supabase/
   migrations/             # Versioned schema, RLS, functions, and triggers
   seeds/seed.sql          # Synthetic taxonomy and posts, never production data
 scripts/
+  admin-bootstrap.mjs     # One-time first-admin grant (npm run admin:bootstrap)
+  admin-bootstrap-core.mjs # Bootstrap logic, unit tested with a fake client
   run-rls-tests.mjs       # Loads local Supabase env and runs integration tests
 vitest.config.mts         # Unit test configuration
 vitest.rls.config.mts     # RLS integration test configuration
@@ -788,9 +806,10 @@ To configure the application clients, copy `API_URL`, `PUBLISHABLE_KEY`, and
 full status environment into a client-facing file: it also contains secret and
 service-role keys. Restart Next.js after configuring it.
 
-The local config disables public registrations; the email provider stays enabled
-for password sign-in. The first admin must be created through Studio and SQL as
-described in [Bootstrap the first local admin](#bootstrap-the-first-local-admin).
+The local config enables reader sign-up with email confirmation (Phase 11);
+editorial access still comes only from invitations. Create the first admin with
+`npm run admin:bootstrap` as described in
+[Bootstrap the first admin](#bootstrap-the-first-admin).
 The Phase 2 migration creates `profiles`, `editorial_members`, `authors`, and the
 audit log, with triggers, RPCs, and RLS. The Phase 3 migration adds `categories`,
 `tags`, `posts`, `post_authors`, and `post_tags` with normalization checks,
@@ -939,7 +958,9 @@ or creates hosted resources.
   404s, `/admin` redirects to `/login`, `robots.txt` and `sitemap.xml` are
   public-only, and every response has the security headers without eval.
 
-Hosting checklist (open until D5 is decided): set `NEXT_PUBLIC_SITE_URL` and
+Hosting checklist (open until D5 is decided): after the first deploy, create
+the first admin with `npm run admin:bootstrap` (see
+[Bootstrap the first admin](#bootstrap-the-first-admin)); set `NEXT_PUBLIC_SITE_URL` and
 `NEXT_PUBLIC_SITE_NAME` before the production build, add the origin to the
 Supabase Auth site URL and redirect allowlist, keep `SUPABASE_SECRET_KEY` in
 the host's server-only secrets, enable HSTS at the edge, configure a shared

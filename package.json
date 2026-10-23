@@ -13,7 +13,8 @@
     "test:rls": "node scripts/run-rls-tests.mjs",
     "test:smoke": "node scripts/smoke.mjs",
     "backup:storage": "node scripts/storage-backup.mjs",
-    "restore:storage": "node scripts/storage-restore.mjs"
+    "restore:storage": "node scripts/storage-restore.mjs",
+    "admin:bootstrap": "node scripts/admin-bootstrap.mjs"
   },
   "engines": {
     "node": ">=22.0.0"
