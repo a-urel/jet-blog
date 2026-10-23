@@ -17,6 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
+import {
   createDraftPostAction,
   updatePostMetadataAction,
   type PostFormState,
@@ -151,7 +155,13 @@ export function PostForm({
 
   return (
     // Text fields and selects bubble their change events to the form.
-    <form action={formAction} onChange={markDirty} className="space-y-8">
+    <form
+      action={formAction}
+      onChange={markDirty}
+      // Close to the public article column (max-w-3xl), so lines wrap in the
+      // editor roughly as they will on the published page.
+      className="max-w-3xl space-y-8"
+    >
       {mode === "edit" && postId ? (
         <>
           <input type="hidden" name="postId" value={postId} />
@@ -267,25 +277,25 @@ export function PostForm({
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="post-category">Kategori</Label>
-          <select
+          <NativeSelect
+            className="w-full"
             id="post-category"
             name="categoryId"
             value={categoryId}
             onChange={(event) => setCategoryId(event.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
             aria-invalid={state.fieldErrors.categoryId ? true : undefined}
             aria-describedby={
               state.fieldErrors.categoryId ? "post-category-error" : undefined
             }
           >
-            <option value="">Kategori seçilmedi</option>
+            <NativeSelectOption value="">Kategori seçilmedi</NativeSelectOption>
             {categories.map((category) => (
-              <option key={category.id} value={category.id}>
+              <NativeSelectOption key={category.id} value={category.id}>
                 {"— ".repeat(category.depth)}
                 {category.name}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
+          </NativeSelect>
           <p className="text-sm text-muted-foreground">
             Taslakta kategori zorunlu değil; yayın öncesi gerekir.
           </p>
@@ -406,19 +416,19 @@ export function PostForm({
           <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-56 flex-1 space-y-2">
               <Label htmlFor="post-author-to-add">Yazar ekle</Label>
-              <select
+              <NativeSelect
+                className="w-full"
                 id="post-author-to-add"
                 value={authorToAdd}
                 onChange={(event) => setAuthorToAdd(event.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
               >
-                <option value="">Yazar seçin</option>
+                <NativeSelectOption value="">Yazar seçin</NativeSelectOption>
                 {availableAuthors.map((author) => (
-                  <option key={author.id} value={author.id}>
+                  <NativeSelectOption key={author.id} value={author.id}>
                     {author.name}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
             <Button
               type="button"

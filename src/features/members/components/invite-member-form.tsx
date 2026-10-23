@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
+import {
   inviteMemberAction,
   type InviteMemberState,
 } from "@/features/members/actions";
@@ -28,7 +32,7 @@ export function InviteMemberForm() {
   );
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="max-w-xl space-y-5">
       <div className="space-y-2">
         <Label htmlFor="invite-email">E-posta</Label>
         <Input
@@ -55,7 +59,8 @@ export function InviteMemberForm() {
 
       <div className="space-y-2">
         <Label htmlFor="invite-role">Rol</Label>
-        <select
+        <NativeSelect
+          className="w-full"
           id="invite-role"
           name="role"
           value={role}
@@ -69,14 +74,13 @@ export function InviteMemberForm() {
               setRole(nextRole);
             }
           }}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
         >
           {roleOptions.map((option) => (
-            <option key={option.value} value={option.value}>
+            <NativeSelectOption key={option.value} value={option.value}>
               {option.label}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
+        </NativeSelect>
       </div>
 
       {role === "admin" ? (

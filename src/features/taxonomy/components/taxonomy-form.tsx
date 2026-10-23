@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import { FormAlert } from "@/features/auth/components/form-alert";
 import type {
   TaxonomyFormState,
   TaxonomyFormValues,
 } from "@/features/taxonomy/actions";
 import { taxonomyLimits, type TaxonomyField } from "@/features/taxonomy/validation";
-
-export const selectClassName =
-  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30";
 
 type ParentOption = { id: string; name: string; depth: number };
 
@@ -74,7 +75,7 @@ export function TaxonomyForm({
 
   return (
     // Remount after each failed submit so the kept values become defaults.
-    <form key={JSON.stringify(state.values ?? null)} action={formAction} className="space-y-5">
+    <form key={JSON.stringify(state.values ?? null)} action={formAction} className="max-w-xl space-y-5">
       {record ? (
         <>
           <input type="hidden" name="id" value={record.id} />
@@ -116,18 +117,18 @@ export function TaxonomyForm({
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_8rem]">
           <div className="space-y-2">
             <Label htmlFor={fieldId("parentId")}>Üst kategori</Label>
-            <select
+            <NativeSelect
+              className="w-full"
               {...fieldProps("parentId")}
               defaultValue={values.parentId}
-              className={selectClassName}
             >
-              <option value="">Yok (en üst seviye)</option>
+              <NativeSelectOption value="">Yok (en üst seviye)</NativeSelectOption>
               {(parentOptions ?? []).map((option) => (
-                <option key={option.id} value={option.id}>
+                <NativeSelectOption key={option.id} value={option.id}>
                   {`${"— ".repeat(option.depth)}${option.name}`}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
+            </NativeSelect>
             {fieldError("parentId")}
           </div>
 

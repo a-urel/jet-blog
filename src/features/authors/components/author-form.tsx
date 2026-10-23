@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import { FormAlert } from "@/features/auth/components/form-alert";
 import type { AuthorFormState, AuthorFormValues } from "@/features/authors/actions";
 import { authorLimits, type AuthorField } from "@/features/authors/validation";
-import { selectClassName } from "@/features/taxonomy/components/taxonomy-form";
 
 export type AccountChoice = { profileId: string; label: string };
 
@@ -60,7 +63,7 @@ export function AuthorForm({
 
   return (
     // Remount after each failed submit so the kept values become defaults.
-    <form key={JSON.stringify(state.values ?? null)} action={formAction} className="space-y-5">
+    <form key={JSON.stringify(state.values ?? null)} action={formAction} className="max-w-xl space-y-5">
       {record ? (
         <>
           <input type="hidden" name="id" value={record.id} />
@@ -115,18 +118,18 @@ export function AuthorForm({
 
       <div className="space-y-2">
         <Label htmlFor={fieldId("profileId")}>Bağlı hesap</Label>
-        <select
+        <NativeSelect
+          className="w-full"
           {...fieldProps("profileId")}
           defaultValue={values.profileId}
-          className={selectClassName}
         >
-          <option value="">Yok (misafir yazar)</option>
+          <NativeSelectOption value="">Yok (misafir yazar)</NativeSelectOption>
           {accountChoices.map((choice) => (
-            <option key={choice.profileId} value={choice.profileId}>
+            <NativeSelectOption key={choice.profileId} value={choice.profileId}>
               {choice.label}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
+        </NativeSelect>
         {fieldError("profileId") ?? (
           <p className="text-xs text-muted-foreground">
             Yalnızca editoryal üyeler bağlanabilir. Bağlantı yetki vermez; düzenleme

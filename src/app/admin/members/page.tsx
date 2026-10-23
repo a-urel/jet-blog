@@ -12,6 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import { EditorialAccessDenied } from "@/features/auth/components/editorial-access-denied";
 import {
   setMemberActiveAction,
@@ -286,16 +290,16 @@ export default async function AdminMembersPage({
                               >
                                 Rol
                               </label>
-                              <select
+                              <NativeSelect
+                                size="sm"
                                 id={`role-${member.profile_id}`}
                                 name="role"
                                 defaultValue={member.role}
-                                className="h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
                               >
-                                <option value="author">Yazar</option>
-                                <option value="editor">Editör</option>
-                                <option value="admin">Admin</option>
-                              </select>
+                                <NativeSelectOption value="author">Yazar</NativeSelectOption>
+                                <NativeSelectOption value="editor">Editör</NativeSelectOption>
+                                <NativeSelectOption value="admin">Admin</NativeSelectOption>
+                              </NativeSelect>
                               <Button type="submit" size="sm" variant="outline">
                                 Kaydet
                               </Button>

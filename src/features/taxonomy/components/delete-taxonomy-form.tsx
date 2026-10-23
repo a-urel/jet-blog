@@ -5,9 +5,12 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import { FormAlert } from "@/features/auth/components/form-alert";
 import type { TaxonomyDeleteState } from "@/features/taxonomy/actions";
-import { selectClassName } from "./taxonomy-form";
 
 type TargetOption = { id: string; name: string; depth: number };
 
@@ -34,7 +37,7 @@ export function DeleteTaxonomyForm({
   const targetId = `delete-target-${record.id}`;
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="max-w-xl space-y-4">
       <input type="hidden" name="id" value={record.id} />
       <input type="hidden" name="updatedAt" value={record.updatedAt} />
 
@@ -43,20 +46,20 @@ export function DeleteTaxonomyForm({
           <Label htmlFor={targetId}>
             {targetRequired ? "Yazıların taşınacağı kategori" : "Eski adresin yönleneceği kategori"}
           </Label>
-          <select
+          <NativeSelect
+            className="w-full"
             id={targetId}
             name="targetCategoryId"
             required={targetRequired}
             defaultValue=""
-            className={selectClassName}
           >
-            <option value="">{targetRequired ? "Kategori seçin" : "Yok (eski adres 404 olur)"}</option>
+            <NativeSelectOption value="">{targetRequired ? "Kategori seçin" : "Yok (eski adres 404 olur)"}</NativeSelectOption>
             {targetOptions.map((option) => (
-              <option key={option.id} value={option.id}>
+              <NativeSelectOption key={option.id} value={option.id}>
                 {`${"— ".repeat(option.depth)}${option.name}`}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       ) : null}
 
