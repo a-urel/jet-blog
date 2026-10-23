@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Tags } from "lucide-react";
 
+import { QueryStatus } from "@/components/status/query-status";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -42,7 +43,11 @@ export default async function AdminTagsPage({ searchParams }: PageProps<"/admin/
         </p>
       </div>
 
-      {statusMessage ? <FormAlert tone="success">{statusMessage}</FormAlert> : null}
+      {statusMessage ? (
+        <QueryStatus>
+          <FormAlert tone="success">{statusMessage}</FormAlert>
+        </QueryStatus>
+      ) : null}
 
       <Card>
         <CardHeader>

@@ -141,11 +141,28 @@ values
   ('b91d3983-5334-48b1-b849-3a368b6d3f6d', 'ee5b127d-ed58-44bb-ae78-1565bb768081')
 on conflict do nothing;
 
--- Phase 5 bodies. Published sample bodies match src/features/posts/sample-data.ts
--- so the public sample pages and the database stay aligned until Phase 8.
-update public.posts set body = '{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Önce çalışan bir parça"}]},{"type":"paragraph","content":[{"type":"text","text":"Bu yazı, blog iskeletini keşfetmek için hazırlanmış örnek bir içeriktir. Buradaki kişi adları ve içerikler kurgusaldır; herhangi bir veri tabanından gelmez."}]},{"type":"paragraph","content":[{"type":"text","text":"Bir fikri görünür kılmanın en sade yolu, küçük ama tamamlanmış bir parçasını üretmektir. Okunabilen bir sayfa ve anlaşılır bir yapı, sonraki kararları daha somut hale getirir."}]},{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Gelişmek için alan bırakmak"}]},{"type":"paragraph","content":[{"type":"text","text":"İlk adımda her ihtimali çözmek yerine, bugün ihtiyaç duyulan davranışları açıkça tanımlayabiliriz. Böylece yeni bilgiler geldiğinde yön değiştirmek kolaylaşır."}]},{"type":"paragraph","content":[{"type":"text","text":"Bir sonraki adım, editoryal sorumlulukları netleştirmek ve içerik üretiminin temel akışını birlikte tasarlamak olacak."}]}]}'::jsonb where id = 'ce732bf7-e28c-41b4-983d-1c77663aaae8';
+-- Sample post bodies in the stored version-1 document format.
+update public.posts set body = '{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Önce çalışan bir parça"}]},{"type":"paragraph","content":[{"type":"text","text":"Bu yazı, blog iskeletini keşfetmek için hazırlanmış örnek bir içeriktir. Buradaki kişi adları ve içerikler kurgusaldır."}]},{"type":"paragraph","content":[{"type":"text","text":"Bir fikri görünür kılmanın en sade yolu, küçük ama tamamlanmış bir parçasını üretmektir. Okunabilen bir sayfa ve anlaşılır bir yapı, sonraki kararları daha somut hale getirir."}]},{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Gelişmek için alan bırakmak"}]},{"type":"paragraph","content":[{"type":"text","text":"İlk adımda her ihtimali çözmek yerine, bugün ihtiyaç duyulan davranışları açıkça tanımlayabiliriz. Böylece yeni bilgiler geldiğinde yön değiştirmek kolaylaşır."}]},{"type":"paragraph","content":[{"type":"text","text":"Bir sonraki adım, editoryal sorumlulukları netleştirmek ve içerik üretiminin temel akışını birlikte tasarlamak olacak."}]}]}'::jsonb where id = 'ce732bf7-e28c-41b4-983d-1c77663aaae8';
 update public.posts set body = '{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Katkıyı görünür kılmak"}]},{"type":"paragraph","content":[{"type":"text","text":"Bir metin farklı deneyimlerin bir araya gelmesiyle zenginleşir. Yazarları belirli bir sırayla göstermek, bu katkıları okur için anlaşılır kılar."}]},{"type":"paragraph","content":[{"type":"text","text":"Yazar olarak görünmek ile içeriği düzenleme yetkisine sahip olmak aynı şey değildir. Bu örnek yalnızca yazar bilgisini sunar; herhangi bir yetki modeli tanımlamaz."}]}]}'::jsonb where id = '539106e1-38c4-4c92-b1f0-cbc791bfe168';
 update public.posts set body = '{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"İçeriğe odaklanmak"}]},{"type":"paragraph","content":[{"type":"text","text":"Okuma deneyimini iyileştirmek için daha fazla araca değil, bazen daha az görsel gürültüye ihtiyaç duyarız. Belirgin başlıklar ve dengeli boşluklar metnin ritmini destekler."}]},{"type":"paragraph","content":[{"type":"text","text":"Açık ve koyu görünüm, cihazın tercihini otomatik olarak izler. Klavyeyle gezinirken bağlantıların odağı görünür kalır ve küçük ekranlarda içerik yatay kaydırma gerektirmeden okunabilir."}]}]}'::jsonb where id = 'b91d3983-5334-48b1-b849-3a368b6d3f6d';
 update public.posts
 set body = '{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Taslak gövdesi"}]},{"type":"paragraph","content":[{"type":"text","text":"Bu taslak "},{"type":"text","marks":[{"type":"bold"}],"text":"biçimlendirilmiş"},{"type":"text","text":" bir örnek içerir ve "},{"type":"text","marks":[{"type":"link","attrs":{"href":"/posts/kucuk-adimlarla-baslamak"}}],"text":"yayındaki bir yazıya"},{"type":"text","text":" bağlantı verir."}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Kategori seçilmedi"}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Yayın zamanı yok"}]}]}]}]}'::jsonb
 where id = '1f0b7c92-5a3d-4a1e-9c8b-2d6f4a7b0c31';
+
+-- The body updates above fire posts_set_updated_at, which would stamp every
+-- published sample with the reset time and show it as recently updated.
+-- Synthetic posts were neither created nor edited after publication, so align
+-- both timestamps with published_at. Drafts keep the reset time.
+alter table public.posts disable trigger posts_set_updated_at;
+
+update public.posts
+set created_at = published_at,
+    updated_at = published_at
+where status = 'published'
+  and id in (
+    'ce732bf7-e28c-41b4-983d-1c77663aaae8',
+    '539106e1-38c4-4c92-b1f0-cbc791bfe168',
+    'b91d3983-5334-48b1-b849-3a368b6d3f6d'
+  );
+
+alter table public.posts enable trigger posts_set_updated_at;

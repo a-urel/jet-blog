@@ -37,7 +37,7 @@ export default async function SignUpPage() {
     <AuthPageShell
       eyebrow="Okur hesabı"
       title="Hesap oluştur"
-      description="Yazıları okumak için hesap gerekmez. Okur hesabı ileride kaydetme ve yorum gibi özellikler için kullanılacak."
+      description="Yazıları okumak için hesap gerekmez. Okur hesabıyla yazıları kaydedebilir ve yorum yazabilirsiniz."
     >
       <Card>
         <CardHeader>

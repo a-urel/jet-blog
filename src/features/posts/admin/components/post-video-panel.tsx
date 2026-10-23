@@ -7,6 +7,7 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { insertBlockNode } from "@/features/posts/content/insert-block";
 import {
   maxVideoTitleLength,
   type YouTubeAttrs,
@@ -73,7 +74,14 @@ export function PostVideoPanel({ editor, selected, onClose }: PostVideoPanelProp
     if (selected) {
       editor.chain().focus().updateAttributes("youtube", attrs).run();
     } else {
-      editor.chain().focus().insertContent({ type: "youtube", attrs }).run();
+      editor
+        .chain()
+        .focus()
+        .command(({ tr, state }) => {
+          insertBlockNode(tr, state.schema.nodes.youtube.create(attrs));
+          return true;
+        })
+        .run();
     }
 
     onClose();

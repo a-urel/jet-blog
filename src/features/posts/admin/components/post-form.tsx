@@ -28,6 +28,7 @@ import type {
 } from "@/features/posts/admin/types";
 import type { BodyDocument } from "@/features/posts/content/schema";
 import { PostBodyEditor } from "./post-body-editor";
+import { useUnsavedChangesWarning } from "./use-unsaved-changes-warning";
 
 const initialState: PostFormState = {
   status: "idle",
@@ -85,6 +86,16 @@ export function PostForm({
   );
   const [categoryId, setCategoryId] = useState(initialValues.categoryId);
   const [authorToAdd, setAuthorToAdd] = useState("");
+  // The revision the unsaved edits were made against. A successful save
+  // re-renders this form with a newer revision, which clears the warning
+  // without remounting; a rejected save keeps it.
+  const [editedRevision, setEditedRevision] = useState<number | null>(null);
+  const dirty = editedRevision !== null && editedRevision === (revision ?? 0);
+  useUnsavedChangesWarning(dirty);
+
+  function markDirty() {
+    setEditedRevision(revision ?? 0);
+  }
   const [state, formAction, pending] = useActionState(
     mode === "create" ? createDraftPostAction : updatePostMetadataAction,
     initialState,
@@ -101,6 +112,7 @@ export function PostForm({
     mode === "edit" && postId ? `/admin/posts/${postId}` : "/admin/posts";
 
   function addCredit() {
+    markDirty();
     const author = authors.find((option) => option.id === authorToAdd);
     if (!author || usedAuthorIds.has(author.id)) return;
 
@@ -112,6 +124,7 @@ export function PostForm({
   }
 
   function moveCredit(index: number, direction: -1 | 1) {
+    markDirty();
     setCredits((current) => {
       const target = index + direction;
       if (target < 0 || target >= current.length) return current;
@@ -123,10 +136,12 @@ export function PostForm({
   }
 
   function removeCredit(index: number) {
+    markDirty();
     setCredits((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
   function toggleTag(tagId: string, checked: boolean) {
+    markDirty();
     setSelectedTags((current) =>
       checked
         ? [...current.filter((value) => value !== tagId), tagId]
@@ -135,7 +150,8 @@ export function PostForm({
   }
 
   return (
-    <form action={formAction} className="space-y-8">
+    // Text fields and selects bubble their change events to the form.
+    <form action={formAction} onChange={markDirty} className="space-y-8">
       {mode === "edit" && postId ? (
         <>
           <input type="hidden" name="postId" value={postId} />
@@ -237,6 +253,7 @@ export function PostForm({
           initialContent={initialValues.body}
           invalid={Boolean(state.fieldErrors.body)}
           describedBy="post-body-help post-body-error"
+          onChange={markDirty}
         />
         <p id="post-body-help" className="text-sm text-muted-foreground">
           Araç çubuğunda ok tuşlarıyla gezinebilirsiniz. Görseller için

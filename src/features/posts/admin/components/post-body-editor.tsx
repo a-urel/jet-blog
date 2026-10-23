@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useRef,
   useState,
   type KeyboardEvent,
@@ -47,6 +48,8 @@ type PostBodyEditorProps = {
   initialContent: BodyDocument;
   invalid?: boolean;
   describedBy?: string;
+  // Called on every change to the document, for unsaved-changes tracking.
+  onChange?: () => void;
 };
 
 type ToolbarButtonProps = {
@@ -133,6 +136,7 @@ export function PostBodyEditor({
   initialContent,
   invalid,
   describedBy,
+  onChange,
 }: PostBodyEditorProps) {
   const [serialized, setSerialized] = useState(() =>
     JSON.stringify(initialContent),
@@ -151,6 +155,13 @@ export function PostBodyEditor({
   >(null);
   const [videoPanelKey, setVideoPanelKey] = useState(0);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  // Tiptap keeps the callbacks from the first render, so the latest onChange
+  // is read through a ref.
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const editor = useEditor({
     extensions: postBodyExtensions,
@@ -172,6 +183,7 @@ export function PostBodyEditor({
     },
     onUpdate: ({ editor: current }) => {
       setSerialized(JSON.stringify(current.getJSON()));
+      onChangeRef.current?.();
     },
   });
 

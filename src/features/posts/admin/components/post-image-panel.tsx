@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadMediaAction } from "@/features/media/actions";
 import { allowedMediaTypes, maxMediaBytes } from "@/features/media/validation";
+import { insertBlockNode } from "@/features/posts/content/insert-block";
 import {
   maxImageAltLength,
   maxImageCaptionLength,
@@ -108,19 +109,24 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
         return;
       }
 
+      const media = result.media;
+
       editor
         .chain()
         .focus()
-        .insertContent({
-          type: "image",
-          attrs: {
-            mediaId: result.media.id,
-            width: result.media.width,
-            height: result.media.height,
-            alt: attrs.alt,
-            caption: attrs.caption ?? null,
-            decorative: attrs.decorative ?? null,
-          },
+        .command(({ tr, state }) => {
+          insertBlockNode(
+            tr,
+            state.schema.nodes.image.create({
+              mediaId: media.id,
+              width: media.width,
+              height: media.height,
+              alt: attrs.alt,
+              caption: attrs.caption ?? null,
+              decorative: attrs.decorative ?? null,
+            }),
+          );
+          return true;
         })
         .run();
       onClose();
