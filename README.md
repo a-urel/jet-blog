@@ -19,8 +19,9 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. No environment variables or Supabase instance are
-required for the public sample pages.
+Open http://localhost:3000. Without environment variables the public pages
+render an empty listing; start the local Supabase stack and configure
+`.env.local` (below) to read the seeded published posts.
 
 Try `/posts/kucuk-adimlarla-baslamak`, follow the back link, and visit an unknown
 post slug to see the 404 page. The protected `/admin` area needs a configured
@@ -109,7 +110,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | Project API URL from Supabase's Connect dialog, or the local CLI output. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public publishable API key for that project. |
 | `SUPABASE_SECRET_KEY` | Server-only secret key used by the invitation action and admin client. Required for `/admin/members`. |
-| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects. It must match the Supabase Auth site URL and redirect allowlist. Local default: `http://localhost:3000`. |
+| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical post URLs. It must match the Supabase Auth site URL and redirect allowlist. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
 
 Restart the development server after changing these values. `NEXT_PUBLIC_*`
 values are included in the browser bundle at build time. Never put a secret or
@@ -121,7 +122,7 @@ key in browser code. Hosted projects should use the server-only secret key from
 the project's API settings. The secret key must never be exposed through a
 `NEXT_PUBLIC_*` variable, a Client Component, logs, or committed files.
 
-The public sample pages work without these variables. The sign-in page shows a
+The public pages build and render an empty listing without these variables. The sign-in page shows a
 configuration notice, and `/admin` redirects to it, when Supabase is not
 configured. Invalid URLs still fail loudly rather than being silently ignored.
 
@@ -256,8 +257,8 @@ email template before a hosted launch.
 
 ## Content schema and taxonomy
 
-Phase 3 adds the content tables, but public pages still read
-`features/posts/sample-data.ts`; the database-backed pages arrive in Phase 8.
+Phase 3 adds the content tables. Public pages read them since Phase 8 (see
+[Publishing and public reading](#publishing-and-public-reading)).
 
 - `categories` is hierarchical through `parent_id`. A trigger rejects
   self-parenting and longer cycles on insert and move, and a transaction-scoped
@@ -279,7 +280,7 @@ Phase 3 adds the content tables, but public pages still read
   update RPC compares the submitted revision with the stored one and rejects a
   stale form instead of overwriting newer changes. There is no published
   snapshot; an edit to a published post changes public content immediately, and
-  `updated_at` is available for a "Güncellendi" label in Phase 8.
+  `updated_at` drives the "Güncellendi" label added in Phase 8.
 - RLS: anonymous visitors and signed-in readers see only published posts, their
   credits, tags, and credited author identities. Editors read every post and
   relation. Authors read their own drafts and their relations. Categories and
@@ -292,7 +293,7 @@ Phase 3 adds the content tables, but public pages still read
   deferred follow-up and will need an explicit server-side path to change it.
 
 `supabase db reset` reloads `supabase/seeds/seed.sql`: three synthetic published
-posts that mirror the sample slugs, one draft, categories, tags, and guest author
+posts, one uncategorized draft, categories, tags, and guest author
 profiles. Seeds never create Auth users or credentials, and they are separate
 from production data.
 
@@ -492,6 +493,77 @@ parser; the shared body fixtures add valid videos and invalid nodes (URLs or
 bad titles and start values, iframe nodes) that run in TypeScript, the Tiptap
 schema, the renderer, and the database.
 
+## Publishing and public reading
+
+Phase 8 moves public pages to the database. Decision D5 is answered
+provisionally: `NEXT_PUBLIC_SITE_URL`, Turkish copy, and generic labels stay
+until launch; taxonomy and author identity administration follow Phase 8.
+
+- **Mutations.** `public.publish_post(post_id, expected_revision)` and
+  `public.unpublish_post(post_id, expected_revision)` in
+  `supabase/migrations/20261023100000_publishing.sql` are security-definer RPCs.
+  Only active editors and admins may call them successfully (`42501` for
+  authors, readers, and deactivated members; anonymous calls have no grant).
+  Both lock the row and reuse the revision compare-and-swap (`40001` on a stale
+  revision) and bump `revision`. Publishing requires a draft (`55000`
+  otherwise), a category (`23514`), and a body that passes `assert_post_body`
+  (allowlist plus existing media rows); it sets `published_at` to the
+  transaction time. Unpublishing requires a published post, returns it to
+  `draft`, and clears `published_at`. Server Actions `publishPostAction` and
+  `unpublishPostAction` in `features/posts/admin/actions.ts` check the role
+  first, call the RPCs with the user's session, and redirect with
+  `?status=published|unpublished` or `?error=<key>` (copy in
+  `features/posts/admin/publication.ts`).
+- **Admin controls.** The admin post page shows a "Yayın durumu" card with
+  Publish/Unpublish only to editors and admins (`canPublishPosts`). Publishing
+  uses the last saved revision, not unsaved form edits.
+- **"Güncellendi".** Publishing sets `updated_at` and `published_at` to the
+  same transaction time, so `PostMeta` shows "Güncellendi" only when
+  `updated_at > published_at`, that is, after an edit to a live post (D3: edits
+  to published posts are public immediately).
+- **Slug redirects.** `public.post_slug_redirects(old_slug, post_id)` records
+  the old slug when a *published* post's slug changes (trigger
+  `posts_maintain_slug_redirects`, so every write path is covered). Redirects
+  store the post id, so `/posts/<old>` answers one `308` to the current
+  `/posts/<slug>`; chains cannot form. A post may take back its own old slug
+  (the redirect is removed); another post cannot claim a slug that still
+  redirects (`23505`, "Bu slug zaten kullanılıyor"). RLS shows a redirect only
+  while its post is visible, so an unpublished post's old URLs return 404. Slug
+  changes made while a post is a draft record nothing.
+- **Public queries.** `features/posts/data.ts` uses the anonymous server client
+  only (no cookies), so RLS returns published rows and their credits, tags, and
+  redirects; an explicit `status = 'published'` filter is defense in depth.
+  `features/posts/mapping.ts` maps rows to the public read model and drops rows
+  without a category or publication time. Failed queries throw rather than
+  caching an empty page or a 404.
+- **Caching (Next.js 16.4.2, without Cache Components).** `/` and
+  `/posts/[slug]` export `revalidate = 300`; `generateStaticParams` prerenders
+  published slugs at build time, and later posts render on first request
+  (ISR). supabase-js reads go through `fetch`, which Next stores in the Data
+  Cache for these routes, so the public client tags them `public-posts`. Every
+  publish, unpublish, and post update calls `updateTag("public-posts")` (the
+  next request waits for fresh rows) plus `revalidatePath("/")` and
+  `revalidatePath("/posts/[slug]", "page")`. `revalidatePath` alone left the
+  listing stale in production testing, which is why the tag exists. The
+  300-second interval is only a fallback for out-of-band database changes.
+  Drafts never reach these caches: the routes read anonymously, and
+  `/admin/**` (including `/admin/posts/[id]/preview`, `force-dynamic`) renders
+  per request with `private, no-store`. Local dev (`next dev`) never caches;
+  verify cache behavior with `npm run build && npm run start`.
+- **Canonical URL.** Post metadata sets `alternates.canonical` to
+  `/posts/<slug>`, resolved against `NEXT_PUBLIC_SITE_URL`; category and tag
+  never appear in the post URL. The site remains `noindex` until Phase 9.
+
+Tests: `publishing.rls.test.ts` covers anonymous, reader, author, editor, and
+admin calls (denied publish/unpublish, publish without category, stale
+revision, double publish/unpublish, drafts and their relations absent from
+public reads, publish timestamps, redirect resolution in one hop, slug
+reservation and reclaiming, no redirects for draft renames, hidden redirects
+after unpublish, and closed direct writes). `mapping.test.ts`,
+`publication.test.ts`, `permissions.test.ts`, and `site-url.test.ts` cover the
+mapping, "Güncellendi" rule, error keys, publish permission, and site URL
+parsing.
+
 ## Structure and sample content
 
 ```text
@@ -504,7 +576,7 @@ src/
     auth/confirm/         # Invite fragment/session confirmation
     login/                # Invite-only sign-in
     login/password/       # Set-password step for invited users
-    posts/[slug]/         # Public sample post page
+    posts/[slug]/         # Public post page (ISR) with slug redirects
   components/ui/          # Generated shadcn/ui controls
   features/
     auth/                 # Sign-in, invite confirmation, password actions
@@ -514,14 +586,17 @@ src/
       admin/              # Draft data, validation, permissions, form, editor, actions
       components/         # Shared post presentation and read-only body renderer
       content/            # Body allowlist, editor extensions, shared fixtures
-      data.ts             # Explicit sample data access boundary
-      sample-data.ts      # Synthetic posts, ordered credits, taxonomy
-      types.ts            # Read-only view models, not database definitions
+      admin/publication.ts  # Publication error keys and copy
+      cache.ts            # Data Cache tag for public post reads
+      data.ts             # Anonymous, RLS-filtered public queries
+      mapping.ts          # Row-to-read-model mapping, "Güncellendi" rule
+      types.ts            # Public read models, not database definitions
   lib/
     auth/
       editorial.ts        # Request-scoped membership and role helpers
       session.ts          # Server-verified session helper
       session.test.ts     # Mocked-cookie unit tests
+    site-url.ts           # NEXT_PUBLIC_SITE_URL parsing
     slug.ts               # Shared slug and name normalization
     slug.test.ts          # Turkish transliteration and normalization tests
     supabase/
@@ -530,6 +605,7 @@ src/
       draft-authoring.rls.test.ts # Draft RPC and revision-conflict tests
       post-body.rls.test.ts       # Body allowlist and visibility tests
       media.rls.test.ts           # Media table, Storage policy, deletion tests
+      publishing.rls.test.ts      # Publish/unpublish, public reads, redirects
       editorial-rls.rls.test.ts # Membership and audit RLS tests
   proxy.ts                # Next.js 16 token refresh (formerly middleware)
 supabase/
@@ -542,26 +618,20 @@ vitest.config.mts         # Unit test configuration
 vitest.rls.config.mts     # RLS integration test configuration
 ```
 
-Pages import `features/posts/data.ts`, not the fixtures directly. Replace this
-boundary with authorized public queries in Phase 8; sample content is never a
-fallback for failed database requests. Posts have stable sample UUIDs, ordered
-author credits, one category (with a parent reference), and multiple tags. The
-database schema now mirrors that shape, and the development seed reuses the same
-stable UUIDs and slugs. Taxonomy archives, database-backed post pages, and
-publishing mutations are still later phases.
-
-Sample bodies use the stored version-1 document format and render through the
-same `PostBody` component as the member preview. The seed stores the same
-documents for the published sample posts. The sample bodies contain no images
-or videos.
+Public pages import `features/posts/data.ts`, which reads published rows from
+the database; there is no fixture fallback. The development seed provides three
+published posts with stable UUIDs, ordered author credits, one category (with a
+parent reference), multiple tags, and version-1 bodies, plus one uncategorized
+draft that cannot be published until a category is saved. Seed content is
+synthetic and contains no images or videos.
 
 Route paths and query parameters are English (`/login`, `/admin/members`,
-`/posts/[slug]`, `?status=updated`) regardless of the interface language.
-Turkish sample copy and generic labels are provisional, not a brand or language
-decision. Sample pages are prerendered at build time, including their body text,
-with no Supabase requests or editor bundle. They have title/description metadata
-and `noindex, nofollow`. Production canonical URLs, sharing, sitemap, and Article
-structured data require the real publication/domain and are deferred.
+`/posts/[slug]`, `?status=updated`, `?error=category`) regardless of the
+interface language. Turkish copy and generic labels are provisional, not a
+brand or language decision (D5). Published pages are server-rendered HTML with
+no editor bundle. They have title, description, and canonical metadata and stay
+`noindex, nofollow` until Phase 9 adds sitemap, Open Graph, and Article
+structured data.
 
 ## UI and system theme
 
@@ -583,7 +653,7 @@ Keep this media-query behavior when adding components or regenerating theme CSS.
 ## Supabase workspace
 
 Configuration was generated with the official CLI; no hosted project is linked.
-The application sample pages do not need the CLI or a database.
+Without the CLI or a database the public pages build and render empty.
 The config enables the experimental stack backend (`[experimental] stack = true`)
 and leaves endpoint ports unset so another local project can keep its own ports.
 With Supabase CLI 2.121.0 installed, run from the repository root:
@@ -633,10 +703,10 @@ migration adds the draft-authoring RPCs, revision compare-and-swap, relation
 replacement, metadata validation, and the editorial author-read policy. The
 Phase 5 migration adds post bodies. The Phase 6 migrations add the `media`
 bucket, Storage policies, `public.media`, the media RPCs, and the image node.
-The Phase 7 migration adds the `youtube` node to the body validator.
+The Phase 7 migration adds the `youtube` node to the body validator. The Phase
+8 migration adds the publish/unpublish RPCs and slug redirects.
 Seeding is enabled: `supabase/seeds/seed.sql` loads synthetic taxonomy and
-posts, never production data. Publishing mutations and public database reads
-are still later phases. Create future migrations with
+posts, never production data. Create future migrations with
 `supabase migration new <name>` and keep all related changes in this repository.
 Add optional Edge Functions only when there is a concrete need.
 
@@ -664,6 +734,11 @@ page will not receive the fragment.
   `@tiptap/react`, `@tiptap/starter-kit`, and `@tiptap/extension-link` type
   definitions for `immediatelyRender`, `useEditorState`, and link
   `isAllowedUri`.
+- Bundled Next.js 16.4.2 docs for [caching without Cache Components](node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md),
+  [ISR](node_modules/next/dist/docs/01-app/02-guides/incremental-static-regeneration.md),
+  [`revalidatePath`](node_modules/next/dist/docs/01-app/03-api-reference/04-functions/revalidatePath.md),
+  [`updateTag`](node_modules/next/dist/docs/01-app/03-api-reference/04-functions/updateTag.md),
+  and [`generateStaticParams`](node_modules/next/dist/docs/01-app/03-api-reference/04-functions/generate-static-params.md).
 - Bundled Next.js 16.4.2 docs for the [Image component](node_modules/next/dist/docs/01-app/03-api-reference/02-components/image.md)
   (`remotePatterns`, `maximumResponseBody`, `dangerouslyAllowLocalIP`) and
   [`serverActions.bodySizeLimit`](node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/serverActions.md);
@@ -673,18 +748,17 @@ page will not receive the fragment.
 
 ## Next increment
 
-Phases 1–7 are implemented: authentication, editorial membership with
+Phases 1–8 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
-validated image uploads with reference-aware deletion, and allowlisted YouTube
-embeds. Public pages still
-use the sample fixtures. See [ROADMAP.md](./ROADMAP.md) for the ordered
-increments and their decision gates.
+validated image uploads with reference-aware deletion, allowlisted YouTube
+embeds, and publishing with database-backed public pages, explicit ISR and
+cache invalidation, and slug redirects. See [ROADMAP.md](./ROADMAP.md) for the
+ordered increments and their decision gates.
 
-Phase 8 (publishing and public reading from the database) is next; a new
-body node again changes the TypeScript allowlist, the database mirror, the
-fixtures, the editor, and the renderer together. Taxonomy and author identity
-administration remain explicit follow-up increments. Answer D5 before Phase 8
-finalizes canonical URLs and the sitemap. Author credits must remain separate
-from edit and publish permissions.
+Next: the taxonomy administration and author identity administration
+increments (agreed to follow Phase 8), then Phase 9 (SEO, sharing, and
+archives). A new body node still changes the TypeScript allowlist, the database
+mirror, the fixtures, the editor, and the renderer together. Author credits must
+remain separate from edit and publish permissions.

@@ -61,9 +61,9 @@ export default async function AdminPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Taslak oluşturma, metadata düzenleme, kategori, etiket ve sıralı
-            yazar kredileri hazırdır. Gövde editörü, medya ve yayınlama sonraki
-            fazlarda eklenecek.
+            Taslak oluşturma, gövde editörü, görsel ve YouTube ekleme, kategori,
+            etiket ve sıralı yazar kredileri hazırdır. Editörler ve adminler
+            yazıları yayınlayıp yayından kaldırabilir.
           </p>
         </CardContent>
       </Card>

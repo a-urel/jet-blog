@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
+import { getConfiguredSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  // Resolves relative canonical URLs such as /posts/[slug].
+  metadataBase: getConfiguredSiteUrl(),
   title: {
     default: "Yazılar",
     template: "%s | Yazılar",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { EditorialMembership } from "@/lib/auth/editorial";
-import { canEditPost } from "./permissions";
+import { canEditPost, canPublishPosts } from "./permissions";
 
 const authorA = "11111111-1111-4111-8111-111111111111";
 const authorB = "22222222-2222-4222-8222-222222222222";
@@ -40,5 +40,14 @@ describe("canEditPost", () => {
     expect(
       canEditPost({ status: "draft", createdBy: authorA }, null, authorA),
     ).toBe(false);
+  });
+});
+
+describe("canPublishPosts", () => {
+  it("allows editors and admins only", () => {
+    expect(canPublishPosts(admin)).toBe(true);
+    expect(canPublishPosts(editor)).toBe(true);
+    expect(canPublishPosts(author)).toBe(false);
+    expect(canPublishPosts(null)).toBe(false);
   });
 });

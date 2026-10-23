@@ -10,15 +10,19 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { PostMeta } from "@/features/posts/components/post-meta";
-import { listPosts } from "@/features/posts/data";
+import { listPublishedPosts } from "@/features/posts/data";
 
-export default function Home() {
-  const posts = listPosts();
+// Prerendered from published rows and regenerated on demand: publication
+// Server Actions call revalidatePath("/"). The interval is only a fallback for
+// changes made outside the application (for example service-role scripts).
+export const revalidate = 300;
+
+export default async function Home() {
+  const posts = await listPublishedPosts();
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       <section aria-labelledby="page-title" className="mb-12 max-w-2xl">
-        <Badge variant="outline" className="mb-5">Örnek yayın</Badge>
         <h1 id="page-title" className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
           Fikirler paylaştıkça büyür.
         </h1>
@@ -33,6 +37,11 @@ export default function Home() {
           <h2 id="posts-title" className="text-xl font-semibold">Son yazılar</h2>
           <span className="text-sm text-muted-foreground">{posts.length} yazı</span>
         </div>
+        {posts.length === 0 ? (
+          <p className="rounded-lg border border-dashed px-4 py-10 text-center text-muted-foreground">
+            Henüz yayınlanmış bir yazı yok.
+          </p>
+        ) : null}
         <div className="grid gap-6 md:grid-cols-2">
           {posts.map((post, index) => (
             <article key={post.id} className={index === 0 ? "md:col-span-2" : ""}>
@@ -49,9 +58,11 @@ export default function Home() {
                   <PostMeta post={post} />
                 </CardHeader>
                 <CardContent className="flex-1 space-y-5">
-                  <p className="max-w-2xl leading-relaxed text-muted-foreground">
-                    {post.excerpt}
-                  </p>
+                  {post.excerpt ? (
+                    <p className="max-w-2xl leading-relaxed text-muted-foreground">
+                      {post.excerpt}
+                    </p>
+                  ) : null}
                   <ul aria-label="Etiketler" className="flex flex-wrap gap-2">
                     {post.tags.map((tag) => (
                       <li key={tag.id}><Badge variant="secondary">{tag.name}</Badge></li>

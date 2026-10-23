@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
@@ -9,6 +9,9 @@ import {
 } from "@/features/posts/content/schema";
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { publicPostsCacheTag } from "../cache";
+import { canPublishPosts } from "./permissions";
+import { publicationErrorKey } from "./publication";
 import {
   getCreditFieldValues,
   getStringField,
@@ -160,6 +163,19 @@ function revalidatePostPaths(postId: string) {
   revalidatePath(`/admin/posts/${postId}/preview`);
 }
 
+// Public pages are ISR-cached (src/app/page.tsx, src/app/posts/[slug]/page.tsx)
+// and their Supabase reads sit in the Data Cache under publicPostsCacheTag.
+// Any change that can alter published output expires that data immediately
+// (updateTag: the next request waits for fresh rows) and invalidates the
+// listing and every post page. A slug change also affects the old URL, which
+// now redirects, so a route-pattern invalidation is simpler and safer than
+// tracking both slugs. Phase 10 may narrow this with per-post tags.
+function revalidatePublicPostPaths() {
+  updateTag(publicPostsCacheTag);
+  revalidatePath("/");
+  revalidatePath("/posts/[slug]", "page");
+}
+
 export async function createDraftPostAction(
   _previousState: PostFormState,
   formData: FormData,
@@ -268,6 +284,56 @@ export async function updatePostMetadataAction(
     return mapRpcError(error);
   }
 
+  // An editor may edit a published post directly (D3), so a save can change
+  // public output. Draft saves invalidate too; that only costs a regeneration.
   revalidatePostPaths(postId);
+  revalidatePublicPostPaths();
   redirect(`/admin/posts/${postId}?status=updated`);
+}
+
+async function changePublication(
+  formData: FormData,
+  rpc: "publish_post" | "unpublish_post",
+  successStatus: "published" | "unpublished",
+): Promise<never> {
+  const postId = getStringField(formData, "postId").trim();
+  const expectedRevision = Number.parseInt(
+    getStringField(formData, "revision").trim(),
+    10,
+  );
+
+  if (!isUuid(postId)) redirect("/admin/posts");
+
+  const postPath = `/admin/posts/${postId}`;
+  const context = await getEditorialContext();
+
+  if (!context.user) redirect("/login");
+
+  // The RPC repeats this check; the early return only avoids a round trip.
+  if (!canPublishPosts(context.membership)) {
+    redirect(`${postPath}?error=forbidden`);
+  }
+
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) {
+    redirect(`${postPath}?error=conflict`);
+  }
+
+  const { error } = await (await createServerSupabaseClient()).rpc(rpc, {
+    p_post_id: postId,
+    p_expected_revision: expectedRevision,
+  });
+
+  if (error) redirect(`${postPath}?error=${publicationErrorKey(error)}`);
+
+  revalidatePostPaths(postId);
+  revalidatePublicPostPaths();
+  redirect(`${postPath}?status=${successStatus}`);
+}
+
+export async function publishPostAction(formData: FormData): Promise<void> {
+  await changePublication(formData, "publish_post", "published");
+}
+
+export async function unpublishPostAction(formData: FormData): Promise<void> {
+  await changePublication(formData, "unpublish_post", "unpublished");
 }

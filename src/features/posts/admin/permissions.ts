@@ -23,3 +23,11 @@ export function canEditPost(
     post.createdBy === userId
   );
 }
+
+// Decision D1: editors and admins publish and unpublish; authors never do. The
+// publish_post and unpublish_post RPCs enforce the same rule.
+export function canPublishPosts(
+  membership: EditorialMembership | null,
+): boolean {
+  return membership?.role === "admin" || membership?.role === "editor";
+}

@@ -8,6 +8,7 @@ import {
   getEditorialContext,
   isEditorialRole,
 } from "@/lib/auth/editorial";
+import { getConfiguredSiteUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -29,18 +30,9 @@ function isValidEmail(email: string) {
 }
 
 async function getAppOrigin() {
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-
-  if (configuredSiteUrl) {
-    try {
-      const parsed = new URL(configuredSiteUrl);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        return parsed.origin;
-      }
-    } catch {
-      // Fall through to the request origin when the public site URL is invalid.
-    }
-  }
+  // Fall back to the request origin when the public site URL is invalid.
+  const configuredSiteUrl = getConfiguredSiteUrl();
+  if (configuredSiteUrl) return configuredSiteUrl.origin;
 
   const headerStore = await headers();
   const origin = headerStore.get("origin");

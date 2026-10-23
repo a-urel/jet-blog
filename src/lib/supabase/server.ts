@@ -7,10 +7,25 @@ import { cookies } from "next/headers";
 import { getSupabaseEnvironment } from "./env";
 
 // Anonymous client only; never use this to authorize a signed-in user.
-export function createPublicServerSupabaseClient() {
+//
+// supabase-js reads through fetch, which Next.js stores in its Data Cache when
+// a prerendered route uses it. cacheTags labels those entries so mutations can
+// expire them explicitly with updateTag; revalidatePath alone does not reliably
+// drop untagged fetch entries. Only anonymous (RLS-public) responses are ever
+// cached this way.
+export function createPublicServerSupabaseClient(
+  options: { cacheTags?: string[] } = {},
+) {
   const { url, publishableKey } = getSupabaseEnvironment();
+  const tags = options.cacheTags;
 
   return createClient(url, publishableKey, {
+    global: tags?.length
+      ? {
+          fetch: (input, init) =>
+            fetch(input, { ...init, next: { ...init?.next, tags } }),
+        }
+      : undefined,
     auth: {
       persistSession: false,
       autoRefreshToken: false,

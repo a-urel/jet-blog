@@ -37,8 +37,8 @@ export default async function AdminPostsPage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">Yazılar</h1>
           <p className="text-muted-foreground">
-            Taslak oluşturun ve metadata bilgilerini yönetin. Gövde editörü ve
-            yayınlama sonraki fazlarda eklenecek.
+            Taslak oluşturun, içeriği düzenleyin ve yazı sayfasından yayın
+            durumunu yönetin.
           </p>
         </div>
         <Button asChild>

@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CircleAlert, Eye, FileText, LockKeyhole } from "lucide-react";
+import {
+  CircleAlert,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  FileText,
+  LockKeyhole,
+  Send,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +25,15 @@ import {
   getAdminPostDetail,
   listTaxonomyOptions,
 } from "@/features/posts/admin/data";
-import { canEditPost } from "@/features/posts/admin/permissions";
+import {
+  publishPostAction,
+  unpublishPostAction,
+} from "@/features/posts/admin/actions";
+import {
+  canEditPost,
+  canPublishPosts,
+} from "@/features/posts/admin/permissions";
+import { publicationErrorMessage } from "@/features/posts/admin/publication";
 import {
   currentContentVersion,
   validateBodyDocument,
@@ -36,6 +52,8 @@ const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
 const successMessages: Record<string, string> = {
   created: "Taslak oluşturuldu.",
   updated: "Değişiklikler kaydedildi.",
+  published: "Yazı yayınlandı.",
+  unpublished: "Yazı yayından kaldırıldı ve taslağa döndü.",
 };
 
 export default async function EditPostPage({
@@ -81,9 +99,14 @@ export default async function EditPostPage({
       ? validateBodyDocument(post.body)
       : null;
   const editableBody = bodyValidation?.ok ? bodyValidation.doc : null;
-  const { status } = await searchParams;
+  const { status, error: errorKey } = await searchParams;
   const successMessage =
-    typeof status === "string" ? (successMessages[status] ?? null) : null;
+    typeof status === "string" && Object.hasOwn(successMessages, status)
+      ? successMessages[status]
+      : null;
+  const errorMessage = publicationErrorMessage(errorKey);
+  const canPublish = canPublishPosts(membership);
+  const publicHref = `/posts/${post.slug}`;
   const previewHref = `/admin/posts/${post.id}/preview`;
 
   return (
@@ -125,6 +148,53 @@ export default async function EditPostPage({
         >
           {successMessage}
         </p>
+      ) : null}
+
+      {errorMessage ? (
+        <p
+          role="alert"
+          className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
+          {errorMessage}
+        </p>
+      ) : null}
+
+      {canPublish ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Yayın durumu</CardTitle>
+            <CardDescription>
+              {post.status === "published"
+                ? `Yayında${post.publishedAt ? ` · ${dateFormatter.format(new Date(post.publishedAt))}` : ""}. Kaydedilen değişiklikler hemen genel sayfaya yansır.`
+                : "Taslak yalnızca editöryal üyelere görünür. Yayınlama, kaydedilmiş son sürümü kullanır ve bir kategori gerektirir."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <form action={post.status === "published" ? unpublishPostAction : publishPostAction}>
+              <input type="hidden" name="postId" value={post.id} />
+              <input type="hidden" name="revision" value={post.revision} />
+              {post.status === "published" ? (
+                <Button type="submit" variant="outline">
+                  <EyeOff aria-hidden="true" />
+                  Yayından kaldır
+                </Button>
+              ) : (
+                <Button type="submit">
+                  <Send aria-hidden="true" />
+                  Yayınla
+                </Button>
+              )}
+            </form>
+            {post.status === "published" ? (
+              <Button asChild variant="ghost">
+                <Link href={publicHref}>
+                  <ExternalLink aria-hidden="true" />
+                  Genel sayfayı aç
+                </Link>
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
       ) : null}
 
       {!editable ? (
