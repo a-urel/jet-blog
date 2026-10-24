@@ -113,7 +113,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | Project API URL from Supabase's Connect dialog, or the local CLI output. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public publishable API key for that project. |
 | `SUPABASE_SECRET_KEY` | Server-only secret key used by the invitation action and admin client. Required for `/admin/members`. |
-| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical, Open Graph, JSON-LD, share-link, sitemap, and robots URLs. It must match the Supabase Auth site URL and redirect allowlist. Without it the site is `noindex`, `robots.txt` disallows everything, the sitemap is empty, and share controls are hidden. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
+| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical, Open Graph, JSON-LD, share-link, sitemap, robots, and feed URLs. It must match the Supabase Auth site URL and redirect allowlist. Without it the site is `noindex`, `robots.txt` disallows everything, the sitemap is empty, `/feed.xml` answers 404 with no discovery link, and share controls are hidden. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
 | `NEXT_PUBLIC_SITE_NAME` | Optional publication name for titles, `og:site_name`, and the JSON-LD publisher. Defaults to the provisional `Yazılar`; the brand (D5) is still open. |
 
 Restart the development server after changing these values. `NEXT_PUBLIC_*`
@@ -695,8 +695,8 @@ needs a migration: archives reuse the Phase 3 RLS policies and indexes.
   (including slug changes and edits of published posts) calls
   `updateTag("public-posts")` and revalidates `/`, `/posts/[slug]`,
   `/categories/[slug]`, `/tags/[slug]`, `/authors/[slug]`, their later pages
-  (see [Public listing pagination](#public-listing-pagination)), and
-  `/sitemap.xml`. Taxonomy and author administration apply the same invalidation; only
+  (see [Public listing pagination](#public-listing-pagination)),
+  `/sitemap.xml`, and `/feed.xml`. Taxonomy and author administration apply the same invalidation; only
   out-of-band database changes wait for the 5-minute fallback. Phase 10 moved this list into
   `features/posts/cache.ts` (see [Launch readiness](#launch-readiness-phase-10)).
 
@@ -708,6 +708,54 @@ posts, tag and author archives exclude drafts, draft-only authors stay hidden,
 of published posts and non-empty archives. Unit tests cover metadata, JSON-LD
 (including hostile titles), sitemap and robots output, share links, archive
 derivation, and the category hierarchy helpers.
+
+## Syndication feed
+
+`/feed.xml` is an Atom 1.0 (RFC 4287) feed of the 20 newest published posts
+(`feedPostLimit`), built by `features/seo/feed.ts` and served by the Route
+Handler `app/feed.xml/route.ts` as `application/atom+xml`.
+
+- **Input.** `listLatestPublishedPosts` reads through the anonymous,
+  `public-posts` tagged client with `selectLatestPublishedPosts` (published
+  only, `published_at desc, id desc`), so drafts, previews, and member-only
+  data never reach the builder.
+- **Entries.** `id` is `urn:uuid:<post id>`, so a slug change does not make
+  readers show the post again; `link` is the canonical `/posts/<slug>`;
+  `published`/`updated` come from `published_at`/`updated_at`; authors appear
+  in credit order with their archive URL; the category and each tag are
+  `category` elements whose `scheme` is the archive base URL; the excerpt is a
+  `type="text"` summary; `xml:lang` comes from `posts.language` (the feed
+  itself is `tr`). A cover adds Media RSS `media:thumbnail` and `media:content`
+  with the alt text as `media:description`.
+- **No full content.** The body renderer outputs React with optimized image
+  URLs and video iframes; a text summary keeps every value plain, escaped text
+  and readers follow the link for the article.
+- **Escaping and URLs.** Every text and attribute value goes through
+  `escapeXml` (`&`, `<`, `>`, quotes; `]]>` cannot survive) after characters
+  XML 1.0 cannot represent are removed. Site URLs are absolute from
+  `NEXT_PUBLIC_SITE_URL`; the cover URL is kept only when it is absolute
+  HTTP(S). Without a site URL the route answers 404, matching the empty
+  sitemap and `robots.txt` (JSON-LD omits its URLs instead).
+- **Discovery.** The root layout and every page that sets a canonical URL
+  (`canonicalAlternates` in `features/seo/metadata.ts`) emit
+  `<link rel="alternate" type="application/atom+xml" href="/feed.xml">`;
+  page alternates replace the layout's because metadata merges shallowly.
+  The footer shows an "Atom akışı" link. `robots.txt` and the CSP do not
+  affect it.
+- **Caching.** `revalidate = 300` makes it an ISR route like the sitemap;
+  `/feed.xml` is in the invalidation map (`features/posts/cache.ts`), so
+  publish, unpublish, edits of published posts (including slug changes),
+  and taxonomy or author administration regenerate it on the next request.
+
+Tests: `features/seo/feed.test.ts` parses the output with a strict XML parser
+(`@xmldom/xmldom`, dev only) and covers hostile titles and names (`<`, `&`,
+quotes, `]]>`, CDATA and closing-tag injection), invalid XML characters,
+order, stable ids across a slug change, `xml:lang`, RFC 3339 times, credit
+order, categories and tags, absolute-only URLs, the cover, and the empty feed.
+`archives.rls.test.ts` builds the feed from anonymous, reader, and editor
+reads and checks that drafts and unpublished posts never appear (drafts would
+sort first for an editor without the status filter). The smoke test checks
+the discovery link, status, content type, and public cacheability.
 
 ## Public listing pagination
 
@@ -797,6 +845,7 @@ src/
     tags/[slug]/          # Tag archive (+ page/[page])
     authors/[slug]/       # Author archive (+ page/[page])
     sitemap.ts, robots.ts # Published-content sitemap and crawler rules
+    feed.xml/route.ts     # Atom feed of the newest published posts (ISR)
   components/ui/          # Generated shadcn/ui controls
   features/
     account/              # Display name and account deletion actions
@@ -805,7 +854,7 @@ src/
     comments/             # Comment actions, queries, cache tags, section and moderation UI
     media/                # Upload validation, upload/delete actions, URLs
     members/              # Invite, role, and activation Server Actions
-    seo/                  # Metadata, Article JSON-LD, sitemap and robots builders
+    seo/                  # Metadata, Article JSON-LD, sitemap, robots, and Atom feed builders
     sharing/              # Copy link and provider share links
     taxonomy/             # Hierarchy and tree helpers, admin data, validation, actions
     posts/
@@ -835,7 +884,7 @@ src/
       post-body.rls.test.ts       # Body allowlist and visibility tests
       media.rls.test.ts           # Media table, Storage policy, deletion tests
       publishing.rls.test.ts      # Publish/unpublish, public reads, redirects
-      archives.rls.test.ts        # Archives and sitemap input by role
+      archives.rls.test.ts        # Archives, sitemap, and feed input by role
       editorial-rls.rls.test.ts # Membership and audit RLS tests
       admin-bootstrap.rls.test.ts # First-admin RPC: grants, refusal, rollback
       reader-accounts.rls.test.ts # Self-service reader matrix, deletion, limits
@@ -983,7 +1032,10 @@ page will not receive the fragment.
   [JSON-LD](node_modules/next/dist/docs/01-app/02-guides/json-ld.md),
   [`sitemap`](node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/01-metadata/sitemap.md),
   and [`robots`](node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/01-metadata/robots.md)
-  (both are cached Route Handlers unless they use request-time APIs).
+  (both are cached Route Handlers unless they use request-time APIs), and
+  [Route Handlers](node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md)
+  with [`route.ts` segment config](node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/route.md)
+  (`GET` is uncached unless configured; `revalidate` makes it ISR) for the feed.
 - Bundled Next.js 16.4.2 docs for the [Image component](node_modules/next/dist/docs/01-app/03-api-reference/02-components/image.md)
   (`remotePatterns`, `maximumResponseBody`, `dangerouslyAllowLocalIP`) and
   [`serverActions.bodySizeLimit`](node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/serverActions.md);
@@ -1019,7 +1071,7 @@ or creates hosted resources.
   images and YouTube nodes, category, tags, credits) expire the `public-posts`
   Data Cache tag and revalidate `/`, `/posts/[slug]`, `/categories/[slug]`,
   `/tags/[slug]`, `/authors/[slug]`, the later listing pages under
-  `.../page/[page]`, and `/sitemap.xml`. Saving a draft no
+  `.../page/[page]`, `/sitemap.xml`, and `/feed.xml`. Saving a draft no
   longer touches public caches (the action reads the saved status; if it
   cannot, it invalidates). Media upload and deletion change nothing public:
   deletion is refused while a body references the image. Future taxonomy and
@@ -1082,8 +1134,10 @@ or creates hosted resources.
   404s, listing pagination behaves (`/page/1` redirects, `/page/2` renders
   with its own canonical URL when it exists, invalid and out-of-range pages
   are `noindex` 404s), `/admin` redirects to `/login`, `robots.txt` and
-  `sitemap.xml` are public-only, and every response has the security headers
-  without eval.
+  `sitemap.xml` are public-only, the home page links `/feed.xml`, which is a
+  public, cacheable Atom feed listing the newest post (or a 404 without a
+  discovery link when no site URL is set), and every response has the
+  security headers without eval.
 
 Hosting checklist (open until D5 is decided): after the first deploy, create
 the first admin with `npm run admin:bootstrap` (see
@@ -1487,7 +1541,7 @@ redirects anonymous visitors to sign-in.
 
 ## Next increment
 
-Phases 1–16 are implemented: authentication, editorial membership with
+Phases 1–17 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
@@ -1500,10 +1554,10 @@ states, security headers, backup runbook, smoke test), self-service reader
 accounts (Phase 11), taxonomy administration, author identity
 administration, private bookmarks (Phase 12), post-moderated comments
 (Phase 13), per-post language (Phase 14), public listing pagination
-(Phase 15), and post cover images (Phase 16). See
+(Phase 15), post cover images (Phase 16), and the Atom feed (Phase 17). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-All planned phases (1–16) are implemented; see ROADMAP.md for the open
+All planned phases (1–17) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

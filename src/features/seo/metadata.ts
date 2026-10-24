@@ -5,6 +5,7 @@ import { postPath } from "@/features/posts/archives";
 import { openGraphLocale } from "@/features/posts/language";
 import { pagePath } from "@/features/posts/pagination";
 import type { PostSummary } from "@/features/posts/types";
+import { feedAlternateTypes } from "./feed";
 
 // Pure metadata builders. Paths stay relative; the root layout's metadataBase
 // (NEXT_PUBLIC_SITE_URL) turns canonical and Open Graph URLs into absolute
@@ -16,6 +17,14 @@ import type { PostSummary } from "@/features/posts/types";
 export const noIndexMetadata: Metadata = {
   robots: { index: false, follow: false },
 };
+
+// Canonical URL plus the feed discovery link. Metadata merges segments
+// shallowly, so a page that sets alternates replaces the root layout's and
+// must repeat the feed link, or the link disappears from that page.
+export function canonicalAlternates(path: string): Metadata["alternates"] {
+  const types = feedAlternateTypes();
+  return { canonical: path, ...(types ? { types } : {}) };
+}
 
 // Absolute delivery URL of a post's cover. It lives on the media origin
 // (Supabase Storage, D4), not the site origin, so metadataBase does not apply.
@@ -32,7 +41,7 @@ export function buildPostMetadata(post: PostSummary, siteName: string): Metadata
   return {
     title: post.title,
     description,
-    alternates: { canonical: path },
+    alternates: canonicalAlternates(path),
     openGraph: {
       type: "article",
       url: path,
@@ -86,7 +95,7 @@ export function buildArchiveMetadata(input: {
   return {
     title,
     description: input.description,
-    alternates: { canonical: path },
+    alternates: canonicalAlternates(path),
     openGraph: {
       type: "website",
       url: path,

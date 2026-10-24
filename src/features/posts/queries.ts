@@ -25,6 +25,11 @@ export function selectPublishedPostSummaries(client: SupabaseClient) {
   return selectPublishedPosts(client, publicPostSummaryColumns);
 }
 
+// The newest published posts, for the syndication feed.
+export function selectLatestPublishedPosts(client: SupabaseClient, limit: number) {
+  return selectPublishedPostSummaries(client).limit(limit);
+}
+
 export function selectPublishedPostsInCategories(
   client: SupabaseClient,
   categoryIds: string[],

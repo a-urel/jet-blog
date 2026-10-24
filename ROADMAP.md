@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 15 listing pagination and Phase 16 post cover image merged)
+Last updated: 2026-10-24 (Phase 15 listing pagination and Phase 16 post cover image merged; Phase 17 Atom feed)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–16, complete)
+## Current baseline (Phases 1–17, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -143,7 +143,15 @@ does not add requirements on its own.
   preview, alt text, and remove. The post header, listing cards, and member
   preview render it in a 16:9 `next/image` box; Open Graph `images`, Twitter
   `summary_large_image`, and JSON-LD `image` use its absolute media URL.
-- 443 unit tests and 339 local-Supabase RLS tests (including the comment
+- Phase 17 syndication feed: an Atom 1.0 feed at `/feed.xml` (ISR Route
+  Handler, `revalidate = 300`, in the invalidation map) of the 20 newest
+  published posts from the anonymous client: `urn:uuid` entry ids, canonical
+  links, published/updated times, authors in credit order, category and tags,
+  the excerpt as a text summary, per-entry `xml:lang`, and the cover as Media
+  RSS. Discovery through `alternates.types` on every page and a footer link.
+  404 without `NEXT_PUBLIC_SITE_URL`. No migration.
+- 549 unit tests and 377 local-Supabase RLS tests (including the feed input
+  and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
   administration suites, the Phase 11
   self-signed-up reader matrix and the Phase 10
@@ -198,6 +206,21 @@ does not follow later profile renames; an owner's delete is a hard delete, so
 its reports disappear with it.
 
 ## Where to resume (session handoff)
+
+Phase 17 (Atom feed, no migration) was developed on `claude/rss-feed-8973c3`
+and is not committed yet.
+
+- Last verified (Phase 17): `npm run lint`, `npm run typecheck`, `npm test`
+  (549 tests), `npm run test:rls` (377 tests), `npm run build` (`/feed.xml`
+  prerendered with a 5-minute revalidate), and `npm run test:smoke` against
+  `next start` on port 3217 pass on the worktree's own local stack. The feed
+  parsed with `xmllint`, served `application/atom+xml` with `s-maxage=300`,
+  and the discovery link appeared on the home, post, tag, author, and 404
+  pages. As a synthetic admin, publishing the seed draft (category set,
+  language English) put it first in the next anonymous `/feed.xml` response
+  with `xml:lang="en"`; unpublishing removed it on the next request. The
+  admin account was deleted and the draft restored afterwards. Removing the
+  status filter from the feed query made the editor case of the RLS test fail.
 
 Phases 1–13, taxonomy and author identity administration, and the fixes from
 the all-roles browser test (`59771bc`) are on `origin/main`. On 2026-10-24
@@ -421,6 +444,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 14 | Post language | Per-post language (tr, en, de) in form, markup, OG, JSON-LD | Phase 9 | Done |
 | 15 | Listing pagination | Path-based ISR pages for home and archives, stable order | Phase 9, 10 | Done |
 | 16 | Post cover image | Optional cover with alt text in header, cards, OG/Twitter, JSON-LD | Phases 6, 9 | Done |
+| 17 | Syndication feed | Atom feed of the newest published posts with discovery link | Phases 9, 10, 14, 16 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1339,6 +1363,40 @@ Follow-ups, not requested: a site-wide default social image, a focal point or
 per-cover aspect choice, and a 1200×630 Open Graph rendition (for example
 through the image optimizer on the site origin) with width/height.
 
+### Phase 17 — Syndication feed
+
+Goal: readers can subscribe to published posts in a feed reader.
+
+Status: complete on 2026-10-24. Verified as recorded in the handoff above.
+
+Decisions:
+
+- **Atom only, no RSS 2.0.** Atom (RFC 4287) has a required, stable entry id
+  (the post UUID, so a slug change does not duplicate the entry), separate
+  `published` and `updated` times, typed text constructs, and `xml:lang` per
+  entry, which carries `posts.language`. Every mainstream reader supports it.
+  A second RSS document would duplicate the escaping, cache, and test surface
+  for no reader that needs it; add `/rss.xml` only on request.
+- **20 entries** (`feedPostLimit`), newest publication first, matching the
+  public listing order.
+- **Summary, not full content.** The excerpt goes out as `type="text"`. The
+  shared renderer produces React with optimized image URLs and iframes;
+  rendering it to an HTML string for feeds would need a separate,
+  feed-specific serializer to stay safe. Readers follow the canonical link.
+- **No site URL → 404.** Entry ids, links, and the self link need absolute
+  URLs; this matches the empty sitemap and the disallow-all `robots.txt`.
+  The discovery link and footer link are omitted then.
+- **Cover image** as Media RSS (`media:thumbnail`, `media:content` with the
+  alt text), the de facto image extension for Atom readers.
+- Discovery uses `alternates.types`. Metadata merges shallowly, so every page
+  that sets a canonical URL repeats the feed link (`canonicalAlternates`).
+
+Follow-ups, not requested: per-category, per-tag, and per-author feeds (the
+archive queries exist; each needs a route, a discovery link on its archive,
+and invalidation entries), full-content entries through a dedicated safe HTML
+serializer, and WebSub pings on publish (an external side effect that would
+need a durable job).
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1392,7 +1450,7 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Every phase in the table (through Phase 16, post cover image), both
+Every phase in the table (through Phase 17, Atom feed), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

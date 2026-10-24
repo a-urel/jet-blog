@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
+import { feedAlternateTypes, feedPath } from "@/features/seo/feed";
 import { getConfiguredSiteUrl, getSiteName } from "@/lib/site-url";
 import "./globals.css";
 
@@ -16,6 +17,9 @@ export const metadata: Metadata = {
     template: `%s | ${siteName}`,
   },
   description: siteDescription,
+  // Feed discovery on every page; pages with a canonical URL repeat it
+  // (canonicalAlternates), because metadata merges shallowly.
+  alternates: { types: feedAlternateTypes(siteUrl, siteName) },
   openGraph: {
     type: "website",
     siteName,
@@ -64,6 +68,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <p className="flex items-center gap-2">
               <span>Görünüm sistem temanızı izler.</span>
               <span aria-hidden="true">·</span>
+              {siteUrl ? (
+                <>
+                  <a
+                    href={feedPath}
+                    type="application/atom+xml"
+                    className="rounded-sm hover:text-foreground hover:underline underline-offset-4"
+                  >
+                    Atom akışı
+                  </a>
+                  <span aria-hidden="true">·</span>
+                </>
+              ) : null}
               <Link
                 href="/admin"
                 className="rounded-sm hover:text-foreground hover:underline underline-offset-4"

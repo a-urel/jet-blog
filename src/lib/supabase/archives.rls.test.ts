@@ -6,12 +6,14 @@ import { mapPublicPostSummary, type RawPublicPost } from "@/features/posts/mappi
 import {
   selectAuthorBySlug,
   selectCategories,
+  selectLatestPublishedPosts,
   selectPublishedPostsByAuthor,
   selectPublishedPostsInCategories,
   selectPublishedPostsWithTag,
   selectPublishedPostSummaries,
   selectTagBySlug,
 } from "@/features/posts/queries";
+import { buildAtomFeed, feedPostLimit } from "@/features/seo/feed";
 import { buildSitemap } from "@/features/seo/sitemap";
 import { collectCategorySubtree } from "@/features/taxonomy/hierarchy";
 
@@ -485,4 +487,44 @@ describe("sitemap input", () => {
     expect(redirect.error).toBeNull();
     expect(redirect.data?.map((row) => row.old_slug)).toEqual([slugs.renamedOld]);
   });
+});
+
+// The feed reads the newest published posts. Drafts have no published_at and
+// sort first in a descending order (NULLS FIRST), so an editor whose RLS can
+// read them would see them at the top without the published filter.
+describe("feed input", () => {
+  it.each(["anon", "reader", "editor"] as const)(
+    "%s gets only published posts, newest first, without drafts",
+    async (who) => {
+      const { data, error } = await selectLatestPublishedPosts(clients[who], feedPostLimit);
+      expect(error).toBeNull();
+
+      const rows = (data ?? []) as unknown as RawPublicPost[];
+      expect(rows.length).toBeGreaterThan(0);
+      expect(rows.length).toBeLessThanOrEqual(feedPostLimit);
+
+      const times = rows.map((row) => Date.parse(row.published_at ?? ""));
+      expect(times.every(Number.isFinite)).toBe(true);
+      expect([...times].sort((left, right) => right - left)).toEqual(times);
+
+      const posts = rows.flatMap((row) => {
+        const summary = mapPublicPostSummary(row);
+        return summary ? [summary] : [];
+      });
+      const xml = buildAtomFeed({ siteUrl: new URL("https://example.test"), siteName: "S", posts });
+
+      // Published just now, so it is among the newest posts.
+      expect(xml).toContain(`urn:uuid:${ids.renamed}`);
+      expect(xml).toContain(`https://example.test/posts/${slugs.renamedNew}`);
+      for (const hidden of [ids.draftInParent, ids.unpublished, ids.pageDraft]) {
+        expect(xml).not.toContain(hidden);
+      }
+      for (const hidden of [slugs.draftInParent, slugs.unpublished, slugs.renamedOld]) {
+        expect(xml).not.toContain(`/posts/${hidden}<`);
+        expect(xml).not.toContain(`/posts/${hidden}"`);
+      }
+      expect(xml).not.toContain(`${slugPrefix}-draft-author`);
+      expect(xml).not.toContain(`${slugPrefix}-draft-tag`);
+    },
+  );
 });

@@ -23,7 +23,7 @@ describe("publicCacheInvalidation", () => {
       const paths = routes.map((route) => route.path);
 
       expect(tags).toEqual([publicPostsCacheTag]);
-      // Listing, post page, archives, their later pages, and sitemap.
+      // Listing, post page, archives, their later pages, sitemap, and feed.
       expect(paths).toEqual([
         "/",
         "/page/[page]",
@@ -35,6 +35,7 @@ describe("publicCacheInvalidation", () => {
         "/authors/[slug]",
         "/authors/[slug]/page/[page]",
         "/sitemap.xml",
+        "/feed.xml",
       ]);
     },
   );
@@ -58,6 +59,6 @@ describe("publicCacheInvalidation", () => {
 
   it("returns a copy that callers cannot use to change the route list", () => {
     publicCacheInvalidation("post-published").routes.pop();
-    expect(publicContentRoutes).toHaveLength(10);
+    expect(publicContentRoutes).toHaveLength(11);
   });
 });

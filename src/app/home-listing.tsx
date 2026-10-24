@@ -4,14 +4,14 @@ import { PageCount } from "@/features/posts/components/page-count";
 import { PostList } from "@/features/posts/components/post-list";
 import { PostPagination } from "@/features/posts/components/post-pagination";
 import { pagePath, type PostPage } from "@/features/posts/pagination";
-import { pageTitle } from "@/features/seo/metadata";
+import { canonicalAlternates, pageTitle } from "@/features/seo/metadata";
 
 // The home listing, shared by / (page 1) and /page/[page].
 
 export function homeListingMetadata(page: number): Metadata {
   return {
     ...(page > 1 ? { title: pageTitle("Son yazılar", page) } : {}),
-    alternates: { canonical: pagePath("/", page) },
+    alternates: canonicalAlternates(pagePath("/", page)),
   };
 }
 

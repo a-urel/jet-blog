@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { coverMediaId, mediaOrigin, postWithCover, publishedPost } from "./fixtures";
-import { buildArchiveMetadata, buildPostMetadata, noIndexMetadata } from "./metadata";
+import {
+  buildArchiveMetadata,
+  buildPostMetadata,
+  canonicalAlternates,
+  noIndexMetadata,
+} from "./metadata";
 
 describe("buildPostMetadata", () => {
   const metadata = buildPostMetadata(publishedPost, "Örnek Site");
@@ -140,5 +145,31 @@ describe("buildArchiveMetadata", () => {
 describe("noIndexMetadata", () => {
   it("keeps missing content out of indexes", () => {
     expect(noIndexMetadata.robots).toEqual({ index: false, follow: false });
+  });
+});
+
+// Metadata merges shallowly: a page's alternates replace the root layout's, so
+// each canonical URL repeats the feed discovery link.
+describe("canonicalAlternates", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("repeats the feed link next to the canonical URL", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
+    vi.stubEnv("NEXT_PUBLIC_SITE_NAME", "Örnek Site");
+
+    expect(canonicalAlternates("/tags/sema")).toEqual({
+      canonical: "/tags/sema",
+      types: { "application/atom+xml": [{ url: "/feed.xml", title: "Örnek Site" }] },
+    });
+    expect(buildPostMetadata(publishedPost, "Örnek Site").alternates?.types).toEqual({
+      "application/atom+xml": [{ url: "/feed.xml", title: "Örnek Site" }],
+    });
+  });
+
+  it("has no feed link without a site origin", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+    expect(canonicalAlternates("/")).toEqual({ canonical: "/" });
   });
 });

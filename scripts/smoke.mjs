@@ -5,7 +5,7 @@
 // Anonymous HTTP checks only: public pages render, unknown and draft URLs
 // return 404, listing pages paginate (page 1 has one URL, invalid and
 // out-of-range pages return 404), admin and reader routes redirect to sign-in,
-// discovery files exist, and every response carries the security headers. It needs no credentials and changes
+// discovery files and the Atom feed exist, and every response carries the security headers. It needs no credentials and changes
 // no data, so it can also run against a staging deployment.
 
 const baseUrl = (process.env.SMOKE_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
@@ -152,6 +152,42 @@ const sitemap = await get("/sitemap.xml");
 const sitemapXml = await sitemap.text();
 check(sitemap.status === 200, `/sitemap.xml: expected 200, got ${sitemap.status}`);
 check(!sitemapXml.includes("/admin"), "/sitemap.xml: lists an admin URL");
+
+// The Atom feed exists only with a configured site origin (absolute URLs);
+// without one it answers 404 and no discovery link is rendered.
+const feedLink = homeHtml.match(
+  /<link rel="alternate" type="application\/atom\+xml"[^>]*href="([^"]+)"/,
+)?.[1];
+const feed = await get("/feed.xml");
+const feedXml = await feed.text();
+
+if (feedLink) {
+  check(
+    new URL(feedLink, baseUrl).pathname === "/feed.xml",
+    `/: feed discovery link points to ${feedLink}`,
+  );
+  check(feed.status === 200, `/feed.xml: expected 200, got ${feed.status}`);
+  check(
+    (feed.headers.get("content-type") ?? "").startsWith("application/atom+xml"),
+    `/feed.xml: unexpected content type ${feed.headers.get("content-type")}`,
+  );
+  check(
+    feedXml.includes('<feed xmlns="http://www.w3.org/2005/Atom"'),
+    "/feed.xml: not an Atom feed",
+  );
+  check(!/\/(admin|login|auth)[/"<]|preview/.test(feedXml), "/feed.xml: links a private URL");
+  check(
+    !(feed.headers.get("cache-control") ?? "").includes("private"),
+    "/feed.xml: feed is not publicly cacheable",
+  );
+  if (postPath) {
+    check(feedXml.includes(`${postPath}"`), `/feed.xml: newest post ${postPath} is missing`);
+  }
+  checkSecurityHeaders("/feed.xml", feed);
+} else {
+  check(feed.status === 404, `/feed.xml: expected 404 without a discovery link, got ${feed.status}`);
+  console.warn("No feed discovery link (NEXT_PUBLIC_SITE_URL unset?); feed content checks skipped.");
+}
 
 if (failures.length > 0) {
   console.error(`Smoke test failed against ${baseUrl}:`);

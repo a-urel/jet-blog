@@ -20,6 +20,7 @@ import {
 import {
   selectAuthorBySlug,
   selectCategories,
+  selectLatestPublishedPosts,
   selectPublishedPostCategoryIds,
   selectPublishedPostsByAuthor,
   selectPublishedPostsInCategories,
@@ -96,6 +97,17 @@ export const listPublishedPosts = cache(async (): Promise<PostSummary[]> => {
 
   return mapSummaries(data);
 });
+
+// The newest published posts for the syndication feed (src/app/feed.xml).
+export async function listLatestPublishedPosts(limit: number): Promise<PostSummary[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  const { data, error } = await selectLatestPublishedPosts(publicClient(), limit);
+
+  if (error) throw new Error(`Latest published posts could not be loaded: ${error.message}`);
+
+  return mapSummaries(data);
+}
 
 // One page of the home listing. null means the page is past the end.
 export const listPublishedPostPage = cache(async (page: number): Promise<PostPage | null> => {

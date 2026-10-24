@@ -2,13 +2,13 @@
 //
 // Public routes are ISR pages with `revalidate = 300` as a fallback: the home
 // listing, /posts/[slug], /categories/[slug], /tags/[slug], /authors/[slug],
-// the later listing pages under <listing>/page/[page], and sitemap.xml
-// (robots.txt reads no content). Their anonymous Supabase reads
+// the later listing pages under <listing>/page/[page], sitemap.xml, and the
+// Atom feed.xml (robots.txt reads no content). Their anonymous Supabase reads
 // sit in the Data Cache under publicPostsCacheTag. Posts embed their category,
-// tags, and credited authors, and archives and the sitemap read posts plus
-// taxonomy, so one tag covers all public content; a narrower tag per post
-// would not spare a regeneration, because the listing, archives, and sitemap
-// change with any published post anyway.
+// tags, and credited authors, and archives, the sitemap, and the feed read
+// posts plus taxonomy, so one tag covers all public content; a narrower tag
+// per post would not spare a regeneration, because the listing, archives,
+// sitemap, and feed change with any published post anyway.
 //
 // A change to public output must do both:
 //   1. updateTag(publicPostsCacheTag): the next request waits for fresh rows
@@ -72,6 +72,7 @@ export const publicContentRoutes: readonly PublicRoute[] = [
   { path: "/authors/[slug]", type: "page" },
   { path: "/authors/[slug]/page/[page]", type: "page" },
   { path: "/sitemap.xml" },
+  { path: "/feed.xml" },
 ];
 
 const noInvalidation: CacheInvalidation = { tags: [], routes: [] };
