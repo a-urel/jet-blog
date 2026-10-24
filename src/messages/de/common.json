@@ -1,0 +1,46 @@
+{
+  "site": {
+    "description": "Ideen, Notizen und gemeinsam geschriebene Beiträge. Ein Beispielblog."
+  },
+  "layout": {
+    "skipToContent": "Zum Inhalt springen",
+    "account": "Mein Konto",
+    "tagline": "Gemeinsam denken, gemeinsam schreiben.",
+    "themeNote": "Die Darstellung folgt Ihrem Systemdesign.",
+    "feed": "Atom-Feed",
+    "admin": "Verwaltung"
+  },
+  "languageSwitcher": {
+    "label": "Sprache der Oberfläche",
+    "trigger": "Sprache der Oberfläche: {language}. Ändern"
+  },
+  "missingPage": {
+    "title": "Seite nicht gefunden",
+    "description": "Unter dieser Adresse gibt es keinen Inhalt. Sehen Sie sich die anderen Beiträge an.",
+    "back": "Zurück zu den Beiträgen"
+  },
+  "error": {
+    "label": "Fehler",
+    "retry": "Erneut versuchen",
+    "digest": "Fehlercode:",
+    "publicTitle": "Diese Seite kann gerade nicht geladen werden",
+    "publicDescription": "Der Inhalt ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
+    "backToPosts": "Zurück zu den Beiträgen",
+    "globalTitle": "Ein Fehler ist aufgetreten",
+    "globalHeading": "Die Website kann gerade nicht geladen werden",
+    "globalDescription": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es gleich noch einmal."
+  },
+  "pagination": {
+    "label": "Seiten",
+    "previous": "Zurück",
+    "previousLabel": "Zur vorherigen Seite",
+    "next": "Weiter",
+    "nextLabel": "Zur nächsten Seite",
+    "more": "Weitere Seiten",
+    "page": "Seite {page}",
+    "pageTitle": "{title} — Seite {page}"
+  },
+  "dialog": {
+    "close": "Schließen"
+  }
+}

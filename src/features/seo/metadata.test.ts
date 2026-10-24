@@ -137,6 +137,13 @@ describe("buildPostMetadata with a cover", () => {
   });
 });
 
+// The Turkish catalog format (common.pagination.pageTitle); callers pass the
+// interface language's format and Open Graph locale.
+const turkishListing = {
+  pageTitle: (title: string, page: number) => `${title} — Sayfa ${page}`,
+  locale: "tr_TR",
+};
+
 describe("buildArchiveMetadata", () => {
   it("canonicalizes the archive path", () => {
     const metadata = buildArchiveMetadata({
@@ -144,6 +151,7 @@ describe("buildArchiveMetadata", () => {
       description: "Açıklama",
       path: "/categories/yazilim",
       siteName: "S",
+      ...turkishListing,
     });
 
     expect(metadata.alternates?.canonical).toBe("/categories/yazilim");
@@ -156,6 +164,7 @@ describe("buildArchiveMetadata", () => {
       description: "Açıklama",
       path: "/tags/sema",
       siteName: "S",
+      ...turkishListing,
       page: 1,
     });
 
@@ -169,6 +178,7 @@ describe("buildArchiveMetadata", () => {
       description: "Açıklama",
       path: "/tags/sema",
       siteName: "S",
+      ...turkishListing,
       page: 3,
     });
 
@@ -180,12 +190,28 @@ describe("buildArchiveMetadata", () => {
     });
   });
 
+  it("follows the interface language for the page title and Open Graph locale", () => {
+    const metadata = buildArchiveMetadata({
+      title: "Tag: Schema",
+      description: "Description",
+      path: "/tags/sema",
+      siteName: "S",
+      pageTitle: (title, page) => `${title} — Page ${page}`,
+      locale: "en_US",
+      page: 2,
+    });
+
+    expect(metadata.title).toBe("Tag: Schema — Page 2");
+    expect(metadata.openGraph).toMatchObject({ locale: "en_US", title: "Tag: Schema — Page 2" });
+  });
+
   it("nests the home listing's later pages under /page", () => {
     const metadata = buildArchiveMetadata({
       title: "Son yazılar",
       description: "Açıklama",
       path: "/",
       siteName: "S",
+      ...turkishListing,
       page: 2,
     });
 
@@ -198,7 +224,7 @@ describe("archive social image", () => {
     vi.unstubAllEnvs();
   });
 
-  const input = { title: "Şema etiketi", description: "Açıklama", path: "/tags/sema", siteName: "Örnek Site" };
+  const input = { title: "Şema etiketi", description: "Açıklama", path: "/tags/sema", siteName: "Örnek Site", ...turkishListing };
 
   it("uses the site-wide image and a large card with a site origin", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");

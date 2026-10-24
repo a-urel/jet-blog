@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { RawPublicPost } from "@/features/posts/mapping";
+import trBookmarks from "@/messages/tr/bookmarks.json";
 import { mapSavedRows } from "./queries";
-import { insertErrorResult, isPostId } from "./result";
+import { bookmarkMessageKeys, insertErrorResult, isPostId } from "./result";
 
 const post: RawPublicPost = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -44,6 +45,14 @@ describe("insertErrorResult", () => {
   it("falls back to a generic error", () => {
     expect(insertErrorResult({ code: "08006" })).toEqual({ status: "error" });
     expect(insertErrorResult({})).toEqual({ status: "error" });
+  });
+});
+
+describe("bookmarkMessageKeys", () => {
+  it("point at Turkish catalog entries", () => {
+    for (const key of Object.values(bookmarkMessageKeys)) {
+      expect(trBookmarks.messages[key]).toBeTruthy();
+    }
   });
 });
 

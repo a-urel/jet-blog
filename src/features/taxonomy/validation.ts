@@ -11,7 +11,27 @@ export const taxonomyLimits = {
 
 export type TaxonomyField = "name" | "slug" | "description" | "parentId" | "sortOrder";
 
+// Translated messages, as shown next to the form fields.
 export type TaxonomyFieldErrors = Partial<Record<TaxonomyField, string>>;
+
+// Validation stays framework-free: it returns message keys of the
+// adminTaxonomy.validation catalog, which the Server Action translates.
+export type TaxonomyIssueKey =
+  | "nameRequired"
+  | "nameTooLong"
+  | "slugUnavailable"
+  | "slugTooLong"
+  | "slugInvalid"
+  | "descriptionTooLong"
+  | "parentInvalid"
+  | "sortOrderInvalid";
+
+export type TaxonomyIssue = Readonly<{
+  key: TaxonomyIssueKey;
+  values?: Readonly<Record<string, number>>;
+}>;
+
+export type TaxonomyFieldIssues = Partial<Record<TaxonomyField, TaxonomyIssue>>;
 
 export type RawTaxonomyInput = Readonly<{
   name: string;
@@ -37,18 +57,18 @@ export type TagInput = Readonly<{
 
 export type TaxonomyValidation<T> =
   | { ok: true; data: T }
-  | { ok: false; fieldErrors: TaxonomyFieldErrors };
+  | { ok: false; fieldErrors: TaxonomyFieldIssues };
 
 function validateShared(
   raw: RawTaxonomyInput,
   limits: { name: number; slug: number },
-  fieldErrors: TaxonomyFieldErrors,
+  fieldErrors: TaxonomyFieldIssues,
 ) {
   const name = normalizeName(raw.name);
   if (name.length === 0) {
-    fieldErrors.name = "Ad gerekli.";
+    fieldErrors.name = { key: "nameRequired" };
   } else if (name.length > limits.name) {
-    fieldErrors.name = `Ad ${limits.name} karakteri aşamaz.`;
+    fieldErrors.name = { key: "nameTooLong", values: { max: limits.name } };
   }
 
   // An empty slug is generated from the name with the shared Turkish-aware
@@ -57,16 +77,19 @@ function validateShared(
   const slug = rawSlug.length > 0 ? rawSlug : slugify(name, limits.slug);
 
   if (slug.length === 0) {
-    fieldErrors.slug = "Slug üretilemedi; elle girin.";
+    fieldErrors.slug = { key: "slugUnavailable" };
   } else if (slug.length > limits.slug) {
-    fieldErrors.slug = `Slug ${limits.slug} karakteri aşamaz.`;
+    fieldErrors.slug = { key: "slugTooLong", values: { max: limits.slug } };
   } else if (!isValidSlug(slug)) {
-    fieldErrors.slug = "Slug yalnızca küçük harf, rakam ve tek tire içerebilir.";
+    fieldErrors.slug = { key: "slugInvalid" };
   }
 
   const description = raw.description.trim();
   if (description.length > taxonomyLimits.description) {
-    fieldErrors.description = `Açıklama ${taxonomyLimits.description} karakteri aşamaz.`;
+    fieldErrors.description = {
+      key: "descriptionTooLong",
+      values: { max: taxonomyLimits.description },
+    };
   }
 
   return { name, slug, description: description.length > 0 ? description : null };
@@ -75,7 +98,7 @@ function validateShared(
 export function validateCategoryInput(
   raw: RawTaxonomyInput,
 ): TaxonomyValidation<CategoryInput> {
-  const fieldErrors: TaxonomyFieldErrors = {};
+  const fieldErrors: TaxonomyFieldIssues = {};
   const shared = validateShared(raw, taxonomyLimits.category, fieldErrors);
 
   const parentValue = raw.parentId?.trim() ?? "";
@@ -84,7 +107,7 @@ export function validateCategoryInput(
     if (isUuid(parentValue)) {
       parentId = parentValue;
     } else {
-      fieldErrors.parentId = "Geçerli bir üst kategori seçin.";
+      fieldErrors.parentId = { key: "parentInvalid" };
     }
   }
 
@@ -95,7 +118,7 @@ export function validateCategoryInput(
     sortOrder < taxonomyLimits.sortOrder.min ||
     sortOrder > taxonomyLimits.sortOrder.max
   ) {
-    fieldErrors.sortOrder = "Sıra 0 ile 1000 arasında bir tam sayı olmalı.";
+    fieldErrors.sortOrder = { key: "sortOrderInvalid", values: taxonomyLimits.sortOrder };
   }
 
   if (Object.keys(fieldErrors).length > 0) return { ok: false, fieldErrors };
@@ -104,7 +127,7 @@ export function validateCategoryInput(
 }
 
 export function validateTagInput(raw: RawTaxonomyInput): TaxonomyValidation<TagInput> {
-  const fieldErrors: TaxonomyFieldErrors = {};
+  const fieldErrors: TaxonomyFieldIssues = {};
   const shared = validateShared(raw, taxonomyLimits.tag, fieldErrors);
 
   if (Object.keys(fieldErrors).length > 0) return { ok: false, fieldErrors };

@@ -1,0 +1,103 @@
+{
+  "denied": {
+    "title": "Kategori ve etiket yönetimi kapalı",
+    "description": "Bu sayfa yalnızca admin rolüne açıktır. Editörler mevcut kategori ve etiketleri yazılara atayabilir."
+  },
+  "validation": {
+    "nameRequired": "Ad gerekli.",
+    "nameTooLong": "Ad {max, number, ::group-off} karakteri aşamaz.",
+    "slugUnavailable": "Slug üretilemedi; elle girin.",
+    "slugTooLong": "Slug {max, number, ::group-off} karakteri aşamaz.",
+    "slugInvalid": "Slug yalnızca küçük harf, rakam ve tek tire içerebilir.",
+    "descriptionTooLong": "Açıklama {max, number, ::group-off} karakteri aşamaz.",
+    "parentInvalid": "Geçerli bir üst kategori seçin.",
+    "sortOrderInvalid": "Sıra {min, number, ::group-off} ile {max, number, ::group-off} arasında bir tam sayı olmalı."
+  },
+  "errors": {
+    "forbidden": "Kategori ve etiket yönetimi için admin yetkisi gerekir.",
+    "stale": "{kind, select, category {Kategori} other {Etiket}} siz sayfayı açtıktan sonra değişti. Sayfayı yenileyip değişikliği yeniden uygulayın.",
+    "missing": "{kind, select, category {Kategori} other {Etiket}} bulunamadı.",
+    "nameTaken": "Bu ad zaten kullanılıyor.",
+    "slugTaken": "Bu slug zaten kullanılıyor veya eski bir adresin yönlendirmesi.",
+    "cycle": "Kategori kendi altına veya alt kategorilerinden birine taşınamaz.",
+    "cycleField": "Kendisi veya alt kategorisi üst kategori olamaz.",
+    "selfParent": "Kategori kendi altına taşınamaz.",
+    "tooDeep": "Kategori ağacı 100 seviyeden derin olamaz.",
+    "tooDeepField": "Kategori ağacı çok derin.",
+    "targetRequired": "Bu kategoriyi kullanan yazılar var; taşınacak kategoriyi seçin.",
+    "targetInvalid": "Geçerli bir hedef kategori seçin."
+  },
+  "form": {
+    "name": "Ad",
+    "slug": "Slug",
+    "slugPlaceholder": "Boş bırakılırsa addan üretilir",
+    "slugHintEdit": "Slug değişirse eski arşiv adresi yeni adrese yönlenir.",
+    "slugHintNew": "Küçük harf, rakam ve tire.",
+    "parent": "Üst kategori",
+    "parentNone": "Yok (en üst seviye)",
+    "sortOrder": "Sıra",
+    "description": "Açıklama",
+    "descriptionHint": "İsteğe bağlı. Arşiv sayfasında ve arama sonuçlarında görünür."
+  },
+  "deleteForm": {
+    "targetForPosts": "Yazıların taşınacağı kategori",
+    "targetForRedirect": "Eski adresin yönleneceği kategori",
+    "targetPlaceholder": "Kategori seçin",
+    "targetNone": "Yok (eski adres 404 olur)"
+  },
+  "postCount": "{count, plural, other {# yazı}}",
+  "categories": {
+    "title": "Kategoriler",
+    "intro": "Her yazı tek bir kategoriye bağlıdır. Üst kategori arşivleri alt kategorilerin yazılarını da listeler.",
+    "status": {
+      "created": "Kategori oluşturuldu.",
+      "updated": "Kategori güncellendi.",
+      "deleted": "Kategori silindi."
+    },
+    "treeTitle": "Kategori ağacı",
+    "treeDescription": "Yazı sayısı taslakları da içerir. Düzenlemek, taşımak veya silmek için bir kategori seçin.",
+    "empty": "Henüz kategori yok.",
+    "newTitle": "Yeni kategori",
+    "newDescription": "Ad benzersiz olmalı (büyük/küçük harf fark etmez).",
+    "create": "Kategori oluştur"
+  },
+  "category": {
+    "metaTitle": "Kategori düzenle",
+    "back": "← Kategoriler",
+    "summary": "{posts, plural, other {# yazı}} · {children, plural, other {# alt kategori}}",
+    "editTitle": "Kategoriyi düzenle",
+    "editDescription": "Üst kategoriyi değiştirerek kategoriyi alt kategorileriyle birlikte taşıyabilirsiniz. Kendi altına taşınamaz.",
+    "deleteTitle": "Kategoriyi sil",
+    "deleteMovesPosts": "Bu kategorideki {count, plural, other {# yazı}} seçtiğiniz kategoriye taşınır ve eski arşiv adresi oraya yönlenir.",
+    "deleteNoPosts": "Bu kategoride yazı yok. İsterseniz eski arşiv adresini başka bir kategoriye yönlendirebilirsiniz.",
+    "deleteMovesChildrenToParent": "{count, plural, other {# alt kategori}} \"{parent}\" altına taşınır.",
+    "deleteMovesChildrenToRoot": "{count, plural, other {# alt kategori}} en üst seviyeye taşınır.",
+    "noTargets": "Yazıların taşınabileceği başka kategori yok. Önce yeni bir kategori oluşturun.",
+    "confirm": "\"{name}\" kategorisinin silineceğini anlıyorum."
+  },
+  "tags": {
+    "title": "Etiketler",
+    "intro": "Bir yazı birden çok etiket taşıyabilir; her etiketin kendi arşivi vardır.",
+    "status": {
+      "created": "Etiket oluşturuldu.",
+      "updated": "Etiket güncellendi.",
+      "deleted": "Etiket silindi ve yazılardan kaldırıldı."
+    },
+    "listTitle": "Tüm etiketler",
+    "listDescription": "Yazı sayısı taslakları da içerir.",
+    "empty": "Henüz etiket yok.",
+    "newTitle": "Yeni etiket",
+    "newDescription": "Ad benzersiz olmalı (büyük/küçük harf fark etmez).",
+    "create": "Etiket oluştur"
+  },
+  "tag": {
+    "metaTitle": "Etiket düzenle",
+    "back": "← Etiketler",
+    "editTitle": "Etiketi düzenle",
+    "deleteTitle": "Etiketi sil",
+    "deleteUsed": "Etiket {count, plural, other {# yazıdan}} kaldırılır. Eski arşiv adresi 404 döner.",
+    "deleteUnused": "Bu etiket hiçbir yazıda kullanılmıyor.",
+    "confirmUsed": "\"{name}\" etiketinin {count, plural, other {# yazıdan}} kaldırılıp silineceğini anlıyorum.",
+    "confirm": "\"{name}\" etiketinin silineceğini anlıyorum."
+  }
+}

@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 21 open post languages, on `claude/open-post-languages-e547c6`)
+Last updated: 2026-10-24 (Phase 22 interface localization, on `claude/ui-localization-6a5870`)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–21, complete)
+## Current baseline (Phases 1–22, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -192,6 +192,14 @@ does not add requirements on its own.
   entry; `og:locale` comes from `Intl.Locale().maximize()`. A separate
   interface-locale list (`tr`, `en`, `de`) waits for Phase 22. Migration
   `20261024220000_open_post_languages.sql`.
+- Phase 22 interface localization: the whole interface (public, auth,
+  account, comments, admin, metadata, Server Action messages) in Turkish
+  (default), English, and German with `next-intl` 4.14.9. The locale comes
+  from the `locale` cookie, then `Accept-Language`, then `tr`; `src/proxy.ts`
+  rewrites every page to the internal `src/app/[locale]` segment, so URLs stay
+  locale-free and each public page is prerendered once per locale. Pages read
+  the locale through `next/root-params`; Server Actions through a proxy-set
+  header. Cache invalidation targets `[locale]` route patterns. No migration.
 - 681 unit tests and 531 local-Supabase RLS tests as of Phase 21 (including the language parity suite, the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
@@ -254,6 +262,31 @@ fall back to the link and `beforeunload` guards). The search function is
 server-only, but plain Data API reads of published rows stay public by design.
 
 ## Where to resume (session handoff)
+
+Phase 22 (interface localization, no migration) was developed on
+`claude/ui-localization-6a5870` in its own worktree and is not committed or
+merged yet. New dependency: `next-intl` 4.14.9 (its lockfile entries include
+the optional message-extraction toolchain, `@swc/core` and `@parcel/watcher`,
+which this project does not use); shadcn `dropdown-menu` added.
+
+- Last verified (Phase 22, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (728 tests, including the catalog parity,
+  ICU, client-message, locale negotiation, and per-locale invalidation
+  suites), `npm run test:rls` (531 tests), `npm run build` (every public
+  route SSG/ISR per locale: `/tr`, `/en`, `/de`, and each post, category,
+  tag, and author page three times), and `npm run test:smoke` against
+  `next start` on port 3100 with the optional direct-RPC check, on the
+  worktree's own local stack. Browser journey on `next start`: a browser
+  with English `Accept-Language` got English on first visit; switching to
+  Deutsch on `/posts/birlikte-yazmak` kept the URL, set `<html lang="de">`
+  while the post body kept `lang="tr"`, and survived a reload and a client
+  navigation home; anonymous `/admin` redirected to a German sign-in page,
+  where a wrong password returned the German Server Action error; after
+  sign-in the admin sidebar switcher changed to English, an empty title
+  returned "Title is required." from the save action, and saving a new title
+  on the published post regenerated the tr, en, and de copies of the post and
+  the home listing (`x-nextjs-cache` MISS then HIT per locale). Synthetic data
+  was removed and the stack reset.
 
 Phase 21 (open post languages, `20261024220000_open_post_languages.sql`) was
 developed on `claude/open-post-languages-e547c6` in its own worktree and is
@@ -516,7 +549,7 @@ widening an active phase silently.
 | D2 | Workflow states and editing live posts | Phases 3, 8 | `draft` → `published` only; `review`/`archived` later; editors may edit published posts and `updated_at` is shown | **Answered 2026-10-22** |
 | D3 | Concurrency and revisions | Phases 3–5, 8 | One working copy with atomic revision comparison; no published snapshot initially; preview route for members | **Answered 2026-10-22** |
 | D4 | Media bucket visibility | Phase 6 | One public bucket, UUID object paths, app-level validation; document that draft media is fetchable by URL; revisit before launch | **Answered 2026-10-22** |
-| D5 | Language, brand, domain, hosting | Phases 8–10, launch | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–10 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`; site name from `NEXT_PUBLIC_SITE_NAME`, default "Yazılar"); for Phase 10 the user deferred hosting, has no production domain yet, and keeps the name provisional. Blocks launch only |
+| D5 | Language, brand, domain, hosting | Phases 8–10, launch | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–10 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`; site name from `NEXT_PUBLIC_SITE_NAME`, default "Yazılar"); for Phase 10 the user deferred hosting, has no production domain yet, and keeps the name provisional. Interface language decided 2026-10-24: tr (default), en, de by cookie (Phase 22). Blocks launch only |
 | D6 | Reader accounts, bookmarks, and comments | Phases 11–13 | Private bookmarks only; reader accounts with email + password; post-moderation with reader reports and editor hide/delete; account deletion removes bookmarks and anonymizes comments. No public like counts, OAuth, or magic links initially | **Answered 2026-10-22** |
 
 D1, D2, D3, D4, and D6 were answered on 2026-10-22 and no longer block their
@@ -607,7 +640,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 19 | Full-text search | Language-aware, accent-insensitive search over published posts with highlights, paging, and a per-IP rate limit | Phases 5, 10, 11, 14 | Done |
 | 20 | Polish pack | Publication confirmation, moderation feedback and paging, Back/Forward guard, admin return path, more avatars, default social image, server-only search | Phases 8, 13, 18, 19 | Done |
 | 21 | Open post languages | Any canonical BCP 47 post language, searchable combobox, language-aware search for every language, derived `og:locale` | Phases 14, 19 | Done |
-| 22 | Interface localization | tr/en/de interface with a cookie, proxy rewrite, and next-intl | Phase 21 | Planned |
+| 22 | Interface localization | tr/en/de interface with a cookie, proxy rewrite, and next-intl | Phase 21 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1743,9 +1776,65 @@ from the runtime's ICU data, which may differ between Node and a browser for
 rare languages (the label then falls back to the code). The search filter
 offers the common languages only; other valid tags work through the URL.
 
-Follow-ups, not requested: Phase 22 interface localization; a filter built
+Follow-ups, not requested: a filter built
 from the languages that actually have published posts; CJK segmentation
 (for example `pg_bigm` or an n-gram configuration) if such posts appear.
+
+### Phase 22 — Interface localization
+
+Goal: readers and editors use the interface in Turkish, English, or German
+without any change to URLs, caching, or post content.
+
+Status: complete on 2026-10-24 (user decisions: the locale is chosen by a
+cookie, not the URL; the admin panel is translated too; every post is shown in
+every interface language; interface languages tr, en, de with default tr), on
+`claude/ui-localization-6a5870`. Verified as recorded in the handoff above.
+Details: README "Interface localization (Phase 22)".
+
+Decisions:
+
+- **Proxy rewrite to an internal `[locale]` segment.** Reading `cookies()`
+  in public pages would make them dynamic. The proxy resolves the locale
+  (cookie, `Accept-Language`, `tr`) and rewrites to `/<locale>/<path>`, so
+  each locale is its own static/ISR entry. Internal `/en/...` URLs are not
+  public (they end in the localized 404).
+- **`next/root-params` instead of `setRequestLocale`.** Next.js 16.3 exposes
+  the root parameter to every Server Component, and next-intl 4.14 deprecates
+  `setRequestLocale` in its favor. Server Actions and Route Handlers have no
+  root parameters, so they read the `x-interface-locale` header that the
+  proxy always overwrites.
+- **next-intl without its middleware or routing.** Only the request
+  configuration, `getTranslations`/`useTranslations`, formatters, and
+  `NextIntlClientProvider` are used; the proxy owns locale resolution.
+- **Turkish catalog as the typed source.** One JSON file per locale and
+  namespace; the compiler and a parity test keep en/de aligned (keys, no
+  empty values, ICU arguments, valid syntax). Pure modules return keys.
+- **Client messages by dot path.** Each provider (root, sign-in/account
+  layouts, admin layout) passes only what its Client Components read, so
+  public pages do not ship sign-in, search, or admin copy in their payload.
+- **Invalidation by `[locale]` route pattern.** One `revalidatePath` per
+  pattern covers all locales; concrete paths are revalidated per locale.
+- **Switcher sets a functional cookie.** `locale`, one year, `SameSite=Lax`,
+  `Secure` on HTTPS, no consent banner (strictly necessary preference).
+- **No `Vary` header.** Next.js 16 overwrites `Vary` on App Router page
+  responses; the hosting checklist requires an edge cache key on the locale
+  cookie instead.
+
+Known limits: Supabase Auth email templates are not localized; the switcher
+needs JavaScript (first visits still negotiate `Accept-Language`); the admin
+shell shows the header switcher and its own sidebar switcher; the feed,
+sitemap, and default social image are locale-free (the feed keeps
+`xml:lang="tr"`); `global-error.tsx` carries its own five strings per locale;
+names in post-card taxonomy lists still sort with Turkish collation; a 404
+from `notFound()` renders its body on the client (Next.js answers with its
+error shell for every `notFound()` in this app, unchanged from Phase 21; the
+status is 404 and `noindex` either way); URLs outside the proxy (files with an
+extension, such as `/missing.txt`) get Next.js's built-in 404 page instead of
+the localized one.
+
+Follow-ups, not requested: localized Auth email templates per reader
+language (needs a stored preference); a no-JavaScript switcher; edge cache
+configuration once hosting (D5) is chosen.
 
 ## Cross-cutting delivery rules
 
@@ -1802,7 +1891,7 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Every phase in the table (through Phase 20, the polish pack), both
+Every phase in the table (through Phase 22, interface localization), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

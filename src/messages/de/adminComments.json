@@ -1,0 +1,58 @@
+{
+  "metaTitle": "Kommentare",
+  "accessDenied": {
+    "title": "Kommentarmoderation nicht verfügbar",
+    "description": "Nur Redakteure und Admins können Kommentare ausblenden oder löschen."
+  },
+  "heading": "Kommentare",
+  "intro": "Kommentare werden sofort beim Absenden veröffentlicht; prüfen Sie Meldungen von Lesern und blenden Sie Kommentare bei Bedarf aus oder löschen Sie sie.",
+  "statusMessages": {
+    "hidden": "Kommentar ausgeblendet; er erscheint nicht mehr auf der Website.",
+    "visible": "Kommentar wird wieder angezeigt.",
+    "deleted": "Kommentar gelöscht."
+  },
+  "filtersLabel": "Kommentarfilter",
+  "filters": {
+    "reported": "Gemeldet",
+    "visible": "Sichtbar",
+    "hidden": "Ausgeblendet",
+    "deleted": "Gelöscht"
+  },
+  "filterTitles": {
+    "reported": "Gemeldete Kommentare",
+    "visible": "Sichtbare Kommentare",
+    "hidden": "Ausgeblendete Kommentare",
+    "deleted": "Gelöschte Kommentare"
+  },
+  "filterDescriptions": {
+    "reported": "Kommentare mit mindestens einer Meldung, die noch sichtbar sind. Meldungen blenden einen Kommentar nicht automatisch aus.",
+    "visible": "Alle auf der Website sichtbaren Kommentare.",
+    "hidden": "Ausgeblendete Kommentare erscheinen nicht auf der Website; sie können wieder angezeigt werden.",
+    "deleted": "Gelöschte Kommentare sind dauerhaft verborgen und können nicht wiederhergestellt werden."
+  },
+  "summary": "Neueste Kommentare zuerst; insgesamt {total}.",
+  "summaryPaged": "Neueste Kommentare zuerst; insgesamt {total} · Seite {page} von {pageCount}.",
+  "empty": "Keine Kommentare in diesem Filter.",
+  "statusLabels": {
+    "visible": "Sichtbar",
+    "hidden": "Ausgeblendet",
+    "deleted": "Gelöscht"
+  },
+  "reportCount": "{count, plural, one {# Meldung} other {# Meldungen}}",
+  "post": "Beitrag: <link>{title}</link>",
+  "postUnpublished": "Beitrag: <muted>{title} (nicht veröffentlicht)</muted>",
+  "reasons": "Meldegründe: {reasons}",
+  "reasonCount": "{reason} ({count})",
+  "pagination": {
+    "label": "Kommentarseiten",
+    "currentPage": "Seite {page}, aktuelle Seite"
+  },
+  "actions": {
+    "hide": "Ausblenden",
+    "restore": "Wieder anzeigen",
+    "delete": "Löschen",
+    "confirmDelete": "Ja, löschen",
+    "cancel": "Abbrechen",
+    "unauthenticated": "Keine Sitzung gefunden. Melden Sie sich erneut an."
+  }
+}

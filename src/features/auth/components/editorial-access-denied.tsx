@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,8 @@ export function EditorialAccessDenied({
   description,
   email,
 }: EditorialAccessDeniedProps) {
+  const t = useTranslations("auth.accessDenied");
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-16">
       <Card>
@@ -35,15 +38,17 @@ export function EditorialAccessDenied({
         <CardContent className="space-y-4">
           {email ? (
             <p className="text-sm text-muted-foreground">
-              Oturum: <span className="font-medium">{email}</span>
+              {t.rich("session", {
+                email: () => <span className="font-medium">{email}</span>,
+              })}
             </p>
           ) : null}
           <Button asChild className="w-full">
-            <Link href="/account">Hesabıma git</Link>
+            <Link href="/account">{t("goToAccount")}</Link>
           </Button>
           <form action={signOutAction}>
             <Button type="submit" variant="outline" className="w-full">
-              Çıkış yap
+              {t("signOut")}
             </Button>
           </form>
         </CardContent>

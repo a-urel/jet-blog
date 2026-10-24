@@ -6,11 +6,14 @@ import {
   invalidBodyFixtures,
   validBodyFixtures,
 } from "../content/fixtures";
+import { withIntl } from "@/i18n/test-intl";
+import type { InterfaceLocale } from "@/lib/interface-locales";
+
 import { PostBody } from "./post-body";
 
-function render(body: unknown, contentVersion = 1) {
+function render(body: unknown, contentVersion = 1, locale: InterfaceLocale = "tr") {
   return renderToStaticMarkup(
-    <PostBody body={body} contentVersion={contentVersion} />,
+    withIntl(<PostBody body={body} contentVersion={contentVersion} />, locale),
   );
 }
 
@@ -74,6 +77,12 @@ describe("PostBody", () => {
     expect(html).not.toContain("Kalın");
   });
 
+  it("shows the fallback in the interface language", () => {
+    expect(render(validBodyFixtures[1].doc, 2, "de")).toContain(
+      "Der Inhalt dieses Beitrags kann derzeit nicht angezeigt werden.",
+    );
+  });
+
   describe("images", () => {
     afterEach(() => {
       vi.unstubAllEnvs();
@@ -114,6 +123,9 @@ describe("PostBody", () => {
       expect(html).toContain('role="img"');
       expect(html).toContain('aria-label="Deniz kıyısında gün batımı"');
       expect(html).toContain("Görsel şu anda yüklenemiyor.");
+      expect(render(validBodyFixtures[3].doc, 1, "en")).toContain(
+        "The image cannot be loaded right now.",
+      );
     });
   });
 

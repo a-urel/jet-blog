@@ -7,6 +7,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useTranslations } from "next-intl";
 import { pagePath, paginationItems, type PageInfo } from "../pagination";
 
 // Page links of a public listing. Plain links (no client state), so every
@@ -17,6 +18,7 @@ export function PostPagination({
   page,
   pageCount,
 }: Pick<PageInfo, "page" | "pageCount"> & { basePath: string }) {
+  const t = useTranslations();
   if (pageCount <= 1) return null;
 
   return (
@@ -35,7 +37,11 @@ export function PostPagination({
               <PaginationLink
                 href={pagePath(basePath, item)}
                 isActive={item === page}
-                aria-label={item === page ? `Sayfa ${item}, geçerli sayfa` : `Sayfa ${item}`}
+                aria-label={
+                  item === page
+                    ? t("posts.pagination.currentPage", { page: item })
+                    : t("common.pagination.page", { page: item })
+                }
               >
                 {item}
               </PaginationLink>

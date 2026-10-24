@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import { FormAlert } from "@/features/auth/components/form-alert";
 import type { AuthorFormState, AuthorFormValues } from "@/features/authors/actions";
 import { authorLimits, type AuthorField } from "@/features/authors/validation";
 
-export type AccountChoice = { profileId: string; label: string };
+export type AccountChoice = { profileId: string; label: string; deactivated: boolean };
 
 type AuthorFormProps = {
   action: (state: AuthorFormState, formData: FormData) => Promise<AuthorFormState>;
@@ -41,6 +42,8 @@ export function AuthorForm({
     message: null,
     fieldErrors: {},
   } satisfies AuthorFormState);
+  const t = useTranslations("adminAuthors.form");
+  const tForm = useTranslations("admin.form");
 
   const values = { ...emptyValues, ...initialValues, ...state.values };
   const prefix = record ? `author-${record.id}` : "author-new";
@@ -73,7 +76,7 @@ export function AuthorForm({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={fieldId("name")}>Ad</Label>
+          <Label htmlFor={fieldId("name")}>{t("name")}</Label>
           <Input
             {...fieldProps("name")}
             defaultValue={values.name}
@@ -84,25 +87,23 @@ export function AuthorForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={fieldId("slug")}>Slug</Label>
+          <Label htmlFor={fieldId("slug")}>{t("slug")}</Label>
           <Input
             {...fieldProps("slug")}
             defaultValue={values.slug}
             maxLength={authorLimits.slug}
-            placeholder="Boş bırakılırsa addan üretilir"
+            placeholder={t("slugPlaceholder")}
           />
           {fieldError("slug") ?? (
             <p className="text-xs text-muted-foreground">
-              {record
-                ? "Slug değişirse eski yazar adresi yeni adrese yönlenir."
-                : "Küçük harf, rakam ve tire."}
+              {record ? t("slugHintEdit") : t("slugHintNew")}
             </p>
           )}
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={fieldId("bio")}>Biyografi</Label>
+        <Label htmlFor={fieldId("bio")}>{t("bio")}</Label>
         <Textarea
           {...fieldProps("bio")}
           defaultValue={values.bio}
@@ -111,29 +112,30 @@ export function AuthorForm({
         />
         {fieldError("bio") ?? (
           <p className="text-xs text-muted-foreground">
-            İsteğe bağlı. Yazar sayfasında ve arama sonuçlarında görünür.
+            {t("bioHint")}
           </p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={fieldId("profileId")}>Bağlı hesap</Label>
+        <Label htmlFor={fieldId("profileId")}>{t("account")}</Label>
         <NativeSelect
           className="w-full"
           {...fieldProps("profileId")}
           defaultValue={values.profileId}
         >
-          <NativeSelectOption value="">Yok (misafir yazar)</NativeSelectOption>
+          <NativeSelectOption value="">{t("accountNone")}</NativeSelectOption>
           {accountChoices.map((choice) => (
             <NativeSelectOption key={choice.profileId} value={choice.profileId}>
-              {choice.label}
+              {choice.deactivated
+                ? t("accountDeactivated", { label: choice.label })
+                : choice.label}
             </NativeSelectOption>
           ))}
         </NativeSelect>
         {fieldError("profileId") ?? (
           <p className="text-xs text-muted-foreground">
-            Yalnızca editoryal üyeler bağlanabilir. Bağlantı yetki vermez; düzenleme
-            hakları üyelik rolünden gelir.
+            {t("accountHint")}
           </p>
         )}
       </div>
@@ -143,7 +145,7 @@ export function AuthorForm({
       ) : null}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Kaydediliyor…" : submitLabel}
+        {pending ? tForm("saving") : submitLabel}
       </Button>
     </form>
   );

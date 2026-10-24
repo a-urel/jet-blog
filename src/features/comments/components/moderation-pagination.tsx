@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import {
   Pagination,
   PaginationContent,
@@ -21,12 +23,15 @@ export function ModerationPagination({
   page: number;
   pageCount: number;
 }) {
+  const t = useTranslations("adminComments.pagination");
+  const tCommon = useTranslations("common.pagination");
+
   if (pageCount <= 1) return null;
 
   const href = (target: number) => moderationQueueUrl(filter, { page: target });
 
   return (
-    <Pagination aria-label="Yorum sayfaları" className="mt-6">
+    <Pagination aria-label={t("label")} className="mt-6">
       <PaginationContent className="flex-wrap justify-center">
         {page > 1 ? (
           <PaginationItem>
@@ -41,7 +46,11 @@ export function ModerationPagination({
               <PaginationLink
                 href={href(item)}
                 isActive={item === page}
-                aria-label={item === page ? `Sayfa ${item}, geçerli sayfa` : `Sayfa ${item}`}
+                aria-label={
+                  item === page
+                    ? t("currentPage", { page: item })
+                    : tCommon("page", { page: item })
+                }
               >
                 {item}
               </PaginationLink>

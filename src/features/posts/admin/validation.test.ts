@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import trMessages from "@/messages/tr/adminPosts.json";
+
 import {
-  invalidLanguageMessage,
   validatePostMetadata,
   type RawPostMetadata,
 } from "./validation";
@@ -65,7 +66,7 @@ describe("validatePostMetadata", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.fieldErrors.language).toBe(invalidLanguageMessage);
+        expect(result.fieldErrors.language).toBe("languageInvalid");
       }
     },
   );
@@ -87,13 +88,13 @@ describe("validatePostMetadata", () => {
     const invalid = validatePostMetadata(raw({ slug: "Geçersiz Slug" }));
     expect(invalid.ok).toBe(false);
     if (!invalid.ok) {
-      expect(invalid.fieldErrors.slug).toBeTruthy();
+      expect(invalid.fieldErrors.slug).toBe("slugInvalid");
     }
 
     const empty = validatePostMetadata(raw({ title: "!!!", slug: "" }));
     expect(empty.ok).toBe(false);
     if (!empty.ok) {
-      expect(empty.fieldErrors.slug).toBeTruthy();
+      expect(empty.fieldErrors.slug).toBe("slugMissing");
     }
   });
 
@@ -101,13 +102,13 @@ describe("validatePostMetadata", () => {
     const longTitle = validatePostMetadata(raw({ title: "a".repeat(201) }));
     expect(longTitle.ok).toBe(false);
     if (!longTitle.ok) {
-      expect(longTitle.fieldErrors.title).toBeTruthy();
+      expect(longTitle.fieldErrors.title).toBe("titleTooLong");
     }
 
     const longExcerpt = validatePostMetadata(raw({ excerpt: "a".repeat(501) }));
     expect(longExcerpt.ok).toBe(false);
     if (!longExcerpt.ok) {
-      expect(longExcerpt.fieldErrors.excerpt).toBeTruthy();
+      expect(longExcerpt.fieldErrors.excerpt).toBe("excerptTooLong");
     }
   });
 
@@ -115,13 +116,13 @@ describe("validatePostMetadata", () => {
     const malformed = validatePostMetadata(raw({ tagIds: ["not-a-tag"] }));
     expect(malformed.ok).toBe(false);
     if (!malformed.ok) {
-      expect(malformed.fieldErrors.tagIds).toBeTruthy();
+      expect(malformed.fieldErrors.tagIds).toBe("tagInvalid");
     }
 
     const duplicate = validatePostMetadata(raw({ tagIds: [tagA, tagA] }));
     expect(duplicate.ok).toBe(false);
     if (!duplicate.ok) {
-      expect(duplicate.fieldErrors.tagIds).toBeTruthy();
+      expect(duplicate.fieldErrors.tagIds).toBe("tagDuplicate");
     }
   });
 
@@ -132,7 +133,7 @@ describe("validatePostMetadata", () => {
 
     expect(duplicate.ok).toBe(false);
     if (!duplicate.ok) {
-      expect(duplicate.fieldErrors.credits).toBeTruthy();
+      expect(duplicate.fieldErrors.credits).toBe("creditDuplicate");
     }
   });
 
@@ -152,7 +153,7 @@ describe("validatePostMetadata", () => {
     );
     expect(nonContiguous.ok).toBe(false);
     if (!nonContiguous.ok) {
-      expect(nonContiguous.fieldErrors.credits).toBeTruthy();
+      expect(nonContiguous.fieldErrors.credits).toBe("creditOrderGap");
     }
   });
 
@@ -220,7 +221,7 @@ describe("validatePostMetadata", () => {
 
       expect(result.ok).toBe(false);
       if (result.ok) return;
-      expect(result.fieldErrors.coverMediaId).toBeDefined();
+      expect(result.fieldErrors.coverMediaId).toBe("coverInvalid");
     },
   );
 
@@ -232,12 +233,28 @@ describe("validatePostMetadata", () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.fieldErrors.coverAlt).toBeDefined();
+    expect(result.fieldErrors.coverAlt).toBe("coverAltTooLong");
   });
 
   it("counts cover alt length in code points like the database", () => {
     const result = validatePostMetadata(raw({ coverMediaId: cover, coverAlt: "😀".repeat(300) }));
 
     expect(result.ok).toBe(true);
+  });
+
+  it("returns keys that exist in the Turkish catalog", () => {
+    const result = validatePostMetadata(
+      raw({ title: "", language: "", creditSortOrders: ["0", "0"], creditAuthorIds: [authorA, authorB] }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    const messages: Record<string, string> = trMessages.validation;
+    for (const key of Object.values(result.fieldErrors)) {
+      expect(messages[key]).toBeTruthy();
+    }
+    expect(messages[result.fieldErrors.title!]).toBe("Başlık gerekli.");
+    expect(messages.creditOrderGap).toBe("Yazar sıraları 0''dan başlayıp kesintisiz olmalı.");
   });
 });

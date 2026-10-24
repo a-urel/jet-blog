@@ -2,13 +2,14 @@
 
 import { useActionState, type ReactNode } from "react";
 import { Trash2, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormAlert } from "@/features/auth/components/form-alert";
 import type { AvatarFormState } from "../form-state";
-import { allowedAvatarTypes, maxAvatarBytes } from "../validation";
+import { allowedAvatarTypes, avatarLimitValues } from "../validation";
 
 type AvatarAction = (state: AvatarFormState, formData: FormData) => Promise<AvatarFormState>;
 
@@ -35,6 +36,7 @@ export function AvatarForm({
   hiddenFields = {},
   idPrefix,
 }: AvatarFormProps) {
+  const t = useTranslations("avatars.form");
   const [uploadState, upload, uploading] = useActionState(uploadAction, initialState);
   const [removeState, remove, removing] = useActionState(removeAction, initialState);
   const pending = uploading || removing;
@@ -55,7 +57,7 @@ export function AvatarForm({
             {hidden}
             <Button type="submit" variant="outline" disabled={pending}>
               <Trash2 aria-hidden="true" />
-              {removing ? "Kaldırılıyor…" : "Fotoğrafı kaldır"}
+              {removing ? t("removing") : t("remove")}
             </Button>
           </form>
         ) : null}
@@ -70,7 +72,7 @@ export function AvatarForm({
       <form action={upload} className="space-y-3">
         {hidden}
         <div className="space-y-2">
-          <Label htmlFor={inputId}>{hasAvatar ? "Yeni fotoğraf" : "Fotoğraf"}</Label>
+          <Label htmlFor={inputId}>{hasAvatar ? t("newPhoto") : t("photo")}</Label>
           <Input
             id={inputId}
             name="avatar"
@@ -81,8 +83,7 @@ export function AvatarForm({
             aria-invalid={uploadState.status === "error" ? true : undefined}
           />
           <p id={hintId} className="text-sm text-muted-foreground">
-            JPEG, PNG veya WebP; en fazla {maxAvatarBytes / 1024 / 1024} MB. Kare
-            olmayan görseller ortadan kırpılarak gösterilir.
+            {t("hint", { maxMegabytes: avatarLimitValues.maxMegabytes })}
           </p>
         </div>
 
@@ -94,7 +95,7 @@ export function AvatarForm({
 
         <Button type="submit" disabled={pending}>
           <Upload aria-hidden="true" />
-          {uploading ? "Yükleniyor…" : "Yükle"}
+          {uploading ? t("uploading") : t("upload")}
         </Button>
       </form>
     </div>

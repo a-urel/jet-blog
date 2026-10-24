@@ -13,6 +13,9 @@
 //     anonymizes comments on any number of posts, so it expires this tag and
 //     revalidates the /posts/[slug] pattern.
 //
+// The page exists once per interface locale (src/app/[locale]); both paths
+// are revalidated through revalidateLocalizedPath, which covers every locale.
+//
 // The post itself still comes from publicPostsCacheTag; publication changes
 // regenerate the page, comments included.
 

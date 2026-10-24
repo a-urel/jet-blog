@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,14 +29,13 @@ type PostVideoPanelProps = {
 // the parsed video id, start offset, and title are kept; the URL itself is not
 // stored.
 export function PostVideoPanel({ editor, selected, onClose }: PostVideoPanelProps) {
+  const t = useTranslations("adminEditor");
   const id = useId();
   const [url, setUrl] = useState(
     selected ? youtubeWatchUrl(selected.videoId, selected.start) : "",
   );
   const [title, setTitle] = useState(selected?.title ?? "");
-  const [error, setError] = useState<{ field: "url" | "title"; message: string } | null>(
-    null,
-  );
+  const [error, setError] = useState<"url" | "title" | null>(null);
 
   function close() {
     onClose();
@@ -47,21 +47,14 @@ export function PostVideoPanel({ editor, selected, onClose }: PostVideoPanelProp
     const parsed = parseYouTubeUrl(url);
 
     if (!parsed) {
-      setError({
-        field: "url",
-        message:
-          "Yalnızca youtube.com/watch, youtu.be, youtube.com/shorts veya youtube.com/embed bağlantıları desteklenir.",
-      });
+      setError("url");
       return;
     }
 
     const trimmedTitle = title.trim();
 
     if (trimmedTitle.length === 0) {
-      setError({
-        field: "title",
-        message: "Ekran okuyucular için videoyu tanımlayan bir başlık girin.",
-      });
+      setError("title");
       return;
     }
 
@@ -110,7 +103,7 @@ export function PostVideoPanel({ editor, selected, onClose }: PostVideoPanelProp
       }}
     >
       <div className="space-y-1.5">
-        <Label htmlFor={`${id}-url`}>YouTube bağlantısı</Label>
+        <Label htmlFor={`${id}-url`}>{t("video.url")}</Label>
         <Input
           id={`${id}-url`}
           type="text"
@@ -119,50 +112,49 @@ export function PostVideoPanel({ editor, selected, onClose }: PostVideoPanelProp
           value={url}
           placeholder="https://www.youtube.com/watch?v=…"
           spellCheck={false}
-          aria-invalid={error?.field === "url" ? true : undefined}
+          aria-invalid={error === "url" ? true : undefined}
           aria-describedby={
-            error?.field === "url" ? `${errorId} ${id}-url-help` : `${id}-url-help`
+            error === "url" ? `${errorId} ${id}-url-help` : `${id}-url-help`
           }
           onChange={(event) => setUrl(event.target.value)}
         />
         <p id={`${id}-url-help`} className="text-xs text-muted-foreground">
-          Video, gizlilik odaklı youtube-nocookie.com alan adından gömülür.
-          Bağlantıdaki başlangıç zamanı (ör. ?t=90) korunur.
+          {t("video.urlHelp")}
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor={`${id}-title`}>Video başlığı</Label>
+        <Label htmlFor={`${id}-title`}>{t("video.title")}</Label>
         <Input
           id={`${id}-title`}
           type="text"
           value={title}
           maxLength={maxVideoTitleLength}
-          aria-invalid={error?.field === "title" ? true : undefined}
-          aria-describedby={error?.field === "title" ? errorId : undefined}
+          aria-invalid={error === "title" ? true : undefined}
+          aria-describedby={error === "title" ? errorId : undefined}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="Videoda ne anlatılıyor?"
+          placeholder={t("video.titlePlaceholder")}
         />
       </div>
 
       {error ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
-          {error.message}
+          {error === "url" ? t("video.urlInvalid") : t("video.titleRequired")}
         </p>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" onClick={apply}>
-          {selected ? "Uygula" : "Videoyu ekle"}
+          {selected ? t("video.apply") : t("video.insert")}
         </Button>
         {selected ? (
           <Button type="button" size="sm" variant="outline" onClick={remove}>
             <Trash2 aria-hidden="true" />
-            Videoyu kaldır
+            {t("video.remove")}
           </Button>
         ) : null}
         <Button type="button" size="sm" variant="ghost" onClick={close}>
-          Vazgeç
+          {t("cancel")}
         </Button>
       </div>
     </div>

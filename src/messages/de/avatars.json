@@ -1,0 +1,19 @@
+{
+  "form": {
+    "remove": "Bild entfernen",
+    "removing": "Wird entfernt…",
+    "newPhoto": "Neues Bild",
+    "photo": "Bild",
+    "hint": "JPEG, PNG oder WebP; höchstens {maxMegabytes} MB. Nicht quadratische Bilder werden mittig zugeschnitten.",
+    "upload": "Hochladen",
+    "uploading": "Wird hochgeladen…"
+  },
+  "rejection": {
+    "noFile": "Wählen Sie eine Bilddatei aus.",
+    "empty": "Die Datei ist leer.",
+    "tooLarge": "Ein Profilbild darf höchstens {maxMegabytes} MB groß sein.",
+    "unsupportedType": "Es können nur JPEG-, PNG- und WebP-Bilder hochgeladen werden.",
+    "invalidDimensions": "Die Bildkanten müssen zwischen {min} und {max} Pixel lang sein.",
+    "uploadRefused": "Der Upload wurde abgelehnt. Prüfen Sie Ihre Berechtigung oder versuchen Sie es in einigen Minuten erneut (höchstens 10 Bilder in 10 Minuten)."
+  }
+}

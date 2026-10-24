@@ -1,11 +1,13 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { updateTag } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 import { getSessionUser } from "@/lib/auth/session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { commentsCacheTag } from "./cache";
 import {
+  commentBodyMaxLength,
   commentInsertErrorResult,
   isCommentReportReason,
   isCommentStatus,
@@ -15,6 +17,7 @@ import {
   reportInsertErrorResult,
   type CommentActionResult,
 } from "./model";
+import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 // Every action takes the user from the verified session; RLS and the
 // moderation RPC are the authorization rules. Actions accept only ids, the
@@ -24,7 +27,7 @@ import {
 // first so the regenerated page reads fresh rows (see ./cache.ts).
 function invalidatePostComments(postId: string, slug: string | null) {
   updateTag(commentsCacheTag(postId));
-  if (slug) revalidatePath(`/posts/${slug}`);
+  if (slug) revalidateLocalizedPath(`/posts/${slug}`);
 }
 
 async function publishedPostSlug(
@@ -48,7 +51,13 @@ export async function createCommentAction(
   if (!isUuid(postId) || typeof body !== "string") return { status: "error" };
 
   const normalized = normalizeCommentBody(body);
-  if (!normalized.ok) return { status: "invalid", message: normalized.message };
+  if (!normalized.ok) {
+    const t = await getTranslations("comments.validation");
+    return {
+      status: "invalid",
+      message: t(normalized.error, { max: String(commentBodyMaxLength) }),
+    };
+  }
 
   const user = await getSessionUser();
   if (!user) return { status: "unauthenticated" };
@@ -114,7 +123,7 @@ export async function reportCommentAction(
 
   if (error) return reportInsertErrorResult(error);
 
-  revalidatePath("/admin/comments");
+  revalidateLocalizedPath("/admin/comments");
 
   return { status: "ok" };
 }
@@ -139,7 +148,7 @@ export async function moderateCommentAction(
 
   const post = (data as { post_id: string; post_slug: string }[] | null)?.[0];
   if (post) invalidatePostComments(post.post_id, post.post_slug);
-  revalidatePath("/admin/comments");
+  revalidateLocalizedPath("/admin/comments");
 
   return { status: "ok" };
 }

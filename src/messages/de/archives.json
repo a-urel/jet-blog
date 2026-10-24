@@ -1,0 +1,19 @@
+{
+  "posts": "Beiträge",
+  "category": {
+    "eyebrow": "Kategorie",
+    "title": "Kategorie: {name}",
+    "description": "Beiträge in der Kategorie {name}.",
+    "ancestors": "Übergeordnete Kategorien",
+    "children": "Beiträge aus Unterkategorien werden ebenfalls aufgeführt:"
+  },
+  "tag": {
+    "eyebrow": "Schlagwort",
+    "title": "Schlagwort: {name}",
+    "description": "Beiträge mit dem Schlagwort {name}."
+  },
+  "author": {
+    "eyebrow": "Autor",
+    "description": "Beiträge von {name}."
+  }
+}

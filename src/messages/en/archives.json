@@ -1,0 +1,19 @@
+{
+  "posts": "Posts",
+  "category": {
+    "eyebrow": "Category",
+    "title": "Category: {name}",
+    "description": "Posts in the {name} category.",
+    "ancestors": "Parent categories",
+    "children": "Posts from subcategories are listed too:"
+  },
+  "tag": {
+    "eyebrow": "Tag",
+    "title": "Tag: {name}",
+    "description": "Posts tagged {name}."
+  },
+  "author": {
+    "eyebrow": "Author",
+    "description": "Posts by {name}."
+  }
+}

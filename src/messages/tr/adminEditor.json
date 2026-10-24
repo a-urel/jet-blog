@@ -1,0 +1,74 @@
+{
+  "toolbar": {
+    "label": "Biçimlendirme",
+    "heading2": "Başlık 2",
+    "heading3": "Başlık 3",
+    "bold": "Kalın",
+    "italic": "Eğik",
+    "strike": "Üstü çizili",
+    "code": "Satır içi kod",
+    "link": "Bağlantı",
+    "bulletList": "Madde listesi",
+    "orderedList": "Numaralı liste",
+    "blockquote": "Alıntı",
+    "codeBlock": "Kod bloğu",
+    "horizontalRule": "Ayırıcı çizgi",
+    "insertImage": "Görsel ekle",
+    "editImage": "Görseli düzenle",
+    "insertVideo": "YouTube videosu ekle",
+    "editVideo": "Videoyu düzenle",
+    "undo": "Geri al",
+    "redo": "Yinele"
+  },
+  "link": {
+    "label": "Bağlantı adresi",
+    "invalid": "Yalnızca http(s), mailto, site içi (/...) veya sayfa içi (#...) bağlantılar desteklenir.",
+    "apply": "Uygula",
+    "remove": "Kaldır"
+  },
+  "cancel": "Vazgeç",
+  "loading": "Editör yükleniyor…",
+  "upload": {
+    "file": "Görsel dosyası",
+    "fileHelp": "JPEG, PNG, WebP veya GIF; en fazla 5 MB. Yüklenen dosyalar herkese açık bir adresten sunulur.",
+    "fileRequired": "Bir görsel dosyası seçin.",
+    "fileTooLarge": "Dosya en fazla 5 MB olabilir.",
+    "failed": "Yükleme tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+    "uploading": "Yükleniyor…",
+    "altPlaceholder": "Görselde ne görünüyor?"
+  },
+  "image": {
+    "alt": "Alternatif metin",
+    "decorative": "Dekoratif görsel (ekran okuyucular atlar)",
+    "caption": "Altyazı (isteğe bağlı)",
+    "altRequired": "Alternatif metin girin veya görseli dekoratif olarak işaretleyin.",
+    "apply": "Uygula",
+    "uploadAndInsert": "Yükle ve ekle",
+    "remove": "Görseli kaldır"
+  },
+  "video": {
+    "url": "YouTube bağlantısı",
+    "urlHelp": "Video, gizlilik odaklı youtube-nocookie.com alan adından gömülür. Bağlantıdaki başlangıç zamanı (ör. ?t=90) korunur.",
+    "title": "Video başlığı",
+    "titlePlaceholder": "Videoda ne anlatılıyor?",
+    "urlInvalid": "Yalnızca youtube.com/watch, youtu.be, youtube.com/shorts veya youtube.com/embed bağlantıları desteklenir.",
+    "titleRequired": "Ekran okuyucular için videoyu tanımlayan bir başlık girin.",
+    "apply": "Uygula",
+    "insert": "Videoyu ekle",
+    "remove": "Videoyu kaldır"
+  },
+  "cover": {
+    "label": "Kapak görseli (isteğe bağlı)",
+    "help": "Yazı başlığında, liste kartlarında ve paylaşım önizlemelerinde 16:9 kırpılarak gösterilir.",
+    "alt": "Kapak alternatif metni",
+    "altHelp": "Taslakta boş kalabilir; yayınlamak için gerekir.",
+    "chooseFromLibrary": "Kitaplıktan seç",
+    "uploadNew": "Yeni görsel yükle",
+    "remove": "Kapağı kaldır",
+    "libraryError": "Medya kitaplığı yüklenemedi. Yeni bir görsel yükleyebilirsiniz.",
+    "libraryEmpty": "Kitaplıkta görsel yok. Yeni bir görsel yükleyin.",
+    "libraryItem": "Görsel {position}, {width}×{height}",
+    "libraryItemSelected": "Görsel {position}, {width}×{height} (seçili)",
+    "uploadAndSet": "Yükle ve kapak yap"
+  }
+}

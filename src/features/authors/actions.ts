@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import type { AvatarFormState } from "@/features/avatars/form-state";
 import { removeAvatarObjects, uploadAvatarObject } from "@/features/avatars/storage";
@@ -9,7 +9,12 @@ import { isUuid } from "@/features/posts/admin/validation";
 import { invalidatePublicContent } from "@/features/posts/invalidate";
 import { canManageAuthors, getEditorialContext } from "@/lib/auth/editorial";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { validateAuthorInput, type AuthorFieldErrors } from "./validation";
+import {
+  validateAuthorInput,
+  type AuthorFieldErrors,
+  type AuthorFieldIssues,
+} from "./validation";
+import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 export type AuthorFormValues = {
   name: string;
@@ -54,69 +59,88 @@ function errorState(
   return { status: "error", message, fieldErrors, values: submittedValues(formData) };
 }
 
+async function validationErrors(issues: AuthorFieldIssues): Promise<AuthorFieldErrors> {
+  const t = await getTranslations("adminAuthors.validation");
+  const errors: AuthorFieldErrors = {};
+  for (const [field, issue] of Object.entries(issues) as [
+    keyof AuthorFieldIssues,
+    NonNullable<AuthorFieldIssues[keyof AuthorFieldIssues]>,
+  ][]) {
+    errors[field] = t(issue.key, issue.values);
+  }
+  return errors;
+}
+
+async function invalidFormState(
+  formData: FormData,
+  issues: AuthorFieldIssues,
+): Promise<AuthorFormState> {
+  const t = await getTranslations("admin.actions");
+  return errorState(formData, t("fixErrors"), await validationErrors(issues));
+}
+
+async function adminActionMessage(key: "invalidRequest" | "confirmDelete") {
+  const t = await getTranslations("admin.actions");
+  return t(key);
+}
+
 // The RPCs re-check admin membership; this check only gives a clear message
 // and avoids a database round trip for everyone else.
 async function requireAuthorAdmin(): Promise<string | null> {
-  const { user, membership } = await getEditorialContext();
-  if (!user) return "Oturum bulunamadı. Yeniden giriş yapın.";
-  if (!canManageAuthors(membership)) return "Yazar yönetimi için admin yetkisi gerekir.";
+  const [{ user, membership }, t] = await Promise.all([
+    getEditorialContext(),
+    getTranslations(),
+  ]);
+  if (!user) return t("admin.actions.sessionMissing");
+  if (!canManageAuthors(membership)) return t("adminAuthors.errors.forbidden");
   return null;
 }
 
 type RpcError = { code?: string; message?: string } | null;
 
-function mapRpcError(error: RpcError): { message: string; fieldErrors?: AuthorFieldErrors } {
+async function mapRpcError(
+  error: RpcError,
+): Promise<{ message: string; fieldErrors?: AuthorFieldErrors }> {
   const message = error?.message ?? "";
+  const [t, tActions] = await Promise.all([
+    getTranslations("adminAuthors.errors"),
+    getTranslations("admin.actions"),
+  ]);
 
   switch (error?.code) {
     case "42501":
-      return { message: "Yazar yönetimi için admin yetkisi gerekir." };
+      return { message: t("forbidden") };
     case "PT429":
-      return {
-        message:
-          "Kısa sürede çok fazla değişiklik yapıldı. Formdaki bilgiler korundu; birkaç dakika sonra tekrar deneyin.",
-      };
+      return { message: tActions("rateLimited") };
     case "40001":
-      return {
-        message:
-          "Yazar siz sayfayı açtıktan sonra değişti. Sayfayı yenileyip değişikliği yeniden uygulayın.",
-      };
+      return { message: t("stale") };
     case "P0002":
-      return { message: "Yazar bulunamadı." };
+      return { message: t("missing") };
     case "23505":
       if (message.includes("user_id")) {
-        return {
-          message: "Bu hesap zaten başka bir yazara bağlı.",
-          fieldErrors: { profileId: "Bu hesap zaten başka bir yazara bağlı." },
-        };
+        return { message: t("accountTaken"), fieldErrors: { profileId: t("accountTaken") } };
       }
-      return {
-        message: "Bu slug zaten kullanılıyor veya eski bir adresin yönlendirmesi.",
-        fieldErrors: { slug: "Bu slug zaten kullanılıyor veya eski bir adresin yönlendirmesi." },
-      };
+      return { message: t("slugTaken"), fieldErrors: { slug: t("slugTaken") } };
     case "22023":
       return {
-        message: "Yalnızca aktif bir editoryal üyenin hesabı bağlanabilir.",
-        fieldErrors: { profileId: "Aktif bir editoryal üye seçin." },
+        message: t("inactiveAccount"),
+        fieldErrors: { profileId: t("inactiveAccountField") },
       };
     case "23503":
-      return {
-        message:
-          "Bu yazar yazılarda kredilendirilmiş. Silmeden önce yazı düzenleyicide kredilerini kaldırın.",
-      };
+      return { message: t("credited") };
     case "23514":
-      return { message: "Gönderilen bilgiler geçersiz." };
+      return { message: tActions("invalidInput") };
     default:
-      return { message: "İşlem tamamlanamadı. Tekrar deneyin." };
+      return { message: tActions("failed") };
   }
 }
 
 function afterChange(id?: string) {
   invalidatePublicContent("author-changed");
-  revalidatePath("/admin/authors");
-  if (id) revalidatePath(`/admin/authors/${id}`);
+  revalidateLocalizedPath("/admin/authors");
+  if (id) revalidateLocalizedPath(`/admin/authors/${id}`);
   // Post forms list authors for credits.
-  revalidatePath("/admin/posts", "layout");
+  revalidateLocalizedPath("/admin/posts", "layout");
 }
 
 export async function createAuthorAction(
@@ -127,9 +151,7 @@ export async function createAuthorAction(
   if (denied) return errorState(formData, denied);
 
   const input = validateAuthorInput(submittedValues(formData));
-  if (!input.ok) {
-    return errorState(formData, "Formdaki hataları düzeltin.", input.fieldErrors);
-  }
+  if (!input.ok) return invalidFormState(formData, input.fieldErrors);
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.rpc("create_author", {
@@ -140,7 +162,7 @@ export async function createAuthorAction(
   });
 
   if (error) {
-    const mapped = mapRpcError(error);
+    const mapped = await mapRpcError(error);
     return errorState(formData, mapped.message, mapped.fieldErrors);
   }
 
@@ -157,12 +179,12 @@ export async function updateAuthorAction(
 
   const authorId = getString(formData, "id");
   const updatedAt = getString(formData, "updatedAt");
-  if (!isUuid(authorId) || !updatedAt) return errorState(formData, "Geçersiz istek.");
+  if (!isUuid(authorId) || !updatedAt) {
+    return errorState(formData, await adminActionMessage("invalidRequest"));
+  }
 
   const input = validateAuthorInput(submittedValues(formData));
-  if (!input.ok) {
-    return errorState(formData, "Formdaki hataları düzeltin.", input.fieldErrors);
-  }
+  if (!input.ok) return invalidFormState(formData, input.fieldErrors);
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.rpc("update_author", {
@@ -175,7 +197,7 @@ export async function updateAuthorAction(
   });
 
   if (error) {
-    const mapped = mapRpcError(error);
+    const mapped = await mapRpcError(error);
     return errorState(formData, mapped.message, mapped.fieldErrors);
   }
 
@@ -192,9 +214,11 @@ export async function deleteAuthorAction(
 
   const authorId = getString(formData, "id");
   const updatedAt = getString(formData, "updatedAt");
-  if (!isUuid(authorId) || !updatedAt) return { error: "Geçersiz istek." };
+  if (!isUuid(authorId) || !updatedAt) {
+    return { error: await adminActionMessage("invalidRequest") };
+  }
   if (formData.get("confirmDelete") !== "on") {
-    return { error: "Silme işlemini onaylamak için kutuyu işaretleyin." };
+    return { error: await adminActionMessage("confirmDelete") };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -209,7 +233,7 @@ export async function deleteAuthorAction(
     p_expected_updated_at: updatedAt,
   });
 
-  if (error) return { error: mapRpcError(error).message };
+  if (error) return { error: (await mapRpcError(error)).message };
 
   await removeAvatarObjects(supabase, "authors", [avatar?.avatar_id]);
   afterChange(authorId);
@@ -227,7 +251,9 @@ async function setAuthorAvatar(
 ): Promise<AvatarFormState | null> {
   const authorId = getString(formData, "id");
   const updatedAt = getString(formData, "updatedAt");
-  if (!isUuid(authorId) || !updatedAt) return { status: "error", message: "Geçersiz istek." };
+  if (!isUuid(authorId) || !updatedAt) {
+    return { status: "error", message: await adminActionMessage("invalidRequest") };
+  }
 
   const supabase = await createServerSupabaseClient();
   const { data: previous, error } = await supabase.rpc("set_author_avatar", {
@@ -241,8 +267,8 @@ async function setAuthorAvatar(
     // a type or size the database refused.
     const rejectedUpload = error.code === "22023" || (error.code === "P0002" && avatarId);
     const message = rejectedUpload
-      ? "Yüklenen görsel kabul edilmedi. Başka bir görselle tekrar deneyin."
-      : mapRpcError(error).message;
+      ? (await getTranslations("adminAuthors.errors"))("avatarRejected")
+      : (await mapRpcError(error)).message;
     return { status: "error", message };
   }
 

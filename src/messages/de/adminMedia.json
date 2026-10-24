@@ -1,0 +1,35 @@
+{
+  "title": "Medien",
+  "intro": "Bilder, die im Beitragseditor oder im Titelbildfeld hochgeladen wurden. Ein Bild, das im Text oder als Titelbild eines Beitrags verwendet wird, kann nicht gelöscht werden.",
+  "status": {
+    "deleted": "Bild gelöscht."
+  },
+  "errors": {
+    "invalid": "Ungültige Anfrage.",
+    "forbidden": "Sie sind nicht berechtigt, dieses Bild zu löschen.",
+    "missing": "Bild nicht gefunden.",
+    "inUse": "Dieses Bild wird im Text oder als Titelbild eines Beitrags verwendet und kann daher nicht gelöscht werden. Entfernen Sie es zuerst aus den Beiträgen.",
+    "objectRemains": "Der Bildeintrag wurde gelöscht, die Datei konnte jedoch nicht aus dem Storage entfernt werden. Versuchen Sie es erneut oder benachrichtigen Sie einen Administrator.",
+    "rateLimited": "Zu viele Bilder in kurzer Zeit gelöscht (höchstens 60 pro 10 Minuten). Versuchen Sie es gleich erneut.",
+    "failed": "Der Vorgang konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+  },
+  "loadError": "Die Medienliste konnte nicht geladen werden.",
+  "listTitle": "Bilder",
+  "listDescription": "Der Bucket ist öffentlich: Wer die Dateiadresse kennt, kann das Bild öffnen, auch Bilder aus Entwürfen. Autoren können nur ihre eigenen Uploads löschen, Redakteure und Admins alle nicht verwendeten Bilder.",
+  "empty": "Noch keine Bilder hochgeladen.",
+  "size": {
+    "bytes": "{size} B",
+    "kilobytes": "{size} KB",
+    "megabytes": "{size} MB"
+  },
+  "upload": {
+    "membershipRequired": "Zum Hochladen von Bildern ist eine Redaktionsmitgliedschaft erforderlich.",
+    "fileRequired": "Wählen Sie eine Bilddatei.",
+    "empty": "Die Datei ist leer.",
+    "tooLarge": "Die Datei darf höchstens {max} MB groß sein.",
+    "unsupportedType": "Es können nur JPEG-, PNG-, WebP- und GIF-Bilder hochgeladen werden.",
+    "invalidDimensions": "Die Bildabmessungen müssen zwischen 1 und 10000 Pixeln liegen.",
+    "rejected": "Der Upload wurde abgelehnt. Prüfen Sie Ihre Berechtigung oder versuchen Sie es in einigen Minuten erneut (höchstens 20 Bilder pro 10 Minuten).",
+    "registerFailed": "Das Bild konnte nicht gespeichert werden. Versuchen Sie es erneut."
+  }
+}

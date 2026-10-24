@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { signInPathFor } from "@/features/auth/return-path";
 import { FormAlert } from "@/features/auth/components/form-alert";
 import { createCommentAction } from "../actions";
-import { commentBodyMaxLength, commentMessages, normalizeCommentBody } from "../model";
+import { commentBodyMaxLength, commentMessageKeys, normalizeCommentBody } from "../model";
 import { useCommentViewer } from "./comment-viewer-provider";
 
 type CommentFormProps = {
@@ -21,6 +22,7 @@ type CommentFormProps = {
 // Submission refreshes the page through the action's revalidatePath, so the
 // new comment appears in the server-rendered list right away.
 export function CommentForm({ postId }: CommentFormProps) {
+  const t = useTranslations("comments");
   const { status, hasDisplayName, markAnonymous } = useCommentViewer();
   const pathname = usePathname();
   const [body, setBody] = useState("");
@@ -30,20 +32,22 @@ export function CommentForm({ postId }: CommentFormProps) {
   const length = [...body].length;
 
   if (status === "loading") {
-    return <Skeleton className="h-32 w-full" aria-label="Yorum formu yükleniyor" />;
+    return <Skeleton className="h-32 w-full" aria-label={t("form.loading")} />;
   }
 
   if (status === "anonymous") {
     return (
       <p className="rounded-lg border px-4 py-3 text-sm text-muted-foreground">
-        Yorum yazmak için{" "}
-        <Link
-          href={signInPathFor(pathname)}
-          className="font-medium text-foreground underline underline-offset-4"
-        >
-          giriş yapın
-        </Link>
-        .
+        {t.rich("form.signInPrompt", {
+          link: (chunks) => (
+            <Link
+              href={signInPathFor(pathname)}
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              {chunks}
+            </Link>
+          ),
+        })}
       </p>
     );
   }
@@ -51,7 +55,7 @@ export function CommentForm({ postId }: CommentFormProps) {
   if (status === "error") {
     return (
       <FormAlert tone="error">
-        Yorum formu yüklenemedi. Sayfayı yenileyip tekrar deneyin.
+        {t("form.loadError")}
       </FormAlert>
     );
   }
@@ -59,14 +63,16 @@ export function CommentForm({ postId }: CommentFormProps) {
   if (!hasDisplayName) {
     return (
       <p className="rounded-lg border px-4 py-3 text-sm text-muted-foreground">
-        Yorum yazmadan önce{" "}
-        <Link
-          href="/account"
-          className="font-medium text-foreground underline underline-offset-4"
-        >
-          hesabınızda bir görünen ad belirleyin
-        </Link>
-        . Yorumlarınız bu adla görünür.
+        {t.rich("form.displayNamePrompt", {
+          link: (chunks) => (
+            <Link
+              href="/account"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              {chunks}
+            </Link>
+          ),
+        })}
       </p>
     );
   }
@@ -78,7 +84,7 @@ export function CommentForm({ postId }: CommentFormProps) {
 
     const normalized = normalizeCommentBody(body);
     if (!normalized.ok) {
-      setError(normalized.message);
+      setError(t(`validation.${normalized.error}`, { max: String(commentBodyMaxLength) }));
       return;
     }
 
@@ -87,14 +93,14 @@ export function CommentForm({ postId }: CommentFormProps) {
       try {
         result = await createCommentAction(postId, normalized.value);
       } catch {
-        setError(commentMessages.error);
+        setError(t("messages.error"));
         return;
       }
 
       switch (result.status) {
         case "ok":
           setBody("");
-          setNotice("Yorumunuz yayımlandı.");
+          setNotice(t("form.published"));
           return;
         case "unauthenticated":
           markAnonymous();
@@ -108,7 +114,7 @@ export function CommentForm({ postId }: CommentFormProps) {
         case "rate-limited":
         case "forbidden":
         case "error":
-          setError(commentMessages[result.status]);
+          setError(t(`messages.${commentMessageKeys[result.status]}`));
       }
     });
   }
@@ -116,7 +122,7 @@ export function CommentForm({ postId }: CommentFormProps) {
   return (
     <form onSubmit={submit} className="space-y-3" noValidate>
       <div className="space-y-2">
-        <Label htmlFor="comment-body">Yorumunuz</Label>
+        <Label htmlFor="comment-body">{t("form.label")}</Label>
         <Textarea
           id="comment-body"
           name="body"
@@ -130,8 +136,10 @@ export function CommentForm({ postId }: CommentFormProps) {
           }
         />
         <p id="comment-body-hint" className="text-xs text-muted-foreground">
-          Düz metin; bağlantılar ve biçimlendirme işlenmez. {length}/
-          {commentBodyMaxLength} karakter.
+          {t("form.hint", {
+            length: String(length),
+            max: String(commentBodyMaxLength),
+          })}
         </p>
       </div>
       {error ? (
@@ -141,7 +149,7 @@ export function CommentForm({ postId }: CommentFormProps) {
       ) : null}
       {notice ? <FormAlert tone="success">{notice}</FormAlert> : null}
       <Button type="submit" disabled={pending}>
-        {pending ? "Gönderiliyor…" : "Yorumu gönder"}
+        {pending ? t("form.submitting") : t("form.submit")}
       </Button>
     </form>
   );

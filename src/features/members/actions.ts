@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import {
   getEditorialContext,
@@ -10,9 +10,12 @@ import {
 import { getAppOrigin } from "@/lib/app-origin";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 const inviteRateLimitWindowMs = 60 * 60 * 1000;
 const inviteRateLimitMax = 20;
+// Matches the maxLength of the invite form field.
+const displayNameMaxLength = 120;
 const inviteRateLimitActions = [
   "member.invite",
   "member.granted_existing",
@@ -72,14 +75,18 @@ export async function inviteMemberAction(
   _previousState: InviteMemberState,
   formData: FormData,
 ): Promise<InviteMemberState> {
-  const context = await getEditorialContext();
+  const [context, t, tAll] = await Promise.all([
+    getEditorialContext(),
+    getTranslations("adminMembers.inviteResult"),
+    getTranslations(),
+  ]);
 
   if (!context.user) {
-    return { status: "error", message: "Oturum bulunamadı. Yeniden giriş yapın." };
+    return { status: "error", message: tAll("admin.actions.sessionMissing") };
   }
 
   if (context.membership?.role !== "admin") {
-    return { status: "error", message: "Bu işlem için admin yetkisi gerekir." };
+    return { status: "error", message: tAll("adminMembers.errors.forbidden") };
   }
 
   const emailValue = formData.get("email");
@@ -88,33 +95,33 @@ export async function inviteMemberAction(
   const confirmAdmin = formData.get("confirmAdmin");
 
   if (typeof emailValue !== "string") {
-    return { status: "error", message: "E-posta gerekli." };
+    return { status: "error", message: t("emailRequired") };
   }
 
   const email = emailValue.trim().toLowerCase();
 
   if (!isValidEmail(email)) {
-    return { status: "error", message: "Geçerli bir e-posta girin." };
+    return { status: "error", message: t("emailInvalid") };
   }
 
   if (!isEditorialRole(roleValue)) {
-    return { status: "error", message: "Geçerli bir rol seçin." };
+    return { status: "error", message: t("roleInvalid") };
   }
 
   if (roleValue === "admin" && confirmAdmin !== "on") {
     return {
       status: "error",
-      message: "Admin rolü vermek için onay kutusunu işaretleyin.",
+      message: t("confirmAdmin"),
     };
   }
 
   const displayName =
     typeof displayNameValue === "string" ? displayNameValue.trim() : "";
 
-  if (displayName.length > 120) {
+  if (displayName.length > displayNameMaxLength) {
     return {
       status: "error",
-      message: "Görünen ad 120 karakteri aşamaz.",
+      message: t("displayNameTooLong", { max: displayNameMaxLength }),
     };
   }
 
@@ -133,14 +140,14 @@ export async function inviteMemberAction(
   if (rateLimitError) {
     return {
       status: "error",
-      message: "İşlem şu anda doğrulanamadı. Tekrar deneyin.",
+      message: t("verifyFailed"),
     };
   }
 
   if ((count ?? 0) >= inviteRateLimitMax) {
     return {
       status: "error",
-      message: "Saatlik davet sınırına ulaşıldı. Daha sonra tekrar deneyin.",
+      message: t("rateLimited"),
     };
   }
 
@@ -171,7 +178,7 @@ export async function inviteMemberAction(
 
         return {
           status: "error",
-          message: "Davet gönderilemedi. Supabase ayarlarını kontrol edin.",
+          message: t("sendFailed"),
         };
       }
 
@@ -186,7 +193,7 @@ export async function inviteMemberAction(
 
         return {
           status: "error",
-          message: "Bu e-posta kayıtlı görünüyor ancak kullanıcı bulunamadı.",
+          message: t("userNotFound"),
         };
       }
 
@@ -202,8 +209,7 @@ export async function inviteMemberAction(
 
         return {
           status: "error",
-          message:
-            "Bu e-posta ile doğrulanmamış bir hesap var. Kişi önce e-posta adresini doğrulamalı.",
+          message: t("unconfirmed"),
         };
       }
 
@@ -214,7 +220,7 @@ export async function inviteMemberAction(
     }
 
     if (!targetUserId) {
-      return { status: "error", message: "Davet hedefi belirlenemedi." };
+      return { status: "error", message: t("noTarget") };
     }
 
     const { error: grantError } = await supabase.rpc(
@@ -230,7 +236,7 @@ export async function inviteMemberAction(
       if (grantError.code === "23505") {
         return {
           status: "error",
-          message: "Bu kullanıcı zaten aktif bir üye.",
+          message: tAll("adminMembers.errors.alreadyMember"),
         };
       }
 
@@ -242,24 +248,21 @@ export async function inviteMemberAction(
 
       return {
         status: "error",
-        message:
-          "Davet işlendi ancak üyelik kaydı tamamlanamadı. Üye listesini kontrol edin.",
+        message: t("grantFailed"),
       };
     }
 
-    revalidatePath("/admin/members");
-    revalidatePath("/admin", "layout");
+    revalidateLocalizedPath("/admin/members");
+    revalidateLocalizedPath("/admin", "layout");
 
     return {
       status: "success",
-      message: invited
-        ? "Davet e-postası gönderildi."
-        : "Mevcut kullanıcıya rol verildi.",
+      message: invited ? t("invited") : t("granted"),
     };
   } catch {
     return {
       status: "error",
-      message: "Beklenmeyen bir hata oluştu. Tekrar deneyin.",
+      message: t("unexpected"),
     };
   }
 }
@@ -300,8 +303,8 @@ export async function updateMemberRoleAction(formData: FormData) {
     redirect(`/admin/members?error=${result.error}`);
   }
 
-  revalidatePath("/admin/members");
-  revalidatePath("/admin", "layout");
+  revalidateLocalizedPath("/admin/members");
+  revalidateLocalizedPath("/admin", "layout");
   redirect("/admin/members?status=role-updated");
 }
 
@@ -341,7 +344,7 @@ export async function setMemberActiveAction(formData: FormData) {
     redirect(`/admin/members?error=${result.error}`);
   }
 
-  revalidatePath("/admin/members");
-  revalidatePath("/admin", "layout");
+  revalidateLocalizedPath("/admin/members");
+  revalidateLocalizedPath("/admin", "layout");
   redirect("/admin/members?status=membership-updated");
 }

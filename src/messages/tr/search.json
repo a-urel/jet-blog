@@ -1,0 +1,33 @@
+{
+  "title": "Arama",
+  "queryTitle": "“{query}” araması",
+  "form": {
+    "headerLabel": "Site içinde ara",
+    "inputLabel": "Yazılarda ara",
+    "placeholder": "Yazılarda ara",
+    "submit": "Ara",
+    "pageLabel": "Yazılarda ara",
+    "queryLabel": "Aranacak sözcükler",
+    "hint": "Tam ifade için tırnak, hariç tutmak için eksi kullanın: \"küçük adım\" -taslak",
+    "language": "Dil",
+    "allLanguages": "Tüm diller"
+  },
+  "notice": {
+    "intro": "Yayımlanmış yazıların başlık, özet ve metinlerinde arama yapın.",
+    "tooShort": "Aramak için en az {min, plural, one {# karakter} other {# karakter}} yazın.",
+    "tooLong": "Arama en fazla {max, plural, one {# karakter} other {# karakter}} olabilir.",
+    "invalidPage": "Geçersiz sayfa. <link>İlk sayfaya dönün</link>.",
+    "unavailable": "Arama şu anda kullanılamıyor.",
+    "rateLimited": "Çok fazla arama yapıldı. Bir dakika sonra tekrar deneyin.",
+    "unavailableRetry": "Arama şu anda kullanılamıyor. Daha sonra tekrar deneyin.",
+    "emptyPage": "Bu sayfada sonuç yok. <link>İlk sayfaya dönün</link>.",
+    "noResults": "“{query}” için sonuç bulunamadı. Farklı ya da daha az sözcükle deneyin.",
+    "noResultsInLanguage": "“{query}” için sonuç bulunamadı ({language}). Farklı ya da daha az sözcükle deneyin."
+  },
+  "results": {
+    "heading": "Sonuçlar",
+    "count": "“{query}” için {count, plural, one {# sonuç} other {# sonuç}}",
+    "countInLanguage": "“{query}” için {count, plural, one {# sonuç} other {# sonuç}} ({language})",
+    "page": "Sayfa {page} / {pageCount}"
+  }
+}

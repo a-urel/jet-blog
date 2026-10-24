@@ -1,0 +1,25 @@
+{
+  "toggle": {
+    "label": "Merken",
+    "labelWithTitle": "Merken<sr>: {title}</sr>",
+    "saved": "Beitrag gemerkt.",
+    "removed": "Beitrag aus der Merkliste entfernt."
+  },
+  "messages": {
+    "unavailable": "Dieser Beitrag kann derzeit nicht gemerkt werden.",
+    "rateLimited": "Sie haben zu viele Anfragen zum Merken gesendet. Versuchen Sie es in einigen Minuten erneut.",
+    "error": "Die Merkliste konnte nicht aktualisiert werden. Versuchen Sie es erneut."
+  },
+  "savedPage": {
+    "metaTitle": "Gemerkt",
+    "notConfiguredAction": "Ihre gemerkten Beiträge anzusehen",
+    "eyebrow": "Konto",
+    "heading": "Gemerkt",
+    "intro": "Ihre persönliche Leseliste, nur für Sie sichtbar.",
+    "loadErrorTitle": "Gemerkte Beiträge konnten nicht geladen werden",
+    "loadErrorDescription": "Die Liste ist vorübergehend nicht verfügbar. Laden Sie die Seite neu, um es erneut zu versuchen.",
+    "emptyTitle": "Noch keine gemerkten Beiträge",
+    "emptyDescription": "Mit der Schaltfläche „Merken“ in Beiträgen sammeln Sie hier, was Sie später lesen möchten. Zurückgezogene Beiträge erscheinen nicht in der Liste.",
+    "browse": "Beiträge ansehen"
+  }
+}

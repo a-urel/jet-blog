@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
+import { useTranslations } from "next-intl";
 import {
   Bold,
   Code,
@@ -49,7 +50,7 @@ type PostBodyEditorProps = {
   invalid?: boolean;
   describedBy?: string;
   // Language of the document, so spell checking and hyphenation follow the
-  // post instead of the Turkish interface.
+  // post instead of the interface language.
   lang?: string;
   // Called on every change to the document, for unsaved-changes tracking.
   onChange?: () => void;
@@ -142,12 +143,13 @@ export function PostBodyEditor({
   lang,
   onChange,
 }: PostBodyEditorProps) {
+  const t = useTranslations("adminEditor");
   const [serialized, setSerialized] = useState(() =>
     JSON.stringify(initialContent),
   );
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
-  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState(false);
   // null: closed; "insert": upload a new image; otherwise the selected image.
   const [imagePanel, setImagePanel] = useState<
     { mode: "insert" } | { mode: "edit"; attrs: ImageAttrs } | null
@@ -196,7 +198,7 @@ export function PostBodyEditor({
   function openLinkForm() {
     if (!editor) return;
     setLinkValue((editor.getAttributes("link").href as string | undefined) ?? "");
-    setLinkError(null);
+    setLinkError(false);
     setImagePanel(null);
     setVideoPanel(null);
     setLinkOpen(true);
@@ -231,9 +233,7 @@ export function PostBodyEditor({
     const href = normalizeHrefInput(linkValue);
 
     if (!href) {
-      setLinkError(
-        "Yalnızca http(s), mailto, site içi (/...) veya sayfa içi (#...) bağlantılar desteklenir.",
-      );
+      setLinkError(true);
       return;
     }
 
@@ -291,7 +291,7 @@ export function PostBodyEditor({
         <div
           ref={toolbarRef}
           role="toolbar"
-          aria-label="Biçimlendirme"
+          aria-label={t("toolbar.label")}
           aria-controls={id}
           tabIndex={disabled ? -1 : 0}
           onFocus={handleToolbarFocus}
@@ -299,7 +299,7 @@ export function PostBodyEditor({
           className="flex flex-wrap items-center gap-0.5 border-b bg-muted/40 px-1.5 py-1 outline-none"
         >
           <ToolbarButton
-            label="Başlık 2"
+            label={t("toolbar.heading2")}
             active={state?.heading2}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -307,7 +307,7 @@ export function PostBodyEditor({
             <Heading2 aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Başlık 3"
+            label={t("toolbar.heading3")}
             active={state?.heading3}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
@@ -316,7 +316,7 @@ export function PostBodyEditor({
           </ToolbarButton>
           <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
           <ToolbarButton
-            label="Kalın"
+            label={t("toolbar.bold")}
             active={state?.bold}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleBold().run()}
@@ -324,7 +324,7 @@ export function PostBodyEditor({
             <Bold aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Eğik"
+            label={t("toolbar.italic")}
             active={state?.italic}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleItalic().run()}
@@ -332,7 +332,7 @@ export function PostBodyEditor({
             <Italic aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Üstü çizili"
+            label={t("toolbar.strike")}
             active={state?.strike}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleStrike().run()}
@@ -340,7 +340,7 @@ export function PostBodyEditor({
             <Strikethrough aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Satır içi kod"
+            label={t("toolbar.code")}
             active={state?.code}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleCode().run()}
@@ -348,7 +348,7 @@ export function PostBodyEditor({
             <Code aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Bağlantı"
+            label={t("toolbar.link")}
             active={state?.link}
             disabled={disabled}
             onClick={openLinkForm}
@@ -357,7 +357,7 @@ export function PostBodyEditor({
           </ToolbarButton>
           <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
           <ToolbarButton
-            label="Madde listesi"
+            label={t("toolbar.bulletList")}
             active={state?.bulletList}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleBulletList().run()}
@@ -365,7 +365,7 @@ export function PostBodyEditor({
             <List aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Numaralı liste"
+            label={t("toolbar.orderedList")}
             active={state?.orderedList}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleOrderedList().run()}
@@ -373,7 +373,7 @@ export function PostBodyEditor({
             <ListOrdered aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Alıntı"
+            label={t("toolbar.blockquote")}
             active={state?.blockquote}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleBlockquote().run()}
@@ -381,7 +381,7 @@ export function PostBodyEditor({
             <Quote aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Kod bloğu"
+            label={t("toolbar.codeBlock")}
             active={state?.codeBlock}
             disabled={disabled}
             onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
@@ -389,14 +389,14 @@ export function PostBodyEditor({
             <SquareCode aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Ayırıcı çizgi"
+            label={t("toolbar.horizontalRule")}
             disabled={disabled}
             onClick={() => editor?.chain().focus().setHorizontalRule().run()}
           >
             <Minus aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label={state?.image ? "Görseli düzenle" : "Görsel ekle"}
+            label={state?.image ? t("toolbar.editImage") : t("toolbar.insertImage")}
             active={state?.image}
             disabled={disabled}
             onClick={openImagePanel}
@@ -404,7 +404,7 @@ export function PostBodyEditor({
             <ImagePlus aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label={state?.youtube ? "Videoyu düzenle" : "YouTube videosu ekle"}
+            label={state?.youtube ? t("toolbar.editVideo") : t("toolbar.insertVideo")}
             active={state?.youtube}
             disabled={disabled}
             onClick={openVideoPanel}
@@ -413,14 +413,14 @@ export function PostBodyEditor({
           </ToolbarButton>
           <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
           <ToolbarButton
-            label="Geri al"
+            label={t("toolbar.undo")}
             disabled={disabled || !state?.canUndo}
             onClick={() => editor?.chain().focus().undo().run()}
           >
             <Undo2 aria-hidden="true" />
           </ToolbarButton>
           <ToolbarButton
-            label="Yinele"
+            label={t("toolbar.redo")}
             disabled={disabled || !state?.canRedo}
             onClick={() => editor?.chain().focus().redo().run()}
           >
@@ -430,7 +430,7 @@ export function PostBodyEditor({
 
         {linkOpen ? (
           <div className="space-y-2 border-b px-3 py-3">
-            <Label htmlFor={`${id}-link`}>Bağlantı adresi</Label>
+            <Label htmlFor={`${id}-link`}>{t("link.label")}</Label>
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 id={`${id}-link`}
@@ -458,12 +458,12 @@ export function PostBodyEditor({
                 }}
               />
               <Button type="button" size="sm" onClick={applyLink}>
-                Uygula
+                {t("link.apply")}
               </Button>
               {state?.link ? (
                 <Button type="button" size="sm" variant="outline" onClick={removeLink}>
                   <Unlink aria-hidden="true" />
-                  Kaldır
+                  {t("link.remove")}
                 </Button>
               ) : null}
               <Button
@@ -475,12 +475,12 @@ export function PostBodyEditor({
                   editor?.commands.focus();
                 }}
               >
-                Vazgeç
+                {t("cancel")}
               </Button>
             </div>
             {linkError ? (
               <p id={`${id}-link-error`} className="text-sm text-destructive">
-                {linkError}
+                {t("link.invalid")}
               </p>
             ) : null}
           </div>
@@ -511,7 +511,7 @@ export function PostBodyEditor({
             aria-hidden="true"
             className="min-h-64 px-4 py-3 text-sm text-muted-foreground"
           >
-            Editör yükleniyor…
+            {t("loading")}
           </div>
         )}
       </div>

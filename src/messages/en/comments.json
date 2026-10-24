@@ -1,0 +1,48 @@
+{
+  "section": {
+    "heading": "Comments",
+    "commentLabel": "Comment by {name}",
+    "empty": "No comments yet."
+  },
+  "form": {
+    "loading": "Loading the comment form",
+    "signInPrompt": "<link>Sign in</link> to write a comment.",
+    "loadError": "The comment form could not be loaded. Refresh the page and try again.",
+    "displayNamePrompt": "Before commenting, <link>set a display name in your account</link>. Your comments appear under this name.",
+    "label": "Your comment",
+    "hint": "Plain text; links and formatting are not rendered. {length}/{max} characters.",
+    "published": "Your comment has been published.",
+    "submit": "Post comment",
+    "submitting": "Posting…"
+  },
+  "validation": {
+    "bodyEmpty": "The comment cannot be empty.",
+    "bodyTooLong": "The comment can be at most {max} characters long."
+  },
+  "messages": {
+    "displayNameRequired": "Set a display name in your account before commenting.",
+    "unavailable": "This comment or post is currently unavailable.",
+    "duplicate": "You already posted this comment a moment ago.",
+    "rateLimited": "You have sent too many requests. Try again later.",
+    "forbidden": "You are not allowed to do this.",
+    "error": "The action could not be completed. Try again."
+  },
+  "itemActions": {
+    "deletePrompt": "Permanently delete your comment?",
+    "confirmDelete": "Yes, delete",
+    "deleting": "Deleting…",
+    "cancel": "Cancel",
+    "delete": "Delete<sr>: your own comment</sr>",
+    "reported": "You reported this comment. Editors will review it.",
+    "report": "Report<sr>: comment by {name}</sr>",
+    "reasonLegend": "Reason for reporting",
+    "submitReport": "Report",
+    "submitting": "Sending…"
+  },
+  "reportReasons": {
+    "spam": "Spam or advertising",
+    "abuse": "Insults, harassment, or hate speech",
+    "offTopic": "Off topic",
+    "other": "Other"
+  }
+}

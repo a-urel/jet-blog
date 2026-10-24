@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { CircleAlert, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +27,8 @@ export function RouteError({
   backHref,
   backLabel,
 }: RouteErrorProps) {
+  const t = useTranslations("common.error");
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -40,19 +43,19 @@ export function RouteError({
       <title>{title}</title>
       <p className="mb-3 flex items-center gap-2 text-sm font-medium text-destructive">
         <CircleAlert aria-hidden="true" className="size-4" />
-        Hata
+        {t("label")}
       </p>
       <h1 className="text-3xl font-semibold">{title}</h1>
       <p className="mt-4 text-muted-foreground">{description}</p>
       {digest ? (
         <p className="mt-2 text-sm text-muted-foreground">
-          Hata kodu: <code className="font-mono">{digest}</code>
+          {t("digest")} <code className="font-mono">{digest}</code>
         </p>
       ) : null}
       <div className="mt-8 flex flex-wrap gap-3">
         <Button type="button" onClick={() => retry()}>
           <RotateCcw aria-hidden="true" />
-          Tekrar dene
+          {t("retry")}
         </Button>
         <Button asChild variant="outline">
           <Link href={backHref}>{backLabel}</Link>

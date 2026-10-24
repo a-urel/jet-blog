@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { EyeOff, Send } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
   AlertDialog,
@@ -19,7 +20,7 @@ import {
   publishPostAction,
   unpublishPostAction,
 } from "@/features/posts/admin/actions";
-import { publicationConfirmation } from "@/features/posts/admin/publication";
+import { publicationConfirmationKey } from "@/features/posts/admin/publication";
 
 type PublicationControlProps = {
   postId: string;
@@ -40,7 +41,8 @@ export function PublicationControl({
   title,
 }: PublicationControlProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const copy = publicationConfirmation(published, title);
+  const t = useTranslations("adminPosts");
+  const copy = publicationConfirmationKey(published);
 
   return (
     <form
@@ -53,21 +55,23 @@ export function PublicationControl({
         <AlertDialogTrigger asChild>
           <Button type="button" variant={published ? "outline" : "default"}>
             {published ? <EyeOff aria-hidden="true" /> : <Send aria-hidden="true" />}
-            {copy.trigger}
+            {t(`publication.${copy}.trigger`)}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{copy.title}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.description}</AlertDialogDescription>
+            <AlertDialogTitle>{t(`publication.${copy}.title`)}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(`publication.${copy}.description`, { title })}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogCancel>{t("shared.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant={published ? "destructive" : "default"}
               onClick={() => formRef.current?.requestSubmit()}
             >
-              {copy.confirm}
+              {t(`publication.${copy}.confirm`)}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,0 +1,69 @@
+{
+  "roles": {
+    "admin": "Admin",
+    "editor": "Editör",
+    "author": "Yazar"
+  },
+  "shell": {
+    "label": "Yönetim",
+    "missingEmail": "E-posta bilgisi yok",
+    "navLabel": "Yönetim menüsü",
+    "nav": {
+      "overview": "Genel bakış",
+      "posts": "Yazılar",
+      "media": "Medya",
+      "comments": "Yorumlar",
+      "categories": "Kategoriler",
+      "tags": "Etiketler",
+      "authors": "Yazarlar",
+      "members": "Üyeler"
+    },
+    "signOut": "Çıkış yap",
+    "backToSite": "Siteye dön",
+    "deniedTitle": "Yönetim erişimi yok",
+    "deniedDescription": "Bu alan yalnızca davet edilen editöryal üyelere açıktır. Okur hesapları yönetim alanına erişemez; editöryal erişim yalnızca bir adminin davetiyle verilir."
+  },
+  "dashboard": {
+    "title": "Genel bakış",
+    "intro": "Oturumunuz ve editöryal üyeliğiniz sunucuda doğrulandı.",
+    "yourRole": "Rolünüz: {role}",
+    "roleDescriptions": {
+      "admin": "Üyeleri yönetebilir, rol verebilir ve içerik yetkilerinin tamamına sahipsiniz.",
+      "editor": "Her yazıyı oluşturup düzenleyebilir ve yayınlayabilirsiniz. Üye yönetimi admin yetkisindedir.",
+      "author": "Kendi taslaklarınızı oluşturup düzenleyebilirsiniz. Yayınlama ve üye yönetimi diğer rollerdedir."
+    },
+    "features": "Taslak oluşturma, gövde editörü, görsel ve YouTube ekleme, kategori, etiket ve sıralı yazar kredileri hazırdır. Editörler ve adminler yazıları yayınlayıp yayından kaldırabilir.",
+    "contentTitle": "İçerik",
+    "contentDescription": "Taslak oluşturun, metadata bilgilerini düzenleyin veya üyelere özel önizlemeyi açın.",
+    "openPosts": "Yazıları aç",
+    "membersTitle": "Üye yönetimi",
+    "membersDescription": "Editöryal üyeleri davet edin, rollerini değiştirin veya deaktive edin.",
+    "manageMembers": "Üyeleri yönet"
+  },
+  "error": {
+    "title": "Bu yönetim sayfası yüklenemedi",
+    "description": "Veriler alınırken bir hata oluştu. Tekrar deneyin; sorun sürerse oturumunuzu yenileyin.",
+    "back": "Genel bakışa dön"
+  },
+  "loading": "Yükleniyor…",
+  "missing": {
+    "title": "Kayıt bulunamadı",
+    "description": "Bu kayıt yok veya görüntüleme yetkiniz bulunmuyor.",
+    "back": "Yazılara dön"
+  },
+  "form": {
+    "save": "Kaydet",
+    "saving": "Kaydediliyor…",
+    "delete": "Sil",
+    "deleting": "Siliniyor…"
+  },
+  "actions": {
+    "sessionMissing": "Oturum bulunamadı. Yeniden giriş yapın.",
+    "invalidRequest": "Geçersiz istek.",
+    "fixErrors": "Formdaki hataları düzeltin.",
+    "confirmDelete": "Silme işlemini onaylamak için kutuyu işaretleyin.",
+    "rateLimited": "Kısa sürede çok fazla değişiklik yapıldı. Formdaki bilgiler korundu; birkaç dakika sonra tekrar deneyin.",
+    "invalidInput": "Gönderilen bilgiler geçersiz.",
+    "failed": "İşlem tamamlanamadı. Tekrar deneyin."
+  }
+}

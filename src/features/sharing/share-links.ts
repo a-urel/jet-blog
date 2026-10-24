@@ -9,7 +9,13 @@ export type ShareLink = {
   href: string;
 };
 
-export function buildShareLinks(input: { url: string; title: string }): ShareLink[] {
+// Provider names are brands and stay as they are; only the e-mail link's
+// label is interface copy, so the caller passes it translated.
+export function buildShareLinks(input: {
+  url: string;
+  title: string;
+  emailLabel: string;
+}): ShareLink[] {
   const url = encodeURIComponent(input.url);
   const title = encodeURIComponent(input.title);
   const titleAndUrl = encodeURIComponent(`${input.title} ${input.url}`);
@@ -27,6 +33,6 @@ export function buildShareLinks(input: { url: string; title: string }): ShareLin
       href: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
     },
     { provider: "whatsapp", label: "WhatsApp", href: `https://wa.me/?text=${titleAndUrl}` },
-    { provider: "email", label: "E-posta", href: `mailto:?subject=${title}&body=${url}` },
+    { provider: "email", label: input.emailLabel, href: `mailto:?subject=${title}&body=${url}` },
   ];
 }

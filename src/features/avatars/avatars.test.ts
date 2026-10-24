@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { testImages } from "@/features/media/test-images";
 import { avatarObjectName, avatarPublicPath, avatarPublicUrl } from "./url";
+import trAvatars from "@/messages/tr/avatars.json";
 import {
   avatarInitials,
+  avatarLimitValues,
   maxAvatarBytes,
   maxAvatarDimension,
   minAvatarDimension,
@@ -29,7 +31,7 @@ describe("validateAvatarUpload", () => {
 
     // The fixtures are 3x2, so these only pass the type check.
     for (const bytes of [testImages.jpeg, testImages.webp, testImages.losslessWebp]) {
-      expect(validateAvatarUpload(bytes)).toEqual({ ok: false, reason: "invalid-dimensions" });
+      expect(validateAvatarUpload(bytes)).toEqual({ ok: false, reason: "invalidDimensions" });
     }
   });
 
@@ -38,7 +40,7 @@ describe("validateAvatarUpload", () => {
     ["SVG", testImages.svg],
     ["HTML", testImages.html],
   ])("rejects %s", (_name, bytes) => {
-    expect(validateAvatarUpload(bytes)).toEqual({ ok: false, reason: "unsupported-type" });
+    expect(validateAvatarUpload(bytes)).toEqual({ ok: false, reason: "unsupportedType" });
   });
 
   it("rejects empty and oversized files", () => {
@@ -46,7 +48,7 @@ describe("validateAvatarUpload", () => {
 
     const oversized = new Uint8Array(maxAvatarBytes + 1);
     oversized.set(pngWithSize(256, 256));
-    expect(validateAvatarUpload(oversized)).toEqual({ ok: false, reason: "too-large" });
+    expect(validateAvatarUpload(oversized)).toEqual({ ok: false, reason: "tooLarge" });
   });
 
   it("bounds the edge length", () => {
@@ -54,12 +56,21 @@ describe("validateAvatarUpload", () => {
     expect(validateAvatarUpload(pngWithSize(maxAvatarDimension, 400)).ok).toBe(true);
     expect(validateAvatarUpload(pngWithSize(minAvatarDimension - 1, 400))).toEqual({
       ok: false,
-      reason: "invalid-dimensions",
+      reason: "invalidDimensions",
     });
     expect(validateAvatarUpload(pngWithSize(400, maxAvatarDimension + 1))).toEqual({
       ok: false,
-      reason: "invalid-dimensions",
+      reason: "invalidDimensions",
     });
+  });
+});
+
+describe("avatar rejection keys", () => {
+  it("exist in the source catalog with their limits", () => {
+    for (const key of ["empty", "tooLarge", "unsupportedType", "invalidDimensions"] as const) {
+      expect(trAvatars.rejection[key]).toBeTruthy();
+    }
+    expect(avatarLimitValues).toEqual({ maxMegabytes: 2, min: 16, max: 4096 });
   });
 });
 

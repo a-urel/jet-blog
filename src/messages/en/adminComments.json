@@ -1,0 +1,58 @@
+{
+  "metaTitle": "Comments",
+  "accessDenied": {
+    "title": "Comment moderation is not available",
+    "description": "Only editors and admins can hide or delete comments."
+  },
+  "heading": "Comments",
+  "intro": "Comments are published as soon as they are posted; review reader reports and hide or delete comments when needed.",
+  "statusMessages": {
+    "hidden": "Comment hidden; it no longer appears on the site.",
+    "visible": "Comment is visible again.",
+    "deleted": "Comment deleted."
+  },
+  "filtersLabel": "Comment filters",
+  "filters": {
+    "reported": "Reported",
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "deleted": "Deleted"
+  },
+  "filterTitles": {
+    "reported": "Reported comments",
+    "visible": "Visible comments",
+    "hidden": "Hidden comments",
+    "deleted": "Deleted comments"
+  },
+  "filterDescriptions": {
+    "reported": "Comments with at least one report that are still visible. Reports do not hide a comment automatically.",
+    "visible": "All comments shown on the site.",
+    "hidden": "Hidden comments do not appear on the site; they can be shown again.",
+    "deleted": "Deleted comments are permanently hidden and cannot be restored."
+  },
+  "summary": "Newest comments first; {total} in total.",
+  "summaryPaged": "Newest comments first; {total} in total · Page {page} of {pageCount}.",
+  "empty": "No comments in this filter.",
+  "statusLabels": {
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "deleted": "Deleted"
+  },
+  "reportCount": "{count, plural, one {# report} other {# reports}}",
+  "post": "Post: <link>{title}</link>",
+  "postUnpublished": "Post: <muted>{title} (not published)</muted>",
+  "reasons": "Report reasons: {reasons}",
+  "reasonCount": "{reason} ({count})",
+  "pagination": {
+    "label": "Comment pages",
+    "currentPage": "Page {page}, current page"
+  },
+  "actions": {
+    "hide": "Hide",
+    "restore": "Show again",
+    "delete": "Delete",
+    "confirmDelete": "Yes, delete",
+    "cancel": "Cancel",
+    "unauthenticated": "No session found. Sign in again."
+  }
+}

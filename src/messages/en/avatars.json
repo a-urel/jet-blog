@@ -1,0 +1,19 @@
+{
+  "form": {
+    "remove": "Remove picture",
+    "removing": "Removing…",
+    "newPhoto": "New picture",
+    "photo": "Picture",
+    "hint": "JPEG, PNG, or WebP; up to {maxMegabytes} MB. Non-square images are cropped to the center.",
+    "upload": "Upload",
+    "uploading": "Uploading…"
+  },
+  "rejection": {
+    "noFile": "Choose an image file.",
+    "empty": "The file is empty.",
+    "tooLarge": "A profile picture can be at most {maxMegabytes} MB.",
+    "unsupportedType": "Only JPEG, PNG, and WebP images can be uploaded.",
+    "invalidDimensions": "Image edges must be between {min} and {max} pixels.",
+    "uploadRefused": "The upload was refused. Check your permissions or try again in a few minutes (at most 10 images per 10 minutes)."
+  }
+}

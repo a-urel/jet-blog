@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getLocale } from "next-intl/server";
+
 import { defaultPostLanguage, isPostLanguage } from "@/features/posts/language";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
@@ -59,7 +61,11 @@ function isPostStatus(value: string): value is PostStatus {
   return value === "draft" || value === "published";
 }
 
-function buildCategoryOptions(rows: RawCategory[]): CategoryOption[] {
+// Sibling names sort in the interface language, like the rest of the admin.
+function buildCategoryOptions(
+  rows: RawCategory[],
+  locale: string,
+): CategoryOption[] {
   const byParent = new Map<string | null, RawCategory[]>();
 
   for (const row of rows) {
@@ -72,7 +78,7 @@ function buildCategoryOptions(rows: RawCategory[]): CategoryOption[] {
     siblings.sort(
       (left, right) =>
         left.sort_order - right.sort_order ||
-        left.name.localeCompare(right.name, "tr"),
+        left.name.localeCompare(right.name, locale),
     );
   }
 
@@ -103,6 +109,7 @@ function buildCategoryOptions(rows: RawCategory[]): CategoryOption[] {
 
 export async function listTaxonomyOptions(): Promise<TaxonomyOptions> {
   const supabase = await createServerSupabaseClient();
+  const locale = await getLocale();
   const [categories, tags, authors] = await Promise.all([
     supabase
       .from("categories")
@@ -131,6 +138,7 @@ export async function listTaxonomyOptions(): Promise<TaxonomyOptions> {
   return {
     categories: buildCategoryOptions(
       (categories.data ?? []) as unknown as RawCategory[],
+      locale,
     ),
     tags: ((tags.data ?? []) as { id: string; name: string }[]).map((tag) => ({
       id: tag.id,
@@ -214,6 +222,7 @@ export async function getAdminPostDetail(
   if (!postResult.data) return { post: null, error: false };
 
   const raw = postResult.data as unknown as RawPost;
+  const locale = await getLocale();
 
   const [creditsResult, tagsResult] = await Promise.all([
     supabase
@@ -251,7 +260,7 @@ export async function getAdminPostDetail(
       const tag = firstRelated(relation.tag);
       return tag ? [tag] : [];
     })
-    .sort((left, right) => left.name.localeCompare(right.name, "tr"));
+    .sort((left, right) => left.name.localeCompare(right.name, locale));
 
   return {
     post: {

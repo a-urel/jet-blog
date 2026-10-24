@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { CircleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { signInAction, type SignInState } from "@/features/auth/actions";
 const initialState: SignInState = { error: null };
 
 export function SignInForm({ returnPath }: { returnPath?: string | null }) {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
     signInAction,
     initialState,
@@ -20,7 +22,7 @@ export function SignInForm({ returnPath }: { returnPath?: string | null }) {
     <form action={formAction} className="space-y-5">
       {returnPath ? <input type="hidden" name="next" value={returnPath} /> : null}
       <div className="space-y-2">
-        <Label htmlFor="email">E-posta</Label>
+        <Label htmlFor="email">{t("fields.email")}</Label>
         <Input
           id="email"
           name="email"
@@ -34,7 +36,7 @@ export function SignInForm({ returnPath }: { returnPath?: string | null }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Parola</Label>
+        <Label htmlFor="password">{t("fields.password")}</Label>
         <Input
           id="password"
           name="password"
@@ -58,7 +60,7 @@ export function SignInForm({ returnPath }: { returnPath?: string | null }) {
       ) : null}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Giriş yapılıyor…" : "Giriş yap"}
+        {pending ? t("signIn.pending") : t("signIn.submit")}
       </Button>
     </form>
   );

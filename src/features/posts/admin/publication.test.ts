@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import trMessages from "@/messages/tr/adminPosts.json";
+
 import {
-  publicationConfirmation,
+  publicationConfirmationKey,
   publicationErrorKey,
-  publicationErrorMessage,
-  publicationErrorMessages,
+  publicationErrorMessageKey,
 } from "./publication";
 
 describe("publicationErrorKey", () => {
@@ -45,31 +46,46 @@ describe("publicationErrorKey", () => {
   });
 });
 
-describe("publicationErrorMessage", () => {
-  it("returns copy only for known keys", () => {
-    expect(publicationErrorMessage("category")).toBe(publicationErrorMessages.category);
-    expect(publicationErrorMessage("toString")).toBeNull();
-    expect(publicationErrorMessage(["category"])).toBeNull();
-    expect(publicationErrorMessage(undefined)).toBeNull();
+describe("publicationErrorMessageKey", () => {
+  it("returns a catalog key only for known error keys", () => {
+    expect(publicationErrorMessageKey("category")).toBe("category");
+    expect(publicationErrorMessageKey("rate-limited")).toBe("rateLimited");
+    expect(publicationErrorMessageKey("toString")).toBeNull();
+    expect(publicationErrorMessageKey(["category"])).toBeNull();
+    expect(publicationErrorMessageKey(undefined)).toBeNull();
+  });
+
+  it("has catalog copy for every key", () => {
+    const errors = trMessages.publication.errors as Record<string, string>;
+
+    for (const key of [
+      "forbidden",
+      "conflict",
+      "category",
+      "cover",
+      "body",
+      "state",
+      "missing",
+      "rate-limited",
+      "failed",
+    ]) {
+      const messageKey = publicationErrorMessageKey(key);
+      expect(messageKey).not.toBeNull();
+      expect(errors[messageKey!]).toBeTruthy();
+    }
+
+    expect(errors.category).toBe("Yayınlamak için önce bir kategori seçip kaydedin.");
   });
 });
 
-describe("publicationConfirmation", () => {
-  it("asks before publishing a draft and names the post", () => {
-    const copy = publicationConfirmation(false, "İlk yazı");
-
-    expect(copy.trigger).toBe("Yayınla");
-    expect(copy.confirm).toBe("Yayınla");
-    expect(copy.title).toBe("Yazı yayınlansın mı?");
-    expect(copy.description).toContain("“İlk yazı”");
-    expect(copy.description).toContain("Kaydedilmemiş değişiklikler");
+describe("publicationConfirmationKey", () => {
+  it("asks before publishing a draft", () => {
+    expect(publicationConfirmationKey(false)).toBe("publish");
+    expect(trMessages.publication.publish.title).toBe("Yazı yayınlansın mı?");
   });
 
   it("asks before unpublishing a published post", () => {
-    const copy = publicationConfirmation(true, "İlk yazı");
-
-    expect(copy.trigger).toBe("Yayından kaldır");
-    expect(copy.title).toBe("Yazı yayından kaldırılsın mı?");
-    expect(copy.description).toContain("taslağa döner");
+    expect(publicationConfirmationKey(true)).toBe("unpublish");
+    expect(trMessages.publication.unpublish.trigger).toBe("Yayından kaldır");
   });
 });

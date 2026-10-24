@@ -1,0 +1,33 @@
+{
+  "title": "Search",
+  "queryTitle": "Search for “{query}”",
+  "form": {
+    "headerLabel": "Search the site",
+    "inputLabel": "Search posts",
+    "placeholder": "Search posts",
+    "submit": "Search",
+    "pageLabel": "Search posts",
+    "queryLabel": "Search terms",
+    "hint": "Use quotes for an exact phrase and a minus sign to exclude a word: \"small step\" -draft",
+    "language": "Language",
+    "allLanguages": "All languages"
+  },
+  "notice": {
+    "intro": "Search the titles, excerpts, and text of published posts.",
+    "tooShort": "Enter at least {min, plural, one {# character} other {# characters}} to search.",
+    "tooLong": "A search can be at most {max, plural, one {# character} other {# characters}} long.",
+    "invalidPage": "Invalid page. <link>Go back to the first page</link>.",
+    "unavailable": "Search is unavailable right now.",
+    "rateLimited": "Too many searches. Please try again in a minute.",
+    "unavailableRetry": "Search is unavailable right now. Please try again later.",
+    "emptyPage": "There are no results on this page. <link>Go back to the first page</link>.",
+    "noResults": "No results for “{query}”. Try different or fewer words.",
+    "noResultsInLanguage": "No results for “{query}” ({language}). Try different or fewer words."
+  },
+  "results": {
+    "heading": "Results",
+    "count": "{count, plural, one {# result} other {# results}} for “{query}”",
+    "countInLanguage": "{count, plural, one {# result} other {# results}} for “{query}” ({language})",
+    "page": "Page {page} of {pageCount}"
+  }
+}

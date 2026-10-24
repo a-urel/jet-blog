@@ -1,0 +1,103 @@
+{
+  "denied": {
+    "title": "Kategorie- und Schlagwortverwaltung nicht verfügbar",
+    "description": "Diese Seite steht nur der Admin-Rolle offen. Redakteure können vorhandene Kategorien und Schlagwörter Beiträgen zuweisen."
+  },
+  "validation": {
+    "nameRequired": "Name ist erforderlich.",
+    "nameTooLong": "Der Name darf höchstens {max, number, ::group-off} Zeichen lang sein.",
+    "slugUnavailable": "Es konnte kein Slug erzeugt werden; geben Sie ihn manuell ein.",
+    "slugTooLong": "Der Slug darf höchstens {max, number, ::group-off} Zeichen lang sein.",
+    "slugInvalid": "Der Slug darf nur Kleinbuchstaben, Ziffern und einzelne Bindestriche enthalten.",
+    "descriptionTooLong": "Die Beschreibung darf höchstens {max, number, ::group-off} Zeichen lang sein.",
+    "parentInvalid": "Wählen Sie eine gültige übergeordnete Kategorie.",
+    "sortOrderInvalid": "Die Reihenfolge muss eine ganze Zahl zwischen {min, number, ::group-off} und {max, number, ::group-off} sein."
+  },
+  "errors": {
+    "forbidden": "Für die Verwaltung von Kategorien und Schlagwörtern ist die Admin-Berechtigung erforderlich.",
+    "stale": "{kind, select, category {Die Kategorie} other {Das Schlagwort}} wurde geändert, nachdem Sie die Seite geöffnet haben. Laden Sie die Seite neu und übernehmen Sie Ihre Änderung erneut.",
+    "missing": "{kind, select, category {Kategorie} other {Schlagwort}} nicht gefunden.",
+    "nameTaken": "Dieser Name wird bereits verwendet.",
+    "slugTaken": "Dieser Slug wird bereits verwendet oder leitet von einer alten Adresse weiter.",
+    "cycle": "Eine Kategorie kann nicht unter sich selbst oder eine ihrer Unterkategorien verschoben werden.",
+    "cycleField": "Die Kategorie selbst oder eine Unterkategorie kann nicht übergeordnet sein.",
+    "selfParent": "Eine Kategorie kann nicht unter sich selbst verschoben werden.",
+    "tooDeep": "Der Kategorienbaum darf nicht tiefer als 100 Ebenen sein.",
+    "tooDeepField": "Der Kategorienbaum ist zu tief.",
+    "targetRequired": "Beiträge verwenden diese Kategorie; wählen Sie eine Kategorie, in die sie verschoben werden.",
+    "targetInvalid": "Wählen Sie eine gültige Zielkategorie."
+  },
+  "form": {
+    "name": "Name",
+    "slug": "Slug",
+    "slugPlaceholder": "Wird aus dem Namen erzeugt, wenn leer",
+    "slugHintEdit": "Ändert sich der Slug, leitet die alte Archivadresse auf die neue weiter.",
+    "slugHintNew": "Kleinbuchstaben, Ziffern und Bindestriche.",
+    "parent": "Übergeordnete Kategorie",
+    "parentNone": "Keine (oberste Ebene)",
+    "sortOrder": "Reihenfolge",
+    "description": "Beschreibung",
+    "descriptionHint": "Optional. Wird auf der Archivseite und in den Suchergebnissen angezeigt."
+  },
+  "deleteForm": {
+    "targetForPosts": "Kategorie, in die die Beiträge verschoben werden",
+    "targetForRedirect": "Kategorie, auf die die alte Adresse weiterleitet",
+    "targetPlaceholder": "Kategorie wählen",
+    "targetNone": "Keine (alte Adresse liefert 404)"
+  },
+  "postCount": "{count, plural, one {# Beitrag} other {# Beiträge}}",
+  "categories": {
+    "title": "Kategorien",
+    "intro": "Jeder Beitrag gehört zu genau einer Kategorie. Archive übergeordneter Kategorien listen auch die Beiträge ihrer Unterkategorien.",
+    "status": {
+      "created": "Kategorie erstellt.",
+      "updated": "Kategorie aktualisiert.",
+      "deleted": "Kategorie gelöscht."
+    },
+    "treeTitle": "Kategorienbaum",
+    "treeDescription": "Die Beitragszahl enthält auch Entwürfe. Wählen Sie eine Kategorie, um sie zu bearbeiten, zu verschieben oder zu löschen.",
+    "empty": "Noch keine Kategorien.",
+    "newTitle": "Neue Kategorie",
+    "newDescription": "Der Name muss eindeutig sein (Groß-/Kleinschreibung wird nicht unterschieden).",
+    "create": "Kategorie erstellen"
+  },
+  "category": {
+    "metaTitle": "Kategorie bearbeiten",
+    "back": "← Kategorien",
+    "summary": "{posts, plural, one {# Beitrag} other {# Beiträge}} · {children, plural, one {# Unterkategorie} other {# Unterkategorien}}",
+    "editTitle": "Kategorie bearbeiten",
+    "editDescription": "Ändern Sie die übergeordnete Kategorie, um die Kategorie samt Unterkategorien zu verschieben. Unter sich selbst kann sie nicht verschoben werden.",
+    "deleteTitle": "Kategorie löschen",
+    "deleteMovesPosts": "{count, plural, one {Der # Beitrag} other {Die # Beiträge}} dieser Kategorie {count, plural, one {wird} other {werden}} in die gewählte Kategorie verschoben, und die alte Archivadresse leitet dorthin weiter.",
+    "deleteNoPosts": "Diese Kategorie enthält keine Beiträge. Sie können die alte Archivadresse optional auf eine andere Kategorie weiterleiten.",
+    "deleteMovesChildrenToParent": "{count, plural, one {# Unterkategorie wird} other {# Unterkategorien werden}} unter „{parent}“ verschoben.",
+    "deleteMovesChildrenToRoot": "{count, plural, one {# Unterkategorie wird} other {# Unterkategorien werden}} auf die oberste Ebene verschoben.",
+    "noTargets": "Es gibt keine andere Kategorie, in die die Beiträge verschoben werden können. Erstellen Sie zuerst eine neue Kategorie.",
+    "confirm": "Mir ist bewusst, dass die Kategorie „{name}“ gelöscht wird."
+  },
+  "tags": {
+    "title": "Schlagwörter",
+    "intro": "Ein Beitrag kann mehrere Schlagwörter tragen; jedes Schlagwort hat ein eigenes Archiv.",
+    "status": {
+      "created": "Schlagwort erstellt.",
+      "updated": "Schlagwort aktualisiert.",
+      "deleted": "Schlagwort gelöscht und aus den Beiträgen entfernt."
+    },
+    "listTitle": "Alle Schlagwörter",
+    "listDescription": "Die Beitragszahl enthält auch Entwürfe.",
+    "empty": "Noch keine Schlagwörter.",
+    "newTitle": "Neues Schlagwort",
+    "newDescription": "Der Name muss eindeutig sein (Groß-/Kleinschreibung wird nicht unterschieden).",
+    "create": "Schlagwort erstellen"
+  },
+  "tag": {
+    "metaTitle": "Schlagwort bearbeiten",
+    "back": "← Schlagwörter",
+    "editTitle": "Schlagwort bearbeiten",
+    "deleteTitle": "Schlagwort löschen",
+    "deleteUsed": "Das Schlagwort wird aus {count, plural, one {# Beitrag} other {# Beiträgen}} entfernt. Die alte Archivadresse liefert 404.",
+    "deleteUnused": "Dieses Schlagwort wird in keinem Beitrag verwendet.",
+    "confirmUsed": "Mir ist bewusst, dass das Schlagwort „{name}“ aus {count, plural, one {# Beitrag} other {# Beiträgen}} entfernt und gelöscht wird.",
+    "confirm": "Mir ist bewusst, dass das Schlagwort „{name}“ gelöscht wird."
+  }
+}

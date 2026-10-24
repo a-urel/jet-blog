@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ const initialState: PasswordResetRequestState = {
 };
 
 export function PasswordResetRequestForm() {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
     requestPasswordResetAction,
     initialState,
@@ -29,7 +31,7 @@ export function PasswordResetRequestForm() {
   return (
     <form action={formAction} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="email">E-posta</Label>
+        <Label htmlFor="email">{t("fields.email")}</Label>
         <Input
           id="email"
           name="email"
@@ -49,7 +51,7 @@ export function PasswordResetRequestForm() {
       ) : null}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Gönderiliyor…" : "Sıfırlama bağlantısı gönder"}
+        {pending ? t("passwordReset.pending") : t("passwordReset.submit")}
       </Button>
     </form>
   );

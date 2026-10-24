@@ -1,0 +1,19 @@
+{
+  "posts": "Yazılar",
+  "category": {
+    "eyebrow": "Kategori",
+    "title": "{name} kategorisi",
+    "description": "{name} kategorisindeki yazılar.",
+    "ancestors": "Üst kategoriler",
+    "children": "Alt kategorilerin yazıları da listelenir:"
+  },
+  "tag": {
+    "eyebrow": "Etiket",
+    "title": "{name} etiketi",
+    "description": "{name} etiketiyle işaretlenen yazılar."
+  },
+  "author": {
+    "eyebrow": "Yazar",
+    "description": "{name} imzalı yazılar."
+  }
+}

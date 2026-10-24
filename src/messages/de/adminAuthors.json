@@ -1,0 +1,75 @@
+{
+  "denied": {
+    "title": "Autorenverwaltung nicht verfügbar",
+    "description": "Diese Seite steht nur der Admin-Rolle offen. Redakteure können vorhandene Autoren in Beiträgen nennen."
+  },
+  "validation": {
+    "nameRequired": "Name ist erforderlich.",
+    "nameTooLong": "Der Name darf höchstens {max, number, ::group-off} Zeichen lang sein.",
+    "slugUnavailable": "Es konnte kein Slug erzeugt werden; geben Sie ihn manuell ein.",
+    "slugTooLong": "Der Slug darf höchstens {max, number, ::group-off} Zeichen lang sein.",
+    "slugInvalid": "Der Slug darf nur Kleinbuchstaben, Ziffern und einzelne Bindestriche enthalten.",
+    "bioTooLong": "Die Biografie darf höchstens {max, number, ::group-off} Zeichen lang sein.",
+    "profileInvalid": "Wählen Sie ein gültiges Konto."
+  },
+  "errors": {
+    "forbidden": "Für die Autorenverwaltung ist die Admin-Berechtigung erforderlich.",
+    "stale": "Der Autor wurde geändert, nachdem Sie die Seite geöffnet haben. Laden Sie die Seite neu und übernehmen Sie Ihre Änderung erneut.",
+    "missing": "Autor nicht gefunden.",
+    "accountTaken": "Dieses Konto ist bereits mit einem anderen Autor verknüpft.",
+    "slugTaken": "Dieser Slug wird bereits verwendet oder leitet von einer alten Adresse weiter.",
+    "inactiveAccount": "Nur das Konto eines aktiven Redaktionsmitglieds kann verknüpft werden.",
+    "inactiveAccountField": "Wählen Sie ein aktives Redaktionsmitglied.",
+    "credited": "Dieser Autor ist in Beiträgen genannt. Entfernen Sie die Nennungen im Beitragseditor, bevor Sie ihn löschen.",
+    "avatarRejected": "Das hochgeladene Bild wurde nicht akzeptiert. Versuchen Sie es mit einem anderen Bild erneut."
+  },
+  "form": {
+    "name": "Name",
+    "slug": "Slug",
+    "slugPlaceholder": "Wird aus dem Namen erzeugt, wenn leer",
+    "slugHintEdit": "Ändert sich der Slug, leitet die alte Autorenadresse auf die neue weiter.",
+    "slugHintNew": "Kleinbuchstaben, Ziffern und Bindestriche.",
+    "bio": "Biografie",
+    "bioHint": "Optional. Wird auf der Autorenseite und in den Suchergebnissen angezeigt.",
+    "account": "Verknüpftes Konto",
+    "accountNone": "Keines (Gastautor)",
+    "accountHint": "Nur Redaktionsmitglieder können verknüpft werden. Die Verknüpfung gewährt keine Rechte; Bearbeitungsrechte ergeben sich aus der Mitgliedsrolle.",
+    "accountDeactivated": "{label} — deaktiviert"
+  },
+  "list": {
+    "title": "Autoren",
+    "intro": "Autorenidentitäten, die in Beiträgen erscheinen. Gastautoren haben kein Konto; eine Identität kann mit einem Redaktionsmitglied verknüpft werden.",
+    "status": {
+      "created": "Autor erstellt.",
+      "updated": "Autor aktualisiert.",
+      "deleted": "Autor gelöscht."
+    },
+    "listTitle": "Alle Autoren",
+    "listDescription": "Die Zahl der Nennungen enthält auch Entwürfe. Eine Autorenseite ist nur sichtbar, wenn der Autor in einem veröffentlichten Beitrag genannt ist.",
+    "empty": "Noch keine Autoren.",
+    "linkedAccount": "Verknüpftes Konto",
+    "guest": "Gast",
+    "creditCount": "{count, plural, one {# Beitrag} other {# Beiträge}}",
+    "newTitle": "Neuer Autor",
+    "newDescription": "Der Slug muss eindeutig sein; Namen dürfen sich wiederholen.",
+    "create": "Autor erstellen"
+  },
+  "author": {
+    "metaTitle": "Autor bearbeiten",
+    "back": "← Autoren",
+    "credits": "In {count, plural, one {# Beitrag} other {# Beiträgen}} genannt",
+    "status": {
+      "avatarUpdated": "Autorenfoto gespeichert.",
+      "avatarRemoved": "Autorenfoto entfernt."
+    },
+    "avatarTitle": "Autorenfoto",
+    "avatarDescription": "Wird in Autorenzeilen und im Autorenarchiv angezeigt. Es ist unabhängig vom Profilbild des verknüpften Kontos; beim Ersetzen oder Entfernen wird das alte Foto gelöscht.",
+    "avatarAlt": "Foto von {name}",
+    "avatarNone": "Kein Autorenfoto",
+    "editTitle": "Autor bearbeiten",
+    "deleteTitle": "Autor löschen",
+    "deleteCredited": "Dieser Autor ist in {count, plural, one {# Beitrag} other {# Beiträgen}} genannt. Entfernen Sie die Nennungen im Beitragseditor, bevor Sie ihn löschen.",
+    "deleteUncredited": "Dieser Autor ist in keinem Beitrag genannt. Nach dem Löschen liefern die alten Autorenadressen 404.",
+    "confirm": "Mir ist bewusst, dass der Autor „{name}“ gelöscht wird."
+  }
+}

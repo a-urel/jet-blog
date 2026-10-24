@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,8 @@ export function TaxonomyForm({
     message: null,
     fieldErrors: {},
   } satisfies TaxonomyFormState);
+  const t = useTranslations("adminTaxonomy.form");
+  const tForm = useTranslations("admin.form");
 
   const values = { ...emptyValues, ...initialValues, ...state.values };
   const limits = kind === "category" ? taxonomyLimits.category : taxonomyLimits.tag;
@@ -85,7 +88,7 @@ export function TaxonomyForm({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={fieldId("name")}>Ad</Label>
+          <Label htmlFor={fieldId("name")}>{t("name")}</Label>
           <Input
             {...fieldProps("name")}
             defaultValue={values.name}
@@ -96,18 +99,16 @@ export function TaxonomyForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={fieldId("slug")}>Slug</Label>
+          <Label htmlFor={fieldId("slug")}>{t("slug")}</Label>
           <Input
             {...fieldProps("slug")}
             defaultValue={values.slug}
             maxLength={limits.slug}
-            placeholder="Boş bırakılırsa addan üretilir"
+            placeholder={t("slugPlaceholder")}
           />
           {fieldError("slug") ?? (
             <p className="text-xs text-muted-foreground">
-              {record
-                ? "Slug değişirse eski arşiv adresi yeni adrese yönlenir."
-                : "Küçük harf, rakam ve tire."}
+              {record ? t("slugHintEdit") : t("slugHintNew")}
             </p>
           )}
         </div>
@@ -116,13 +117,13 @@ export function TaxonomyForm({
       {kind === "category" ? (
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_8rem]">
           <div className="space-y-2">
-            <Label htmlFor={fieldId("parentId")}>Üst kategori</Label>
+            <Label htmlFor={fieldId("parentId")}>{t("parent")}</Label>
             <NativeSelect
               className="w-full"
               {...fieldProps("parentId")}
               defaultValue={values.parentId}
             >
-              <NativeSelectOption value="">Yok (en üst seviye)</NativeSelectOption>
+              <NativeSelectOption value="">{t("parentNone")}</NativeSelectOption>
               {(parentOptions ?? []).map((option) => (
                 <NativeSelectOption key={option.id} value={option.id}>
                   {`${"— ".repeat(option.depth)}${option.name}`}
@@ -133,7 +134,7 @@ export function TaxonomyForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={fieldId("sortOrder")}>Sıra</Label>
+            <Label htmlFor={fieldId("sortOrder")}>{t("sortOrder")}</Label>
             <Input
               {...fieldProps("sortOrder")}
               type="number"
@@ -149,7 +150,7 @@ export function TaxonomyForm({
       ) : null}
 
       <div className="space-y-2">
-        <Label htmlFor={fieldId("description")}>Açıklama</Label>
+        <Label htmlFor={fieldId("description")}>{t("description")}</Label>
         <Textarea
           {...fieldProps("description")}
           defaultValue={values.description}
@@ -158,7 +159,7 @@ export function TaxonomyForm({
         />
         {fieldError("description") ?? (
           <p className="text-xs text-muted-foreground">
-            İsteğe bağlı. Arşiv sayfasında ve arama sonuçlarında görünür.
+            {t("descriptionHint")}
           </p>
         )}
       </div>
@@ -168,7 +169,7 @@ export function TaxonomyForm({
       ) : null}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Kaydediliyor…" : submitLabel}
+        {pending ? tForm("saving") : submitLabel}
       </Button>
     </form>
   );

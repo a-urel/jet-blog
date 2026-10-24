@@ -1,0 +1,75 @@
+{
+  "denied": {
+    "title": "Member management is unavailable",
+    "description": "This page is open to the admin role only."
+  },
+  "title": "Members",
+  "intro": "Invite editorial members, change their roles, or deactivate them.",
+  "status": {
+    "roleUpdated": "Role updated.",
+    "membershipUpdated": "Membership status updated."
+  },
+  "errors": {
+    "invalid": "Invalid request.",
+    "session": "Your session has expired. Please sign in again.",
+    "forbidden": "This action requires admin permission.",
+    "self": "You cannot change your own role or active status.",
+    "missing": "Member not found.",
+    "lastAdmin": "The last active admin cannot be demoted or deactivated.",
+    "alreadyMember": "This user is already an active member.",
+    "unknown": "The action could not be completed. Try again."
+  },
+  "invite": {
+    "title": "New invitation",
+    "description": "Invite a new email address or give an existing user a role. Editors cannot invite members.",
+    "secretTitle": "Server key required",
+    "secretDescription": "To send invitations, add the server-only <code>SUPABASE_SECRET_KEY</code> value to the <code>.env.local</code> file."
+  },
+  "list": {
+    "title": "Member list",
+    "description": "Deactivation takes effect on the next request.",
+    "loadError": "The member list could not be loaded.",
+    "empty": "No editorial members yet.",
+    "columns": {
+      "user": "User",
+      "role": "Role",
+      "status": "Status",
+      "action": "Action"
+    },
+    "you": "You",
+    "roleLabel": "Role",
+    "state": {
+      "deactivated": "Deactivated",
+      "awaiting": "Invitation pending",
+      "active": "Active"
+    },
+    "selfRow": "Your own record",
+    "activate": "Activate",
+    "deactivate": "Deactivate"
+  },
+  "inviteForm": {
+    "email": "Email",
+    "displayName": "Display name (optional)",
+    "role": "Role",
+    "confirmAdmin": "I confirm granting this person admin permission.",
+    "sending": "Sending…",
+    "submit": "Send invitation"
+  },
+  "inviteResult": {
+    "emailRequired": "Email is required.",
+    "emailInvalid": "Enter a valid email address.",
+    "roleInvalid": "Choose a valid role.",
+    "confirmAdmin": "Tick the confirmation box to grant the admin role.",
+    "displayNameTooLong": "Display name cannot exceed {max, number, ::group-off} characters.",
+    "verifyFailed": "The action could not be verified right now. Try again.",
+    "rateLimited": "The hourly invitation limit has been reached. Try again later.",
+    "sendFailed": "The invitation could not be sent. Check the Supabase settings.",
+    "userNotFound": "This email appears to be registered, but the user could not be found.",
+    "unconfirmed": "An unverified account exists for this email. The person must verify their email address first.",
+    "noTarget": "The invitation target could not be determined.",
+    "grantFailed": "The invitation was processed, but the membership record could not be completed. Check the member list.",
+    "invited": "Invitation email sent.",
+    "granted": "Role granted to the existing user.",
+    "unexpected": "An unexpected error occurred. Try again."
+  }
+}

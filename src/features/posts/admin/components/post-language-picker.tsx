@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { ChevronsUpDown } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +45,9 @@ export function PostLanguagePicker({
   invalid,
   describedBy,
 }: PostLanguagePickerProps) {
+  const t = useTranslations("adminPosts.languagePicker");
+  // Language names follow the interface language, not the post's.
+  const interfaceLocale = useLocale();
   const listId = useId();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -53,7 +57,7 @@ export function PostLanguagePicker({
     : [value, ...commonPostLanguages];
   const typed = canonicalizePostLanguage(search);
   const customTag = typed && !options.includes(typed) ? typed : null;
-  const valueName = postLanguageName(value);
+  const valueName = postLanguageName(value, interfaceLocale);
 
   function choose(language: PostLanguage) {
     onChange(language);
@@ -95,32 +99,32 @@ export function PostLanguagePicker({
             <CommandInput
               value={search}
               onValueChange={setSearch}
-              placeholder="Dil adı ya da kodu (ör. fr, pt-BR)"
-              aria-label="Dil ara"
+              placeholder={t("searchPlaceholder")}
+              aria-label={t("searchLabel")}
             />
             <CommandList id={listId}>
               <CommandEmpty>
                 {search.trim().length > 0
-                  ? "Eşleşen dil yok. Geçerli bir dil kodu yazın: fr, pt-BR, zh-Hant."
-                  : "Dil bulunamadı."}
+                  ? t("noMatch")
+                  : t("empty")}
               </CommandEmpty>
               {customTag ? (
-                <CommandGroup heading="Dil kodu">
+                <CommandGroup heading={t("customGroup")}>
                   <CommandItem
                     forceMount
                     value={`custom:${customTag}`}
                     onSelect={() => choose(customTag)}
                   >
                     <span>
-                      {postLanguageName(customTag) ?? "Adı bilinmeyen dil"}{" "}
+                      {postLanguageName(customTag, interfaceLocale) ?? t("unknownName")}{" "}
                       <span className="font-mono text-muted-foreground">{customTag}</span>
                     </span>
                   </CommandItem>
                 </CommandGroup>
               ) : null}
-              <CommandGroup heading="Yaygın diller">
+              <CommandGroup heading={t("commonGroup")}>
                 {options.map((language) => {
-                  const languageName = postLanguageName(language);
+                  const languageName = postLanguageName(language, interfaceLocale);
                   return (
                     <CommandItem
                       key={language}

@@ -1,0 +1,69 @@
+{
+  "roles": {
+    "admin": "Admin",
+    "editor": "Redakteur",
+    "author": "Autor"
+  },
+  "shell": {
+    "label": "Verwaltung",
+    "missingEmail": "Keine E-Mail-Adresse",
+    "navLabel": "Verwaltungsmenü",
+    "nav": {
+      "overview": "Übersicht",
+      "posts": "Beiträge",
+      "media": "Medien",
+      "comments": "Kommentare",
+      "categories": "Kategorien",
+      "tags": "Schlagwörter",
+      "authors": "Autoren",
+      "members": "Mitglieder"
+    },
+    "signOut": "Abmelden",
+    "backToSite": "Zurück zur Website",
+    "deniedTitle": "Kein Zugriff auf die Verwaltung",
+    "deniedDescription": "Dieser Bereich steht nur eingeladenen Redaktionsmitgliedern offen. Leserkonten haben keinen Zugriff auf die Verwaltung; redaktioneller Zugriff wird nur durch die Einladung eines Admins gewährt."
+  },
+  "dashboard": {
+    "title": "Übersicht",
+    "intro": "Ihre Sitzung und Ihre Redaktionsmitgliedschaft wurden auf dem Server überprüft.",
+    "yourRole": "Ihre Rolle: {role}",
+    "roleDescriptions": {
+      "admin": "Sie können Mitglieder verwalten, Rollen vergeben und haben sämtliche Inhaltsberechtigungen.",
+      "editor": "Sie können jeden Beitrag erstellen, bearbeiten und veröffentlichen. Die Mitgliederverwaltung ist Admins vorbehalten.",
+      "author": "Sie können Ihre eigenen Entwürfe erstellen und bearbeiten. Veröffentlichung und Mitgliederverwaltung liegen bei anderen Rollen."
+    },
+    "features": "Entwürfe, der Texteditor, Bilder und YouTube-Einbettungen, Kategorien, Schlagwörter und geordnete Autorennennungen sind verfügbar. Redakteure und Admins können Beiträge veröffentlichen und zurückziehen.",
+    "contentTitle": "Inhalte",
+    "contentDescription": "Erstellen Sie Entwürfe, bearbeiten Sie Metadaten oder öffnen Sie die Vorschau für Mitglieder.",
+    "openPosts": "Beiträge öffnen",
+    "membersTitle": "Mitgliederverwaltung",
+    "membersDescription": "Laden Sie Redaktionsmitglieder ein, ändern Sie ihre Rollen oder deaktivieren Sie sie.",
+    "manageMembers": "Mitglieder verwalten"
+  },
+  "error": {
+    "title": "Diese Verwaltungsseite konnte nicht geladen werden",
+    "description": "Beim Laden der Daten ist ein Fehler aufgetreten. Versuchen Sie es erneut; besteht das Problem weiter, erneuern Sie Ihre Sitzung.",
+    "back": "Zurück zur Übersicht"
+  },
+  "loading": "Wird geladen…",
+  "missing": {
+    "title": "Eintrag nicht gefunden",
+    "description": "Dieser Eintrag existiert nicht oder Sie sind nicht berechtigt, ihn anzusehen.",
+    "back": "Zurück zu den Beiträgen"
+  },
+  "form": {
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "delete": "Löschen",
+    "deleting": "Wird gelöscht…"
+  },
+  "actions": {
+    "sessionMissing": "Keine Sitzung gefunden. Bitte melden Sie sich erneut an.",
+    "invalidRequest": "Ungültige Anfrage.",
+    "fixErrors": "Bitte korrigieren Sie die Fehler im Formular.",
+    "confirmDelete": "Aktivieren Sie das Kontrollkästchen, um das Löschen zu bestätigen.",
+    "rateLimited": "Zu viele Änderungen in kurzer Zeit. Ihre Eingaben wurden beibehalten; versuchen Sie es in einigen Minuten erneut.",
+    "invalidInput": "Die übermittelten Angaben sind ungültig.",
+    "failed": "Der Vorgang konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+  }
+}

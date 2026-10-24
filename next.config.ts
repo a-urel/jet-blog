@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 import { avatarPublicPath } from "./src/features/avatars/url";
 import { mediaPublicPath } from "./src/features/media/url";
@@ -74,4 +75,8 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Points next-intl at src/i18n/request.ts (message catalogs and the locale of
+// each request). Locale routing itself lives in src/proxy.ts.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

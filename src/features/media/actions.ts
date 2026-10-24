@@ -1,12 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { mediaBucket } from "./url";
 import { maxMediaBytes, validateMediaUpload } from "./validation";
+import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 export type UploadedMedia = {
   id: string;
@@ -18,11 +19,12 @@ export type UploadMediaResult =
   | { ok: true; media: UploadedMedia }
   | { ok: false; error: string };
 
-const rejectionMessages = {
-  empty: "Dosya boş.",
-  "too-large": `Dosya en fazla ${maxMediaBytes / 1024 / 1024} MB olabilir.`,
-  "unsupported-type": "Yalnızca JPEG, PNG, WebP ve GIF görseller yüklenebilir.",
-  "invalid-dimensions": "Görsel boyutları 1–10000 piksel arasında olmalı.",
+// Validation reasons mapped to adminMedia.upload catalog keys.
+const rejectionKeys = {
+  empty: "empty",
+  "too-large": "tooLarge",
+  "unsupported-type": "unsupportedType",
+  "invalid-dimensions": "invalidDimensions",
 } as const;
 
 function failure(error: string): UploadMediaResult {
@@ -37,23 +39,28 @@ function failure(error: string): UploadMediaResult {
 export async function uploadMediaAction(
   formData: FormData,
 ): Promise<UploadMediaResult> {
-  const context = await getEditorialContext();
+  const [context, t, tActions] = await Promise.all([
+    getEditorialContext(),
+    getTranslations("adminMedia.upload"),
+    getTranslations("admin.actions"),
+  ]);
+  const maxMegabytes = maxMediaBytes / 1024 / 1024;
 
-  if (!context.user) return failure("Oturum bulunamadı. Yeniden giriş yapın.");
-  if (!context.membership) {
-    return failure("Görsel yüklemek için editöryal üyelik gerekir.");
-  }
+  if (!context.user) return failure(tActions("sessionMissing"));
+  if (!context.membership) return failure(t("membershipRequired"));
 
   const file = formData.get("file");
-  if (!(file instanceof File)) return failure("Bir görsel dosyası seçin.");
+  if (!(file instanceof File)) return failure(t("fileRequired"));
 
   // Check the declared size before reading the body into memory.
-  if (file.size > maxMediaBytes) return failure(rejectionMessages["too-large"]);
+  if (file.size > maxMediaBytes) return failure(t("tooLarge", { max: maxMegabytes }));
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const validation = validateMediaUpload(bytes);
 
-  if (!validation.ok) return failure(rejectionMessages[validation.reason]);
+  if (!validation.ok) {
+    return failure(t(rejectionKeys[validation.reason], { max: maxMegabytes }));
+  }
 
   const { info } = validation;
   const mediaId = crypto.randomUUID();
@@ -68,9 +75,7 @@ export async function uploadMediaAction(
   });
 
   if (upload.error) {
-    return failure(
-      "Yükleme reddedildi. Yetkinizi kontrol edin veya birkaç dakika sonra tekrar deneyin (10 dakikada en fazla 20 görsel).",
-    );
+    return failure(t("rejected"));
   }
 
   const { error } = await supabase.rpc("register_media", {
@@ -81,10 +86,10 @@ export async function uploadMediaAction(
 
   if (error) {
     await storage.remove([mediaId]);
-    return failure("Görsel kaydedilemedi. Tekrar deneyin.");
+    return failure(t("registerFailed"));
   }
 
-  revalidatePath("/admin/media");
+  revalidateLocalizedPath("/admin/media");
 
   return {
     ok: true,
@@ -129,7 +134,7 @@ export async function deleteMediaAction(formData: FormData): Promise<void> {
     .from(mediaBucket)
     .remove([objectPath as string]);
 
-  revalidatePath("/admin/media");
+  revalidateLocalizedPath("/admin/media");
   // Storage reports success with an empty list when a policy filtered the row.
   const removed = !removal.error && (removal.data?.length ?? 0) > 0;
 

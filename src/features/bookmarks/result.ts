@@ -8,10 +8,11 @@ export type BookmarkResult =
   | { status: "rate-limited" }
   | { status: "error" };
 
-export const bookmarkMessages = {
-  unavailable: "Bu yazı şu anda kaydedilemiyor.",
-  "rate-limited": "Çok fazla kaydetme isteği gönderdiniz. Birkaç dakika sonra tekrar deneyin.",
-  error: "Kayıt güncellenemedi. Tekrar deneyin.",
+// Catalog keys (bookmarks.messages.*) of the failures the toggle shows.
+export const bookmarkMessageKeys = {
+  unavailable: "unavailable",
+  "rate-limited": "rateLimited",
+  error: "error",
 } as const;
 
 const uuidPattern =

@@ -1,17 +1,11 @@
 import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
 
 import { archivePaths } from "../archives";
 import { wasUpdatedAfterPublication } from "../mapping";
 import type { PostSummary } from "../types";
-
-const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: "Europe/Istanbul",
-});
 
 // The post header and the listing cards pass withAvatars; search results keep
 // a text-only byline. Avatars are decorative: each one sits inside the link
@@ -23,6 +17,8 @@ export function PostMeta({
   post: PostSummary;
   withAvatars?: boolean;
 }) {
+  const t = useTranslations("posts.meta");
+  const format = useFormatter();
   const updated = wasUpdatedAfterPublication(post);
 
   return (
@@ -58,16 +54,16 @@ export function PostMeta({
         </>
       ) : null}
       <time dateTime={post.publishedAt}>
-        {dateFormatter.format(new Date(post.publishedAt))}
+        {format.dateTime(new Date(post.publishedAt), "date")}
       </time>
       {updated ? (
         <>
           <span aria-hidden="true">·</span>
           <span>
-            Güncellendi{" "}
-            <time dateTime={post.updatedAt}>
-              {dateFormatter.format(new Date(post.updatedAt))}
-            </time>
+            {t.rich("updated", {
+              date: format.dateTime(new Date(post.updatedAt), "date"),
+              time: (chunks) => <time dateTime={post.updatedAt}>{chunks}</time>,
+            })}
           </span>
         </>
       ) : null}

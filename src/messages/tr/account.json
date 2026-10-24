@@ -1,0 +1,68 @@
+{
+  "title": "Hesabım",
+  "notConfiguredAction": "Hesabınızı yönetmek",
+  "session": "Oturum: <email></email>",
+  "notices": {
+    "confirmed": "E-posta adresiniz doğrulandı. Hoş geldiniz.",
+    "passwordUpdated": "Parolanız güncellendi."
+  },
+  "membership": {
+    "title": "Editöryal üyelik",
+    "description": "Bu hesabın yönetim alanına erişimi var.",
+    "goToAdmin": "Yönetim alanına git"
+  },
+  "saved": {
+    "title": "Kaydedilenler",
+    "description": "Kaydettiğiniz yazılar yalnızca size görünür.",
+    "link": "Kaydedilen yazılar"
+  },
+  "displayName": {
+    "title": "Görünen ad",
+    "description": "Yorum gibi okur özelliklerinde görünecek ad.",
+    "missingDescription": "Henüz bir görünen ad belirlemediniz. Okur özelliklerini kullanmadan önce bir ad girin.",
+    "submit": "Kaydet",
+    "pending": "Kaydediliyor…",
+    "saved": "Görünen ad kaydedildi.",
+    "saveFailed": "Görünen ad kaydedilemedi. Tekrar deneyin."
+  },
+  "avatar": {
+    "title": "Profil fotoğrafı",
+    "description": "Yorumlarınızın yanında görünür. Değiştirdiğinizde veya kaldırdığınızda eski fotoğraf silinir ve yorumlarınızda yenisi gösterilir.",
+    "alt": "Profil fotoğrafınız",
+    "missingAlt": "Profil fotoğrafı yok",
+    "saved": "Profil fotoğrafı kaydedildi.",
+    "removed": "Profil fotoğrafı kaldırıldı.",
+    "rateLimited": "Profil fotoğrafını kısa sürede çok sık değiştirdiniz. Bir süre sonra tekrar deneyin.",
+    "rejected": "Yüklenen görsel kabul edilmedi. Başka bir görselle tekrar deneyin.",
+    "saveFailed": "Profil fotoğrafı kaydedilemedi. Tekrar deneyin."
+  },
+  "password": {
+    "title": "Parola ve oturum",
+    "description": "Parolanızı değiştirebilir veya bu cihazdaki oturumu kapatabilirsiniz.",
+    "change": "Parolayı değiştir",
+    "signOut": "Çıkış yap"
+  },
+  "passwordPage": {
+    "title": "Parola değiştir",
+    "notConfiguredAction": "Parola değiştirmek",
+    "recoveryTitle": "Yeni parola belirle",
+    "recoveryDescription": "Sıfırlama bağlantınız doğrulandı. Yeni parolanızı belirleyin.",
+    "cardTitle": "Yeni parola",
+    "back": "Hesabıma dön"
+  },
+  "delete": {
+    "title": "Hesabı sil",
+    "description": "Hesabınız, profiliniz ve hesabınıza bağlı okur verileri kalıcı olarak silinir. Editöryal üyeyseniz yazdığınız yazılar ve yazar künyeleri yayında kalır.",
+    "activeAdmin": "Aktif admin hesapları silinemez. Hesabı silmeden önce başka bir admin rolünüzü değiştirmeli veya üyeliğinizi devre dışı bırakmalıdır.",
+    "passwordLabel": "Parolanız",
+    "confirmLabel": "Hesabımın kalıcı olarak silineceğini ve bu işlemin geri alınamayacağını anlıyorum.",
+    "submit": "Hesabı kalıcı olarak sil",
+    "pending": "Siliniyor…",
+    "passwordRequired": "Hesabı silmek için parolanızı girin.",
+    "confirmRequired": "Silme işlemini onaylamak için kutuyu işaretleyin.",
+    "wrongPassword": "Parola hatalı.",
+    "activeAdminError": "Aktif admin hesapları silinemez. Önce başka bir admin rolünüzü değiştirmeli veya üyeliğinizi devre dışı bırakmalı.",
+    "failed": "Hesap silinemedi. Tekrar deneyin."
+  },
+  "missingSession": "Oturum bulunamadı. Yeniden giriş yapın."
+}

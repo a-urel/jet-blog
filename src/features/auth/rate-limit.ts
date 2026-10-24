@@ -13,6 +13,9 @@ export type AuthRateLimitAction =
 
 export type AuthRateLimitResult = "allowed" | "limited" | "unavailable";
 
+// A refused result doubles as its message key under auth.rateLimit.
+export type AuthRateLimitRefusal = Exclude<AuthRateLimitResult, "allowed">;
+
 // Records one attempt and reports whether it is within the database rule
 // (public.consume_auth_rate_limit). The function is granted to the server's
 // secret key only, so clients cannot spend another person's budget directly.
@@ -42,11 +45,3 @@ export async function consumeAuthRateLimit(
     return "unavailable";
   }
 }
-
-export const authRateLimitMessages: Record<
-  Exclude<AuthRateLimitResult, "allowed">,
-  string
-> = {
-  limited: "Çok fazla deneme yapıldı. Bir süre sonra tekrar deneyin.",
-  unavailable: "İşlem şu anda yapılamıyor. Daha sonra tekrar deneyin.",
-};

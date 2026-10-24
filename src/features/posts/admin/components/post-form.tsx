@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   ArrowDown,
   ArrowUp,
@@ -93,6 +94,7 @@ export function PostForm({
   mediaError,
   initialValues,
 }: PostFormProps) {
+  const t = useTranslations("adminPosts");
   const [credits, setCredits] = useState<InitialCredit[]>(
     initialValues.credits,
   );
@@ -198,7 +200,7 @@ export function PostForm({
           <Button asChild variant="outline" size="sm">
             <Link href={reloadHref}>
               <RotateCcw aria-hidden="true" />
-              Güncel sürümü aç
+              {t("form.openCurrentVersion")}
             </Link>
           </Button>
         </div>
@@ -215,7 +217,7 @@ export function PostForm({
       ) : null}
 
       <div className="space-y-2">
-        <Label htmlFor="post-language">Yazının dili</Label>
+        <Label htmlFor="post-language">{t("form.language")}</Label>
         <PostLanguagePicker
           id="post-language"
           name="language"
@@ -230,15 +232,13 @@ export function PostForm({
           describedBy="post-language-help post-language-error"
         />
         <p id="post-language-help" className="text-sm text-muted-foreground">
-          Listede olmayan bir dil için BCP 47 kodunu yazın (ör. fr, pt-BR,
-          zh-Hant). Başlık, özet ve gövde bu dilde işaretlenir; yönetim
-          arayüzünün dili değişmez.
+          {t("form.languageHelp")}
         </p>
         <FieldError id="post-language-error" message={state.fieldErrors.language} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-title">Başlık</Label>
+        <Label htmlFor="post-title">{t("form.title")}</Label>
         <Input
           id="post-title"
           name="title"
@@ -256,7 +256,7 @@ export function PostForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-slug">Slug</Label>
+        <Label htmlFor="post-slug">{t("form.slug")}</Label>
         <Input
           id="post-slug"
           name="slug"
@@ -268,14 +268,13 @@ export function PostForm({
           aria-describedby="post-slug-help post-slug-error"
         />
         <p id="post-slug-help" className="text-sm text-muted-foreground">
-          Boş bırakılırsa başlıktan üretilir. Küçük harf, rakam ve tek tire
-          kullanın; URL&apos;de bu değer görünür.
+          {t("form.slugHelp")}
         </p>
         <FieldError id="post-slug-error" message={state.fieldErrors.slug} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-excerpt">Özet</Label>
+        <Label htmlFor="post-excerpt">{t("form.excerpt")}</Label>
         <Textarea
           id="post-excerpt"
           name="excerpt"
@@ -288,7 +287,7 @@ export function PostForm({
             state.fieldErrors.excerpt ? "post-excerpt-error" : undefined
           }
         />
-        <p className="text-sm text-muted-foreground">En fazla 500 karakter.</p>
+        <p className="text-sm text-muted-foreground">{t("form.excerptHelp")}</p>
         <FieldError id="post-excerpt-error" message={state.fieldErrors.excerpt} />
       </div>
 
@@ -311,7 +310,7 @@ export function PostForm({
 
       <div className="space-y-2">
         <p id="post-body-label" className="text-sm font-medium">
-          Yazı gövdesi
+          {t("form.body")}
         </p>
         <PostBodyEditor
           id="post-body"
@@ -323,17 +322,14 @@ export function PostForm({
           onChange={markDirty}
         />
         <p id="post-body-help" className="text-sm text-muted-foreground">
-          Araç çubuğunda ok tuşlarıyla gezinebilirsiniz. Görseller için
-          alternatif metin gerekir; seçili görseli düzenlemek için görsel
-          düğmesini kullanın. YouTube videoları bağlantıyla eklenir ve
-          ekran okuyucular için bir başlık gerektirir.
+          {t("form.bodyHelp")}
         </p>
         <FieldError id="post-body-error" message={state.fieldErrors.body} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="post-category">Kategori</Label>
+          <Label htmlFor="post-category">{t("form.category")}</Label>
           <NativeSelect
             className="w-full"
             id="post-category"
@@ -345,7 +341,7 @@ export function PostForm({
               state.fieldErrors.categoryId ? "post-category-error" : undefined
             }
           >
-            <NativeSelectOption value="">Kategori seçilmedi</NativeSelectOption>
+            <NativeSelectOption value="">{t("form.noCategory")}</NativeSelectOption>
             {categories.map((category) => (
               <NativeSelectOption key={category.id} value={category.id}>
                 {"— ".repeat(category.depth)}
@@ -354,7 +350,7 @@ export function PostForm({
             ))}
           </NativeSelect>
           <p className="text-sm text-muted-foreground">
-            Taslakta kategori zorunlu değil; yayın öncesi gerekir.
+            {t("form.categoryHelp")}
           </p>
           <FieldError
             id="post-category-error"
@@ -363,10 +359,10 @@ export function PostForm({
         </div>
 
         <div className="space-y-3">
-          <p className="text-sm font-medium">Etiketler</p>
+          <p className="text-sm font-medium">{t("form.tags")}</p>
           {tags.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Henüz etiket yok. Etiket yönetimi ayrı bir artışta ele alınacak.
+              {t("form.noTags")}
             </p>
           ) : (
             <div className="space-y-2">
@@ -397,16 +393,15 @@ export function PostForm({
 
       <div className="space-y-3">
         <div>
-          <p className="text-sm font-medium">Yazarlar</p>
+          <p className="text-sm font-medium">{t("form.authors")}</p>
           <p className="text-sm text-muted-foreground">
-            Görünme sırasına göre ekleyin. Yazar kredisi düzenleme yetkisi
-            vermez.
+            {t("form.authorsHelp")}
           </p>
         </div>
 
         {credits.length === 0 ? (
           <p className="rounded-lg border border-dashed px-3 py-3 text-sm text-muted-foreground">
-            Henüz yazar eklenmedi.
+            {t("form.noCredits")}
           </p>
         ) : (
           <ol className="space-y-2">
@@ -437,7 +432,7 @@ export function PostForm({
                   size="icon-sm"
                   onClick={() => moveCredit(index, -1)}
                   disabled={index === 0}
-                  aria-label={`${credit.authorName} yazarını yukarı taşı`}
+                  aria-label={t("form.moveUp", { name: credit.authorName })}
                 >
                   <ArrowUp aria-hidden="true" />
                 </Button>
@@ -447,7 +442,7 @@ export function PostForm({
                   size="icon-sm"
                   onClick={() => moveCredit(index, 1)}
                   disabled={index === credits.length - 1}
-                  aria-label={`${credit.authorName} yazarını aşağı taşı`}
+                  aria-label={t("form.moveDown", { name: credit.authorName })}
                 >
                   <ArrowDown aria-hidden="true" />
                 </Button>
@@ -456,7 +451,7 @@ export function PostForm({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeCredit(index)}
-                  aria-label={`${credit.authorName} yazarını kaldır`}
+                  aria-label={t("form.removeCredit", { name: credit.authorName })}
                 >
                   <Trash2 aria-hidden="true" />
                 </Button>
@@ -467,19 +462,19 @@ export function PostForm({
 
         {authors.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Yazar profili yok. Yazar yönetimi ayrı bir artışta ele alınacak.
+            {t("form.noAuthorProfiles")}
           </p>
         ) : availableAuthors.length > 0 ? (
           <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-56 flex-1 space-y-2">
-              <Label htmlFor="post-author-to-add">Yazar ekle</Label>
+              <Label htmlFor="post-author-to-add">{t("form.addAuthor")}</Label>
               <NativeSelect
                 className="w-full"
                 id="post-author-to-add"
                 value={authorToAdd}
                 onChange={(event) => setAuthorToAdd(event.target.value)}
               >
-                <NativeSelectOption value="">Yazar seçin</NativeSelectOption>
+                <NativeSelectOption value="">{t("form.chooseAuthor")}</NativeSelectOption>
                 {availableAuthors.map((author) => (
                   <NativeSelectOption key={author.id} value={author.id}>
                     {author.name}
@@ -494,12 +489,12 @@ export function PostForm({
               disabled={!authorToAdd}
             >
               <Plus aria-hidden="true" />
-              Ekle
+              {t("form.add")}
             </Button>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Tüm yazarlar zaten eklendi.
+            {t("form.allAuthorsAdded")}
           </p>
         )}
 
@@ -509,13 +504,13 @@ export function PostForm({
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending}>
           {pending
-            ? "Kaydediliyor…"
+            ? t("form.saving")
             : mode === "create"
-              ? "Taslağı oluştur"
-              : "Değişiklikleri kaydet"}
+              ? t("form.create")
+              : t("form.save")}
         </Button>
         <Button asChild variant="ghost">
-          <Link href="/admin/posts">Vazgeç</Link>
+          <Link href="/admin/posts">{t("shared.cancel")}</Link>
         </Button>
       </div>
     </form>

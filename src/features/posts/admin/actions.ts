@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import {
   currentContentVersion,
@@ -16,12 +16,14 @@ import {
   getCreditFieldValues,
   getStringField,
   getTagFieldValues,
-  invalidLanguageMessage,
   isUuid,
   maxCoverAltLength,
   validatePostMetadata,
+  type PostField,
   type PostFieldErrors,
+  type PostValidationError,
 } from "./validation";
+import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 // Submitted values of the uncontrolled fields. React resets a form after its
 // action settles, so a rejected save hands them back as the new default values
@@ -35,12 +37,17 @@ export type SubmittedPostValues = {
   language: string;
 };
 
+// Field messages already translated into the interface language.
+export type PostFormFieldErrors = Partial<Record<PostField, string>>;
+
 export type PostFormState = {
   status: "idle" | "error" | "conflict";
   message: string | null;
-  fieldErrors: PostFieldErrors;
+  fieldErrors: PostFormFieldErrors;
   values?: SubmittedPostValues;
 };
+
+type Translator = Awaited<ReturnType<typeof getTranslations<"adminPosts">>>;
 
 type PostMutationRow = {
   post_id: string;
@@ -49,7 +56,7 @@ type PostMutationRow = {
 
 function errorState(
   message: string,
-  fieldErrors: PostFieldErrors = {},
+  fieldErrors: PostFormFieldErrors = {},
 ): PostFormState {
   return { status: "error", message, fieldErrors };
 }
@@ -75,16 +82,37 @@ function readRawMetadata(formData: FormData) {
   };
 }
 
+function validationMessage(t: Translator, key: PostValidationError): string {
+  return key === "coverAltTooLong"
+    ? t("validation.coverAltTooLong", { max: maxCoverAltLength })
+    : t(`validation.${key}`);
+}
+
+function translateFieldErrors(
+  t: Translator,
+  fieldErrors: PostFieldErrors,
+): PostFormFieldErrors {
+  const translated: PostFormFieldErrors = {};
+
+  for (const [field, key] of Object.entries(fieldErrors) as [
+    PostField,
+    PostValidationError,
+  ][]) {
+    translated[field] = validationMessage(t, key);
+  }
+
+  return translated;
+}
+
 // Validate metadata and the editor document together so one submission reports
 // every field problem at once.
-function readPostInput(formData: FormData) {
+function readPostInput(t: Translator, formData: FormData) {
   const metadata = validatePostMetadata(readRawMetadata(formData));
   const body = parseSubmittedBody(getStringField(formData, "body"));
-  const fieldErrors: PostFieldErrors = metadata.ok ? {} : { ...metadata.fieldErrors };
+  const fieldErrors = metadata.ok ? {} : translateFieldErrors(t, metadata.fieldErrors);
 
   if (!body.ok) {
-    fieldErrors.body =
-      "Yazı gövdesi desteklenmeyen içerik veya güvenli olmayan bir bağlantı içeriyor.";
+    fieldErrors.body = t("actionErrors.bodyUnsupported");
   }
 
   if (!metadata.ok || !body.ok) {
@@ -94,67 +122,66 @@ function readPostInput(formData: FormData) {
   return { ok: true as const, data: metadata.data, body: body.doc };
 }
 
-function mapRpcError(error: {
-  code?: string;
-  message?: string;
-} | null): PostFormState {
+function mapRpcError(
+  t: Translator,
+  error: {
+    code?: string;
+    message?: string;
+  } | null,
+): PostFormState {
   const message = error?.message ?? "";
 
   switch (error?.code) {
     case "42501":
-      return errorState("Bu yazıyı düzenleme yetkiniz yok.");
+      return errorState(t("actionErrors.forbidden"));
     case "PT429":
-      return errorState(
-        "Kısa sürede çok fazla kayıt yapıldı. Formdaki değişiklikleriniz korundu; birkaç dakika sonra tekrar kaydedin.",
-      );
+      return errorState(t("actionErrors.rateLimited"));
     case "40001":
-      return conflictState(
-        "Bu yazı siz formu açtıktan sonra değişti. Formdaki değişiklikleriniz korundu; güncel sürümü açıp yeniden uygulayın.",
-      );
+      return conflictState(t("actionErrors.conflict"));
     case "23505":
-      return errorState("Bu slug zaten kullanılıyor.", {
-        slug: "Bu slug zaten kullanılıyor.",
+      return errorState(t("actionErrors.slugTaken"), {
+        slug: t("actionErrors.slugTaken"),
       });
     case "P0002":
-      return errorState("Yazı bulunamadı veya erişim yetkiniz yok.");
+      return errorState(t("actionErrors.missing"));
     case "22023":
     case "23514":
       if (
         message.includes("post body") ||
         message.includes("content version")
       ) {
-        return errorState("Yazı gövdesi geçersiz.", {
-          body: "Yazı gövdesi desteklenmeyen içerik içeriyor.",
+        return errorState(t("actionErrors.bodyInvalid"), {
+          body: t("actionErrors.bodyInvalidField"),
         });
       }
 
       if (message.includes("Cover alt text is required")) {
-        return errorState("Yayındaki bir yazının kapak görseli alternatif metin gerektirir.", {
-          coverAlt: "Kapak görseli için alternatif metin girin.",
+        return errorState(t("actionErrors.coverAltRequired"), {
+          coverAlt: t("actionErrors.coverAltRequiredField"),
         });
       }
 
       if (message.includes("cover alt")) {
-        return errorState("Kapak alternatif metni geçersiz.", {
-          coverAlt: `Kapak alternatif metni en fazla ${maxCoverAltLength} karakter olabilir.`,
+        return errorState(t("actionErrors.coverAltInvalid"), {
+          coverAlt: validationMessage(t, "coverAltTooLong"),
         });
       }
 
       if (message.includes("Cover") || message.includes("cover")) {
-        return errorState("Kapak görseli bulunamadı veya bir görsel değil.", {
-          coverMediaId: "Medya kitaplığından geçerli bir görsel seçin.",
+        return errorState(t("actionErrors.coverMissing"), {
+          coverMediaId: t("actionErrors.coverMissingField"),
         });
       }
 
       if (message.includes("Invalid category")) {
-        return errorState("Geçerli bir kategori seçin.", {
-          categoryId: "Geçerli bir kategori seçin.",
+        return errorState(t("validation.categoryInvalid"), {
+          categoryId: t("validation.categoryInvalid"),
         });
       }
 
       if (message.includes("Invalid tag") || message.includes("Duplicate tag")) {
-        return errorState("Geçersiz etiket seçimi.", {
-          tagIds: "Geçersiz etiket seçimi.",
+        return errorState(t("validation.tagInvalid"), {
+          tagIds: t("validation.tagInvalid"),
         });
       }
 
@@ -162,51 +189,51 @@ function mapRpcError(error: {
         message.includes("author credit") ||
         message.includes("Author credit")
       ) {
-        return errorState("Yazar sırası geçersiz.", {
-          credits: "Yazar sırası geçersiz.",
+        return errorState(t("validation.creditOrderInvalid"), {
+          credits: t("validation.creditOrderInvalid"),
         });
       }
 
       if (message.includes("Invalid language")) {
-        return errorState(invalidLanguageMessage, {
-          language: invalidLanguageMessage,
+        return errorState(t("validation.languageInvalid"), {
+          language: t("validation.languageInvalid"),
         });
       }
 
       if (message.includes("Title")) {
-        return errorState("Başlık geçersiz.", {
-          title: "Başlık 1-200 karakter arasında olmalı.",
+        return errorState(t("actionErrors.titleInvalid"), {
+          title: t("actionErrors.titleInvalidField"),
         });
       }
 
       if (message.includes("slug") || message.includes("Slug")) {
-        return errorState("Slug geçersiz.", {
-          slug: "Slug yalnızca küçük harf, rakam ve tek tire içerebilir.",
+        return errorState(t("actionErrors.slugInvalid"), {
+          slug: t("validation.slugInvalid"),
         });
       }
 
       if (message.includes("Excerpt")) {
-        return errorState("Özet geçersiz.", {
-          excerpt: "Özet 500 karakteri aşamaz.",
+        return errorState(t("actionErrors.excerptInvalid"), {
+          excerpt: t("validation.excerptTooLong"),
         });
       }
 
       if (message.includes("category")) {
-        return errorState("Geçerli bir kategori seçin.", {
-          categoryId: "Geçerli bir kategori seçin.",
+        return errorState(t("validation.categoryInvalid"), {
+          categoryId: t("validation.categoryInvalid"),
         });
       }
 
-      return errorState("Gönderilen bilgiler geçersiz.");
+      return errorState(t("actionErrors.invalidInput"));
     default:
-      return errorState("İşlem tamamlanamadı. Tekrar deneyin.");
+      return errorState(t("actionErrors.failed"));
   }
 }
 
 function revalidatePostPaths(postId: string) {
-  revalidatePath("/admin/posts");
-  revalidatePath(`/admin/posts/${postId}`);
-  revalidatePath(`/admin/posts/${postId}/preview`);
+  revalidateLocalizedPath("/admin/posts");
+  revalidateLocalizedPath(`/admin/posts/${postId}`);
+  revalidateLocalizedPath(`/admin/posts/${postId}/preview`);
 }
 
 function keepSubmittedValues(
@@ -241,20 +268,21 @@ export async function updatePostMetadataAction(
 }
 
 async function createDraftPost(formData: FormData): Promise<PostFormState> {
+  const t = await getTranslations("adminPosts");
   const context = await getEditorialContext();
 
   if (!context.user) {
-    return errorState("Oturum bulunamadı. Yeniden giriş yapın.");
+    return errorState(t("actionErrors.noSession"));
   }
 
   if (!context.membership) {
-    return errorState("Bu işlem için editöryal üyelik gerekir.");
+    return errorState(t("actionErrors.noMembership"));
   }
 
-  const validation = readPostInput(formData);
+  const validation = readPostInput(t, formData);
 
   if (!validation.ok) {
-    return errorState("Formda düzeltilmesi gereken alanlar var.", validation.fieldErrors);
+    return errorState(t("actionErrors.formInvalid"), validation.fieldErrors);
   }
 
   const { data, error } = await (await createServerSupabaseClient()).rpc(
@@ -278,13 +306,13 @@ async function createDraftPost(formData: FormData): Promise<PostFormState> {
   );
 
   if (error) {
-    return mapRpcError(error);
+    return mapRpcError(t, error);
   }
 
   const row = (data as PostMutationRow[] | null)?.[0];
 
   if (!row?.post_id) {
-    return errorState("Taslak oluşturulamadı. Tekrar deneyin.");
+    return errorState(t("actionErrors.createFailed"));
   }
 
   revalidatePostPaths(row.post_id);
@@ -292,14 +320,15 @@ async function createDraftPost(formData: FormData): Promise<PostFormState> {
 }
 
 async function updatePostMetadata(formData: FormData): Promise<PostFormState> {
+  const t = await getTranslations("adminPosts");
   const context = await getEditorialContext();
 
   if (!context.user) {
-    return errorState("Oturum bulunamadı. Yeniden giriş yapın.");
+    return errorState(t("actionErrors.noSession"));
   }
 
   if (!context.membership) {
-    return errorState("Bu işlem için editöryal üyelik gerekir.");
+    return errorState(t("actionErrors.noMembership"));
   }
 
   const postId = getStringField(formData, "postId").trim();
@@ -309,17 +338,17 @@ async function updatePostMetadata(formData: FormData): Promise<PostFormState> {
   );
 
   if (!isUuid(postId)) {
-    return errorState("Geçersiz yazı kimliği.");
+    return errorState(t("actionErrors.invalidPostId"));
   }
 
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) {
-    return errorState("Form sürüm bilgisi eksik. Sayfayı yenileyin.");
+    return errorState(t("actionErrors.revisionMissing"));
   }
 
-  const validation = readPostInput(formData);
+  const validation = readPostInput(t, formData);
 
   if (!validation.ok) {
-    return errorState("Formda düzeltilmesi gereken alanlar var.", validation.fieldErrors);
+    return errorState(t("actionErrors.formInvalid"), validation.fieldErrors);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -346,7 +375,7 @@ async function updatePostMetadata(formData: FormData): Promise<PostFormState> {
   );
 
   if (error) {
-    return mapRpcError(error);
+    return mapRpcError(t, error);
   }
 
   // An editor may edit a published post directly (D3), so a save can change

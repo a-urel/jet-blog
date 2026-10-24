@@ -1,0 +1,33 @@
+{
+  "title": "Suche",
+  "queryTitle": "Suche nach „{query}“",
+  "form": {
+    "headerLabel": "Website durchsuchen",
+    "inputLabel": "Beiträge durchsuchen",
+    "placeholder": "Beiträge durchsuchen",
+    "submit": "Suchen",
+    "pageLabel": "Beiträge durchsuchen",
+    "queryLabel": "Suchbegriffe",
+    "hint": "Anführungszeichen für eine genaue Wortfolge, ein Minus zum Ausschließen: \"kleiner Schritt\" -Entwurf",
+    "language": "Sprache",
+    "allLanguages": "Alle Sprachen"
+  },
+  "notice": {
+    "intro": "Durchsuchen Sie Titel, Auszüge und Texte veröffentlichter Beiträge.",
+    "tooShort": "Geben Sie für die Suche mindestens {min, plural, one {# Zeichen} other {# Zeichen}} ein.",
+    "tooLong": "Eine Suche darf höchstens {max, plural, one {# Zeichen} other {# Zeichen}} lang sein.",
+    "invalidPage": "Ungültige Seite. <link>Zurück zur ersten Seite</link>.",
+    "unavailable": "Die Suche ist derzeit nicht verfügbar.",
+    "rateLimited": "Zu viele Suchanfragen. Bitte versuchen Sie es in einer Minute erneut.",
+    "unavailableRetry": "Die Suche ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+    "emptyPage": "Auf dieser Seite gibt es keine Ergebnisse. <link>Zurück zur ersten Seite</link>.",
+    "noResults": "Keine Ergebnisse für „{query}“. Versuchen Sie andere oder weniger Wörter.",
+    "noResultsInLanguage": "Keine Ergebnisse für „{query}“ ({language}). Versuchen Sie andere oder weniger Wörter."
+  },
+  "results": {
+    "heading": "Ergebnisse",
+    "count": "{count, plural, one {# Ergebnis} other {# Ergebnisse}} für „{query}“",
+    "countInLanguage": "{count, plural, one {# Ergebnis} other {# Ergebnisse}} für „{query}“ ({language})",
+    "page": "Seite {page} von {pageCount}"
+  }
+}

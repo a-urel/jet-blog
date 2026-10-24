@@ -1,0 +1,11 @@
+{
+  "heading": "Share",
+  "email": "Email",
+  "shareVia": "Share via {provider}",
+  "shareViaNewTab": "Share via {provider} (opens in a new tab)",
+  "copy": "Copy link",
+  "copied": "Link copied",
+  "copiedStatus": "Link copied to the clipboard.",
+  "copyFailed": "The link could not be copied. Select the address below and copy it.",
+  "linkLabel": "Link to this post"
+}

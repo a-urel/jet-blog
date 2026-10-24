@@ -1,0 +1,69 @@
+{
+  "roles": {
+    "admin": "Admin",
+    "editor": "Editor",
+    "author": "Author"
+  },
+  "shell": {
+    "label": "Administration",
+    "missingEmail": "No email address",
+    "navLabel": "Administration menu",
+    "nav": {
+      "overview": "Overview",
+      "posts": "Posts",
+      "media": "Media",
+      "comments": "Comments",
+      "categories": "Categories",
+      "tags": "Tags",
+      "authors": "Authors",
+      "members": "Members"
+    },
+    "signOut": "Sign out",
+    "backToSite": "Back to site",
+    "deniedTitle": "No administration access",
+    "deniedDescription": "This area is open only to invited editorial members. Reader accounts cannot access administration; editorial access is granted only through an admin’s invitation."
+  },
+  "dashboard": {
+    "title": "Overview",
+    "intro": "Your session and editorial membership were verified on the server.",
+    "yourRole": "Your role: {role}",
+    "roleDescriptions": {
+      "admin": "You can manage members, assign roles, and have every content permission.",
+      "editor": "You can create, edit, and publish any post. Member management is reserved for admins.",
+      "author": "You can create and edit your own drafts. Publishing and member management belong to other roles."
+    },
+    "features": "Drafts, the body editor, images and YouTube embeds, categories, tags, and ordered author credits are ready. Editors and admins can publish and unpublish posts.",
+    "contentTitle": "Content",
+    "contentDescription": "Create drafts, edit metadata, or open the members-only preview.",
+    "openPosts": "Open posts",
+    "membersTitle": "Member management",
+    "membersDescription": "Invite editorial members, change their roles, or deactivate them.",
+    "manageMembers": "Manage members"
+  },
+  "error": {
+    "title": "This administration page could not be loaded",
+    "description": "Something went wrong while loading the data. Try again; if the problem persists, refresh your session.",
+    "back": "Back to overview"
+  },
+  "loading": "Loading…",
+  "missing": {
+    "title": "Record not found",
+    "description": "This record does not exist or you are not allowed to view it.",
+    "back": "Back to posts"
+  },
+  "form": {
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "deleting": "Deleting…"
+  },
+  "actions": {
+    "sessionMissing": "No session found. Please sign in again.",
+    "invalidRequest": "Invalid request.",
+    "fixErrors": "Fix the errors in the form.",
+    "confirmDelete": "Tick the box to confirm the deletion.",
+    "rateLimited": "Too many changes in a short time. Your input was kept; try again in a few minutes.",
+    "invalidInput": "The submitted data is invalid.",
+    "failed": "The action could not be completed. Try again."
+  }
+}

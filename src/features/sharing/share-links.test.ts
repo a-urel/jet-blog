@@ -6,6 +6,7 @@ describe("buildShareLinks", () => {
   const links = buildShareLinks({
     url: "https://example.test/posts/ornek-yazi",
     title: "Ölçü & denge?",
+    emailLabel: "E-posta",
   });
 
   it("builds provider links that carry only the encoded URL and title", () => {
@@ -28,5 +29,10 @@ describe("buildShareLinks", () => {
       expect(["https:", "mailto:"]).toContain(protocol);
     }
     expect(new URL(links[0].href).searchParams.get("text")).toBe("Ölçü & denge?");
+  });
+
+  it("labels the e-mail link with the caller's translation", () => {
+    expect(links.find((link) => link.provider === "email")?.label).toBe("E-posta");
+    expect(links.find((link) => link.provider === "x")?.label).toBe("X");
   });
 });

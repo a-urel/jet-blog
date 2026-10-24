@@ -1,17 +1,10 @@
+import { useFormatter, useTranslations } from "next-intl";
+
 import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
 import type { PublicComment } from "../queries";
 import { CommentForm } from "./comment-form";
 import { CommentItemActions } from "./comment-item-actions";
 import { CommentViewerProvider } from "./comment-viewer-provider";
-
-const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Europe/Istanbul",
-});
 
 type CommentSectionProps = {
   postId: string;
@@ -23,17 +16,20 @@ type CommentSectionProps = {
 // (escaped), with line breaks preserved by CSS; no HTML is ever interpreted.
 // Per-visitor controls hydrate inside CommentViewerProvider.
 export function CommentSection({ postId, comments }: CommentSectionProps) {
+  const t = useTranslations("comments.section");
+  const format = useFormatter();
+
   return (
     <section aria-labelledby="comments-heading" className="space-y-6 border-t pt-8">
       <h2 id="comments-heading" className="text-xl font-semibold tracking-tight">
-        Yorumlar <span className="text-muted-foreground">({comments.length})</span>
+        {t("heading")} <span className="text-muted-foreground">({comments.length})</span>
       </h2>
       <CommentViewerProvider postId={postId} commentIds={comments.map((comment) => comment.id)}>
         {comments.length > 0 ? (
           <ol className="space-y-6">
             {comments.map((comment) => (
               <li key={comment.id} id={`comment-${comment.id}`} className="space-y-2">
-                <article aria-label={`${comment.displayName} adlı kişinin yorumu`}>
+                <article aria-label={t("commentLabel", { name: comment.displayName })}>
                   <header className="flex items-center gap-3 text-sm">
                     <IdentityAvatar
                       kind="profiles"
@@ -46,7 +42,7 @@ export function CommentSection({ postId, comments }: CommentSectionProps) {
                         dateTime={comment.createdAt}
                         className="text-muted-foreground"
                       >
-                        {dateFormatter.format(new Date(comment.createdAt))}
+                        {format.dateTime(new Date(comment.createdAt), "dateTimeLong")}
                       </time>
                     </div>
                   </header>
@@ -59,7 +55,7 @@ export function CommentSection({ postId, comments }: CommentSectionProps) {
             ))}
           </ol>
         ) : (
-          <p className="text-sm text-muted-foreground">Henüz yorum yok.</p>
+          <p className="text-sm text-muted-foreground">{t("empty")}</p>
         )}
         <CommentForm postId={postId} />
       </CommentViewerProvider>

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   historyNavigationLeavesPage,
   linkClickLeavesPage,
-  unsavedChangesMessage,
   type HistoryNavigation,
 } from "@/features/posts/admin/unsaved-changes";
 
@@ -24,6 +24,9 @@ type NavigateEventLike = HistoryNavigation & { preventDefault(): void };
 // A successful save redirects through the router, which none of the
 // listeners intercepts.
 export function useUnsavedChangesWarning(dirty: boolean) {
+  const t = useTranslations("adminPosts");
+  const unsavedChangesMessage = t("unsavedChanges");
+
   useEffect(() => {
     if (!dirty) return;
 
@@ -78,5 +81,5 @@ export function useUnsavedChangesWarning(dirty: boolean) {
       document.removeEventListener("click", handleClick, true);
       navigation?.removeEventListener("navigate", handleNavigate);
     };
-  }, [dirty]);
+  }, [dirty, unsavedChangesMessage]);
 }

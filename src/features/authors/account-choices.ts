@@ -2,7 +2,8 @@ import type { AuthorAccountOption } from "./admin-data";
 
 // Accounts an author form may offer: active members not linked to another
 // author, plus the author's current account even if it was deactivated (the
-// RPC keeps an unchanged link).
+// RPC keeps an unchanged link). The caller marks deactivated accounts in the
+// interface language.
 export function authorAccountChoices(
   options: readonly Pick<AuthorAccountOption, "profileId" | "label" | "deactivated">[],
   links: readonly { authorId: string; profileId: string | null }[],
@@ -20,6 +21,7 @@ export function authorAccountChoices(
     .filter((option) => option.profileId === current || !option.deactivated)
     .map((option) => ({
       profileId: option.profileId,
-      label: option.deactivated ? `${option.label} — pasif` : option.label,
+      label: option.label,
+      deactivated: option.deactivated,
     }));
 }

@@ -1,0 +1,11 @@
+{
+  "heading": "Teilen",
+  "email": "E-Mail",
+  "shareVia": "Über {provider} teilen",
+  "shareViaNewTab": "Über {provider} teilen (öffnet in neuem Tab)",
+  "copy": "Link kopieren",
+  "copied": "Link kopiert",
+  "copiedStatus": "Link in die Zwischenablage kopiert.",
+  "copyFailed": "Der Link konnte nicht kopiert werden. Markieren und kopieren Sie die Adresse unten.",
+  "linkLabel": "Link zu diesem Beitrag"
+}

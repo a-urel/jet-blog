@@ -6,22 +6,31 @@
 // return 404, listing pages paginate (page 1 has one URL, invalid and
 // out-of-range pages return 404), admin and reader routes redirect to sign-in,
 // discovery files and the Atom feed exist, search answers dynamically with
-// noindex and links only public posts, social images are declared, and every response carries the security headers. It needs no credentials and changes
+// noindex and links only public posts, social images are declared, the
+// interface locale follows the locale cookie and Accept-Language without
+// changing any URL, and every response carries the security headers. It needs no credentials and changes
 // no data (a few searches count against this client's search rate limit), so it can also run against a staging deployment.
 //
 // Optional: SMOKE_SUPABASE_URL and SMOKE_SUPABASE_PUBLISHABLE_KEY (the public
 // values the site itself uses) also check that clients cannot call the search
 // function directly through the Data API.
 
+import { readFileSync } from "node:fs";
+
 const baseUrl = (process.env.SMOKE_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 const failures = [];
+
+// The skip link opens every page, so it identifies the interface language.
+function commonMessages(locale) {
+  return JSON.parse(readFileSync(new URL(`../src/messages/${locale}/common.json`, import.meta.url), "utf8"));
+}
 
 function check(condition, message) {
   if (!condition) failures.push(message);
 }
 
-async function get(path) {
-  return fetch(`${baseUrl}${path}`, { redirect: "manual" });
+async function get(path, headers = {}) {
+  return fetch(`${baseUrl}${path}`, { redirect: "manual", headers });
 }
 
 function checkSecurityHeaders(path, response) {
@@ -307,6 +316,60 @@ check(
   !draftSearch.html.includes("/posts/taslak-yazi-ornegi"),
   "/search?q=taslak: the seed draft is listed",
 );
+
+// Interface locale: chosen by the locale cookie, then Accept-Language, then
+// Turkish. The URL, canonical, and post content language never change.
+function htmlLang(html) {
+  return html.match(/<html[^>]*\slang="([^"]+)"/)?.[1] ?? null;
+}
+
+check(htmlLang(homeHtml) === "tr", `/: anonymous default <html lang> is ${htmlLang(homeHtml)}, expected tr`);
+check(homeHtml.includes(commonMessages("tr").layout.skipToContent), "/: default page is not in Turkish");
+
+for (const [label, headers, expected] of [
+  ["Cookie: locale=en", { cookie: "locale=en" }, "en"],
+  ["Cookie: locale=de", { cookie: "locale=de" }, "de"],
+  ["Accept-Language: de-AT", { "accept-language": "de-AT,de;q=0.9" }, "de"],
+  ["cookie wins over Accept-Language", { cookie: "locale=en", "accept-language": "de" }, "en"],
+  ["invalid cookie", { cookie: "locale=xx" }, "tr"],
+]) {
+  for (const path of ["/", ...(postPath ? [postPath] : [])]) {
+    const response = await get(path, headers);
+    const html = await response.text();
+    check(response.status === 200, `${path} (${label}): expected 200, got ${response.status}`);
+    check(htmlLang(html) === expected, `${path} (${label}): <html lang> is ${htmlLang(html)}, expected ${expected}`);
+    check(
+      html.includes(commonMessages(expected).layout.skipToContent),
+      `${path} (${label}): interface text is not in ${expected}`,
+    );
+    check(canonicalOf(html) === path, `${path} (${label}): canonical is ${canonicalOf(html)}, expected ${path}`);
+    check(
+      !(response.headers.get("cache-control") ?? "").includes("private"),
+      `${path} (${label}): public page is not publicly cacheable`,
+    );
+  }
+}
+
+if (postPath) {
+  // Each locale's copy comes from the ISR cache, not a per-request render.
+  for (const locale of ["tr", "en", "de"]) {
+    const first = await get(postPath, { cookie: `locale=${locale}` });
+    await first.arrayBuffer();
+    const second = await get(postPath, { cookie: `locale=${locale}` });
+    await second.arrayBuffer();
+    check(
+      /^(HIT|STALE)$/.test(second.headers.get("x-nextjs-cache") ?? ""),
+      `${postPath} (locale=${locale}): x-nextjs-cache is ${second.headers.get("x-nextjs-cache")}, expected HIT`,
+    );
+  }
+}
+
+// The internal [locale] segment is not a public URL.
+for (const path of ["/en", "/de/search", ...(postPath ? [`/en${postPath}`] : [])]) {
+  const response = await get(path);
+  await response.arrayBuffer();
+  check(response.status === 404, `${path}: internal locale path answered ${response.status}, expected 404`);
+}
 
 // Direct Data API calls to the search function bypass the page's rate limit,
 // so the database refuses them for client keys.

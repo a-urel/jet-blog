@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { isUuid } from "@/features/posts/admin/validation";
 import { invalidatePublicContent } from "@/features/posts/invalidate";
@@ -11,7 +11,9 @@ import {
   validateCategoryInput,
   validateTagInput,
   type TaxonomyFieldErrors,
+  type TaxonomyFieldIssues,
 } from "./validation";
+import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 export type TaxonomyFormValues = {
   name: string;
@@ -64,90 +66,108 @@ function errorState(
   return { status: "error", message, fieldErrors, values: submittedValues(formData) };
 }
 
+async function validationErrors(issues: TaxonomyFieldIssues): Promise<TaxonomyFieldErrors> {
+  const t = await getTranslations("adminTaxonomy.validation");
+  const errors: TaxonomyFieldErrors = {};
+  for (const [field, issue] of Object.entries(issues) as [
+    keyof TaxonomyFieldIssues,
+    NonNullable<TaxonomyFieldIssues[keyof TaxonomyFieldIssues]>,
+  ][]) {
+    errors[field] = t(issue.key, issue.values);
+  }
+  return errors;
+}
+
+async function invalidFormState(
+  formData: FormData,
+  issues: TaxonomyFieldIssues,
+): Promise<TaxonomyFormState> {
+  const t = await getTranslations("admin.actions");
+  return errorState(formData, t("fixErrors"), await validationErrors(issues));
+}
+
 // The RPCs re-check admin membership; this check only gives a clear message
 // and avoids a database round trip for everyone else.
 async function requireTaxonomyAdmin(): Promise<string | null> {
-  const { user, membership } = await getEditorialContext();
-  if (!user) return "Oturum bulunamadı. Yeniden giriş yapın.";
-  if (!canManageTaxonomy(membership)) {
-    return "Kategori ve etiket yönetimi için admin yetkisi gerekir.";
-  }
+  const [{ user, membership }, t] = await Promise.all([
+    getEditorialContext(),
+    getTranslations(),
+  ]);
+  if (!user) return t("admin.actions.sessionMissing");
+  if (!canManageTaxonomy(membership)) return t("adminTaxonomy.errors.forbidden");
   return null;
 }
 
 type RpcError = { code?: string; message?: string } | null;
 
-function mapRpcError(kind: Kind, error: RpcError): {
-  message: string;
-  fieldErrors?: TaxonomyFieldErrors;
-} {
+async function mapRpcError(
+  kind: Kind,
+  error: RpcError,
+): Promise<{ message: string; fieldErrors?: TaxonomyFieldErrors }> {
   const message = error?.message ?? "";
-  const subject = kind === "category" ? "Kategori" : "Etiket";
+  const [t, tActions, tValidation] = await Promise.all([
+    getTranslations("adminTaxonomy.errors"),
+    getTranslations("admin.actions"),
+    getTranslations("adminTaxonomy.validation"),
+  ]);
 
   switch (error?.code) {
     case "42501":
-      return { message: "Kategori ve etiket yönetimi için admin yetkisi gerekir." };
+      return { message: t("forbidden") };
     case "PT429":
-      return {
-        message:
-          "Kısa sürede çok fazla değişiklik yapıldı. Formdaki bilgiler korundu; birkaç dakika sonra tekrar deneyin.",
-      };
+      return { message: tActions("rateLimited") };
     case "40001":
-      return {
-        message: `${subject} siz sayfayı açtıktan sonra değişti. Sayfayı yenileyip değişikliği yeniden uygulayın.`,
-      };
+      return { message: t("stale", { kind }) };
     case "P0002":
-      return { message: `${subject} bulunamadı.` };
+      return { message: t("missing", { kind }) };
     case "23505":
       if (message.includes("name_key")) {
-        return {
-          message: "Bu ad zaten kullanılıyor.",
-          fieldErrors: { name: "Bu ad zaten kullanılıyor." },
-        };
+        return { message: t("nameTaken"), fieldErrors: { name: t("nameTaken") } };
       }
-      return {
-        message: "Bu slug zaten kullanılıyor veya eski bir adresin yönlendirmesi.",
-        fieldErrors: { slug: "Bu slug zaten kullanılıyor veya eski bir adresin yönlendirmesi." },
-      };
+      return { message: t("slugTaken"), fieldErrors: { slug: t("slugTaken") } };
     case "23514":
       if (message.includes("cycle") || message.includes("own parent") || message.includes("parent_not_self")) {
-        return {
-          message: "Kategori kendi altına veya alt kategorilerinden birine taşınamaz.",
-          fieldErrors: { parentId: "Kendisi veya alt kategorisi üst kategori olamaz." },
-        };
+        return { message: t("cycle"), fieldErrors: { parentId: t("cycleField") } };
       }
       if (message.includes("deeper")) {
-        return {
-          message: "Kategori ağacı 100 seviyeden derin olamaz.",
-          fieldErrors: { parentId: "Kategori ağacı çok derin." },
-        };
+        return { message: t("tooDeep"), fieldErrors: { parentId: t("tooDeepField") } };
       }
-      return { message: "Gönderilen bilgiler geçersiz." };
+      return { message: tActions("invalidInput") };
     case "22023":
       if (message.includes("parent")) {
         return {
-          message: "Geçerli bir üst kategori seçin.",
-          fieldErrors: { parentId: "Geçerli bir üst kategori seçin." },
+          message: tValidation("parentInvalid"),
+          fieldErrors: { parentId: tValidation("parentInvalid") },
         };
       }
       if (message.includes("Target category required")) {
-        return { message: "Bu kategoriyi kullanan yazılar var; taşınacak kategoriyi seçin." };
+        return { message: t("targetRequired") };
       }
       if (message.includes("target")) {
-        return { message: "Geçerli bir hedef kategori seçin." };
+        return { message: t("targetInvalid") };
       }
-      return { message: "Gönderilen bilgiler geçersiz." };
+      return { message: tActions("invalidInput") };
     default:
-      return { message: "İşlem tamamlanamadı. Tekrar deneyin." };
+      return { message: tActions("failed") };
   }
+}
+
+async function invalidRequest() {
+  const t = await getTranslations("admin.actions");
+  return t("invalidRequest");
+}
+
+async function deleteNotConfirmed() {
+  const t = await getTranslations("admin.actions");
+  return t("confirmDelete");
 }
 
 function afterChange(kind: Kind, id?: string) {
   invalidatePublicContent("taxonomy-changed");
-  revalidatePath(listPaths[kind]);
-  if (id) revalidatePath(`${listPaths[kind]}/${id}`);
+  revalidateLocalizedPath(listPaths[kind]);
+  if (id) revalidateLocalizedPath(`${listPaths[kind]}/${id}`);
   // Post forms list categories and tags.
-  revalidatePath("/admin/posts", "layout");
+  revalidateLocalizedPath("/admin/posts", "layout");
 }
 
 export async function createCategoryAction(
@@ -158,9 +178,7 @@ export async function createCategoryAction(
   if (denied) return errorState(formData, denied);
 
   const input = validateCategoryInput(submittedValues(formData));
-  if (!input.ok) {
-    return errorState(formData, "Formdaki hataları düzeltin.", input.fieldErrors);
-  }
+  if (!input.ok) return invalidFormState(formData, input.fieldErrors);
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.rpc("create_category", {
@@ -172,7 +190,7 @@ export async function createCategoryAction(
   });
 
   if (error) {
-    const mapped = mapRpcError("category", error);
+    const mapped = await mapRpcError("category", error);
     return errorState(formData, mapped.message, mapped.fieldErrors);
   }
 
@@ -190,18 +208,15 @@ export async function updateCategoryAction(
   const categoryId = getString(formData, "id");
   const updatedAt = getString(formData, "updatedAt");
   if (!isUuid(categoryId) || !updatedAt) {
-    return errorState(formData, "Geçersiz istek.");
+    return errorState(formData, await invalidRequest());
   }
 
   const input = validateCategoryInput(submittedValues(formData));
-  if (!input.ok) {
-    return errorState(formData, "Formdaki hataları düzeltin.", input.fieldErrors);
-  }
+  if (!input.ok) return invalidFormState(formData, input.fieldErrors);
 
   if (input.data.parentId === categoryId) {
-    return errorState(formData, "Kategori kendi altına taşınamaz.", {
-      parentId: "Kendisi veya alt kategorisi üst kategori olamaz.",
-    });
+    const t = await getTranslations("adminTaxonomy.errors");
+    return errorState(formData, t("selfParent"), { parentId: t("cycleField") });
   }
 
   const supabase = await createServerSupabaseClient();
@@ -216,7 +231,7 @@ export async function updateCategoryAction(
   });
 
   if (error) {
-    const mapped = mapRpcError("category", error);
+    const mapped = await mapRpcError("category", error);
     return errorState(formData, mapped.message, mapped.fieldErrors);
   }
 
@@ -235,12 +250,11 @@ export async function deleteCategoryAction(
   const updatedAt = getString(formData, "updatedAt");
   const targetValue = getString(formData, "targetCategoryId").trim();
 
-  if (!isUuid(categoryId) || !updatedAt) return { error: "Geçersiz istek." };
-  if (formData.get("confirmDelete") !== "on") {
-    return { error: "Silme işlemini onaylamak için kutuyu işaretleyin." };
-  }
+  if (!isUuid(categoryId) || !updatedAt) return { error: await invalidRequest() };
+  if (formData.get("confirmDelete") !== "on") return { error: await deleteNotConfirmed() };
   if (targetValue && !isUuid(targetValue)) {
-    return { error: "Geçerli bir hedef kategori seçin." };
+    const t = await getTranslations("adminTaxonomy.errors");
+    return { error: t("targetInvalid") };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -250,7 +264,7 @@ export async function deleteCategoryAction(
     p_target_category_id: targetValue || null,
   });
 
-  if (error) return { error: mapRpcError("category", error).message };
+  if (error) return { error: (await mapRpcError("category", error)).message };
 
   afterChange("category", categoryId);
   redirect("/admin/categories?status=deleted");
@@ -264,9 +278,7 @@ export async function createTagAction(
   if (denied) return errorState(formData, denied);
 
   const input = validateTagInput(submittedValues(formData));
-  if (!input.ok) {
-    return errorState(formData, "Formdaki hataları düzeltin.", input.fieldErrors);
-  }
+  if (!input.ok) return invalidFormState(formData, input.fieldErrors);
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.rpc("create_tag", {
@@ -276,7 +288,7 @@ export async function createTagAction(
   });
 
   if (error) {
-    const mapped = mapRpcError("tag", error);
+    const mapped = await mapRpcError("tag", error);
     return errorState(formData, mapped.message, mapped.fieldErrors);
   }
 
@@ -293,12 +305,10 @@ export async function updateTagAction(
 
   const tagId = getString(formData, "id");
   const updatedAt = getString(formData, "updatedAt");
-  if (!isUuid(tagId) || !updatedAt) return errorState(formData, "Geçersiz istek.");
+  if (!isUuid(tagId) || !updatedAt) return errorState(formData, await invalidRequest());
 
   const input = validateTagInput(submittedValues(formData));
-  if (!input.ok) {
-    return errorState(formData, "Formdaki hataları düzeltin.", input.fieldErrors);
-  }
+  if (!input.ok) return invalidFormState(formData, input.fieldErrors);
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.rpc("update_tag", {
@@ -310,7 +320,7 @@ export async function updateTagAction(
   });
 
   if (error) {
-    const mapped = mapRpcError("tag", error);
+    const mapped = await mapRpcError("tag", error);
     return errorState(formData, mapped.message, mapped.fieldErrors);
   }
 
@@ -327,10 +337,8 @@ export async function deleteTagAction(
 
   const tagId = getString(formData, "id");
   const updatedAt = getString(formData, "updatedAt");
-  if (!isUuid(tagId) || !updatedAt) return { error: "Geçersiz istek." };
-  if (formData.get("confirmDelete") !== "on") {
-    return { error: "Silme işlemini onaylamak için kutuyu işaretleyin." };
-  }
+  if (!isUuid(tagId) || !updatedAt) return { error: await invalidRequest() };
+  if (formData.get("confirmDelete") !== "on") return { error: await deleteNotConfirmed() };
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.rpc("delete_tag", {
@@ -338,7 +346,7 @@ export async function deleteTagAction(
     p_expected_updated_at: updatedAt,
   });
 
-  if (error) return { error: mapRpcError("tag", error).message };
+  if (error) return { error: (await mapRpcError("tag", error)).message };
 
   afterChange("tag", tagId);
   redirect("/admin/tags?status=deleted");

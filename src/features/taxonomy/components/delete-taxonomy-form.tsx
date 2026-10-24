@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,6 +34,8 @@ export function DeleteTaxonomyForm({
   const [state, formAction, pending] = useActionState(action, {
     error: null,
   } satisfies TaxonomyDeleteState);
+  const t = useTranslations("adminTaxonomy.deleteForm");
+  const tForm = useTranslations("admin.form");
   const confirmId = `delete-confirm-${record.id}`;
   const targetId = `delete-target-${record.id}`;
 
@@ -44,7 +47,7 @@ export function DeleteTaxonomyForm({
       {targetOptions ? (
         <div className="space-y-2">
           <Label htmlFor={targetId}>
-            {targetRequired ? "Yazıların taşınacağı kategori" : "Eski adresin yönleneceği kategori"}
+            {targetRequired ? t("targetForPosts") : t("targetForRedirect")}
           </Label>
           <NativeSelect
             className="w-full"
@@ -53,7 +56,7 @@ export function DeleteTaxonomyForm({
             required={targetRequired}
             defaultValue=""
           >
-            <NativeSelectOption value="">{targetRequired ? "Kategori seçin" : "Yok (eski adres 404 olur)"}</NativeSelectOption>
+            <NativeSelectOption value="">{targetRequired ? t("targetPlaceholder") : t("targetNone")}</NativeSelectOption>
             {targetOptions.map((option) => (
               <NativeSelectOption key={option.id} value={option.id}>
                 {`${"— ".repeat(option.depth)}${option.name}`}
@@ -73,7 +76,7 @@ export function DeleteTaxonomyForm({
       {state.error ? <FormAlert tone="error">{state.error}</FormAlert> : null}
 
       <Button type="submit" variant="destructive" disabled={pending}>
-        {pending ? "Siliniyor…" : "Sil"}
+        {pending ? tForm("deleting") : tForm("delete")}
       </Button>
     </form>
   );

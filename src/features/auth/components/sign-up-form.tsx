@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { signUpAction, type SignUpState } from "@/features/auth/actions";
 import {
   passwordMinLength,
-  passwordPolicyHint,
+  passwordPolicyValues,
 } from "@/features/auth/password-policy";
 import { displayNameMaxLength } from "@/features/auth/validation";
 import { FormAlert } from "./form-alert";
@@ -16,6 +17,7 @@ import { FormAlert } from "./form-alert";
 const initialState: SignUpState = { status: "idle", message: null };
 
 export function SignUpForm() {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
     signUpAction,
     initialState,
@@ -31,7 +33,7 @@ export function SignUpForm() {
   return (
     <form action={formAction} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="display-name">Görünen ad</Label>
+        <Label htmlFor="display-name">{t("fields.displayName")}</Label>
         <Input
           id="display-name"
           name="displayName"
@@ -42,12 +44,12 @@ export function SignUpForm() {
           aria-describedby={describedBy}
         />
         <p className="text-xs text-muted-foreground">
-          İleride yorumlarınızda bu ad görünecek. Daha sonra değiştirebilirsiniz.
+          {t("signUp.displayNameHint")}
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">E-posta</Label>
+        <Label htmlFor="email">{t("fields.email")}</Label>
         <Input
           id="email"
           name="email"
@@ -61,7 +63,7 @@ export function SignUpForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Parola</Label>
+        <Label htmlFor="password">{t("fields.password")}</Label>
         <Input
           id="password"
           name="password"
@@ -73,12 +75,12 @@ export function SignUpForm() {
           aria-describedby={describedBy ? `${describedBy} password-hint` : "password-hint"}
         />
         <p id="password-hint" className="text-xs text-muted-foreground">
-          {passwordPolicyHint}
+          {t("passwordPolicy.hint", passwordPolicyValues)}
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirm-password">Parola (tekrar)</Label>
+        <Label htmlFor="confirm-password">{t("fields.confirmPassword")}</Label>
         <Input
           id="confirm-password"
           name="confirmPassword"
@@ -98,7 +100,7 @@ export function SignUpForm() {
       ) : null}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Hesap oluşturuluyor…" : "Hesap oluştur"}
+        {pending ? t("signUp.pending") : t("signUp.submit")}
       </Button>
     </form>
   );

@@ -1,0 +1,35 @@
+{
+  "title": "Media",
+  "intro": "Images uploaded from the post editor or the cover field. An image used in a post body or as a cover cannot be deleted.",
+  "status": {
+    "deleted": "Image deleted."
+  },
+  "errors": {
+    "invalid": "Invalid request.",
+    "forbidden": "You are not allowed to delete this image.",
+    "missing": "Image not found.",
+    "inUse": "This image is used in a post body or as a cover, so it cannot be deleted. Remove it from the posts first.",
+    "objectRemains": "The image record was deleted, but the file could not be removed from Storage. Try again or notify an administrator.",
+    "rateLimited": "Too many images were deleted in a short time (at most 60 per 10 minutes). Try again shortly.",
+    "failed": "The action could not be completed. Try again."
+  },
+  "loadError": "The media list could not be loaded.",
+  "listTitle": "Images",
+  "listDescription": "The bucket is public: anyone who knows a file address can open the image, including images used in drafts. Authors can delete only their own uploads; editors and admins can delete any unused image.",
+  "empty": "No images uploaded yet.",
+  "size": {
+    "bytes": "{size} B",
+    "kilobytes": "{size} KB",
+    "megabytes": "{size} MB"
+  },
+  "upload": {
+    "membershipRequired": "Uploading images requires editorial membership.",
+    "fileRequired": "Choose an image file.",
+    "empty": "The file is empty.",
+    "tooLarge": "The file can be at most {max} MB.",
+    "unsupportedType": "Only JPEG, PNG, WebP, and GIF images can be uploaded.",
+    "invalidDimensions": "Image dimensions must be between 1 and 10000 pixels.",
+    "rejected": "The upload was rejected. Check your permissions or try again in a few minutes (at most 20 images per 10 minutes).",
+    "registerFailed": "The image could not be saved. Try again."
+  }
+}

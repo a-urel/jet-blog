@@ -1,0 +1,103 @@
+{
+  "denied": {
+    "title": "Category and tag management is unavailable",
+    "description": "This page is open to the admin role only. Editors can assign existing categories and tags to posts."
+  },
+  "validation": {
+    "nameRequired": "Name is required.",
+    "nameTooLong": "Name cannot exceed {max, number, ::group-off} characters.",
+    "slugUnavailable": "No slug could be generated; enter one manually.",
+    "slugTooLong": "Slug cannot exceed {max, number, ::group-off} characters.",
+    "slugInvalid": "Slug may contain only lowercase letters, digits, and single hyphens.",
+    "descriptionTooLong": "Description cannot exceed {max, number, ::group-off} characters.",
+    "parentInvalid": "Choose a valid parent category.",
+    "sortOrderInvalid": "Order must be a whole number between {min, number, ::group-off} and {max, number, ::group-off}."
+  },
+  "errors": {
+    "forbidden": "Managing categories and tags requires admin permission.",
+    "stale": "The {kind, select, category {category} other {tag}} changed after you opened the page. Reload the page and apply your change again.",
+    "missing": "{kind, select, category {Category} other {Tag}} not found.",
+    "nameTaken": "This name is already in use.",
+    "slugTaken": "This slug is already in use or redirects from an old address.",
+    "cycle": "A category cannot be moved under itself or one of its subcategories.",
+    "cycleField": "The category itself or a subcategory cannot be the parent.",
+    "selfParent": "A category cannot be moved under itself.",
+    "tooDeep": "The category tree cannot be deeper than 100 levels.",
+    "tooDeepField": "The category tree is too deep.",
+    "targetRequired": "Posts use this category; choose a category to move them to.",
+    "targetInvalid": "Choose a valid target category."
+  },
+  "form": {
+    "name": "Name",
+    "slug": "Slug",
+    "slugPlaceholder": "Generated from the name if left empty",
+    "slugHintEdit": "If the slug changes, the old archive address redirects to the new one.",
+    "slugHintNew": "Lowercase letters, digits, and hyphens.",
+    "parent": "Parent category",
+    "parentNone": "None (top level)",
+    "sortOrder": "Order",
+    "description": "Description",
+    "descriptionHint": "Optional. Shown on the archive page and in search results."
+  },
+  "deleteForm": {
+    "targetForPosts": "Category to move the posts to",
+    "targetForRedirect": "Category to redirect the old address to",
+    "targetPlaceholder": "Choose a category",
+    "targetNone": "None (old address returns 404)"
+  },
+  "postCount": "{count, plural, one {# post} other {# posts}}",
+  "categories": {
+    "title": "Categories",
+    "intro": "Each post belongs to a single category. Parent category archives also list the posts of their subcategories.",
+    "status": {
+      "created": "Category created.",
+      "updated": "Category updated.",
+      "deleted": "Category deleted."
+    },
+    "treeTitle": "Category tree",
+    "treeDescription": "Post counts include drafts. Select a category to edit, move, or delete it.",
+    "empty": "No categories yet.",
+    "newTitle": "New category",
+    "newDescription": "The name must be unique (case-insensitive).",
+    "create": "Create category"
+  },
+  "category": {
+    "metaTitle": "Edit category",
+    "back": "← Categories",
+    "summary": "{posts, plural, one {# post} other {# posts}} · {children, plural, one {# subcategory} other {# subcategories}}",
+    "editTitle": "Edit category",
+    "editDescription": "Change the parent to move the category together with its subcategories. It cannot be moved under itself.",
+    "deleteTitle": "Delete category",
+    "deleteMovesPosts": "The {count, plural, one {# post} other {# posts}} in this category will move to the category you choose, and the old archive address will redirect there.",
+    "deleteNoPosts": "This category has no posts. You can optionally redirect the old archive address to another category.",
+    "deleteMovesChildrenToParent": "{count, plural, one {# subcategory} other {# subcategories}} will move under “{parent}”.",
+    "deleteMovesChildrenToRoot": "{count, plural, one {# subcategory} other {# subcategories}} will move to the top level.",
+    "noTargets": "There is no other category to move the posts to. Create a new category first.",
+    "confirm": "I understand that the category “{name}” will be deleted."
+  },
+  "tags": {
+    "title": "Tags",
+    "intro": "A post can carry several tags; each tag has its own archive.",
+    "status": {
+      "created": "Tag created.",
+      "updated": "Tag updated.",
+      "deleted": "Tag deleted and removed from posts."
+    },
+    "listTitle": "All tags",
+    "listDescription": "Post counts include drafts.",
+    "empty": "No tags yet.",
+    "newTitle": "New tag",
+    "newDescription": "The name must be unique (case-insensitive).",
+    "create": "Create tag"
+  },
+  "tag": {
+    "metaTitle": "Edit tag",
+    "back": "← Tags",
+    "editTitle": "Edit tag",
+    "deleteTitle": "Delete tag",
+    "deleteUsed": "The tag will be removed from {count, plural, one {# post} other {# posts}}. The old archive address will return 404.",
+    "deleteUnused": "This tag is not used by any post.",
+    "confirmUsed": "I understand that the tag “{name}” will be removed from {count, plural, one {# post} other {# posts}} and deleted.",
+    "confirm": "I understand that the tag “{name}” will be deleted."
+  }
+}

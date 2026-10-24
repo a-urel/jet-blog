@@ -16,7 +16,14 @@ export const allowedAvatarTypes = ["image/jpeg", "image/png", "image/webp"] as c
 
 export type AvatarMimeType = (typeof allowedAvatarTypes)[number];
 
-export type AvatarRejection = "empty" | "too-large" | "unsupported-type" | "invalid-dimensions";
+// Message keys under avatars.rejection; translate them with avatarLimitValues.
+export type AvatarRejection = "empty" | "tooLarge" | "unsupportedType" | "invalidDimensions";
+
+export const avatarLimitValues = {
+  maxMegabytes: maxAvatarBytes / 1024 / 1024,
+  min: minAvatarDimension,
+  max: maxAvatarDimension,
+} as const;
 
 export type AvatarValidation =
   | { ok: true; info: ImageInfo & { mimeType: AvatarMimeType } }
@@ -28,10 +35,10 @@ function isAvatarType(value: string): value is AvatarMimeType {
 
 export function validateAvatarUpload(bytes: Uint8Array): AvatarValidation {
   if (bytes.length === 0) return { ok: false, reason: "empty" };
-  if (bytes.length > maxAvatarBytes) return { ok: false, reason: "too-large" };
+  if (bytes.length > maxAvatarBytes) return { ok: false, reason: "tooLarge" };
 
   const info = readImageInfo(bytes);
-  if (!info || !isAvatarType(info.mimeType)) return { ok: false, reason: "unsupported-type" };
+  if (!info || !isAvatarType(info.mimeType)) return { ok: false, reason: "unsupportedType" };
 
   if (
     info.width < minAvatarDimension ||
@@ -39,18 +46,11 @@ export function validateAvatarUpload(bytes: Uint8Array): AvatarValidation {
     info.width > maxAvatarDimension ||
     info.height > maxAvatarDimension
   ) {
-    return { ok: false, reason: "invalid-dimensions" };
+    return { ok: false, reason: "invalidDimensions" };
   }
 
   return { ok: true, info: { ...info, mimeType: info.mimeType } };
 }
-
-export const avatarRejectionMessages: Record<AvatarRejection, string> = {
-  empty: "Dosya boş.",
-  "too-large": `Profil fotoğrafı en fazla ${maxAvatarBytes / 1024 / 1024} MB olabilir.`,
-  "unsupported-type": "Yalnızca JPEG, PNG ve WebP görseller yüklenebilir.",
-  "invalid-dimensions": `Görsel kenarları ${minAvatarDimension}–${maxAvatarDimension} piksel arasında olmalı.`,
-};
 
 // Up to two initials for the fallback, from the first and last words. Uses
 // Turkish case mapping so "ilker" becomes "İ".

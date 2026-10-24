@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { EditorialAccessDenied } from "@/features/auth/components/editorial-access-denied";
 import { canManageTaxonomy, getEditorialContext } from "@/lib/auth/editorial";
@@ -10,10 +11,12 @@ export async function taxonomyAccessDenial() {
 
   if (canManageTaxonomy(membership)) return null;
 
+  const t = await getTranslations("adminTaxonomy.denied");
+
   return (
     <EditorialAccessDenied
-      title="Kategori ve etiket yönetimi kapalı"
-      description="Bu sayfa yalnızca admin rolüne açıktır. Editörler mevcut kategori ve etiketleri yazılara atayabilir."
+      title={t("title")}
+      description={t("description")}
       email={user.email}
     />
   );

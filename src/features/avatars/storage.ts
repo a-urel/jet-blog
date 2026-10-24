@@ -1,9 +1,10 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getTranslations } from "next-intl/server";
 
 import { avatarObjectName, avatarsBucket, type AvatarKind } from "./url";
-import { avatarRejectionMessages, maxAvatarBytes, validateAvatarUpload } from "./validation";
+import { avatarLimitValues, maxAvatarBytes, validateAvatarUpload } from "./validation";
 
 export type AvatarUploadResult =
   | { ok: true; avatarId: string }
@@ -12,24 +13,29 @@ export type AvatarUploadResult =
 // Validates the bytes on the server, then uploads with the caller's session so
 // the Storage policies (kind, admin-only author avatars, rate limit) apply. The
 // object is not in use until an RPC attaches it; callers remove it again when
-// attaching fails.
+// attaching fails. The error is already translated into the interface
+// language, so the calling Server Action can return it as is.
 export async function uploadAvatarObject(
   supabase: SupabaseClient,
   kind: AvatarKind,
   file: FormDataEntryValue | null,
 ): Promise<AvatarUploadResult> {
+  const t = await getTranslations("avatars.rejection");
+
   if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, error: "Bir görsel dosyası seçin." };
+    return { ok: false, error: t("noFile") };
   }
 
   // Check the declared size before reading the body into memory.
   if (file.size > maxAvatarBytes) {
-    return { ok: false, error: avatarRejectionMessages["too-large"] };
+    return { ok: false, error: t("tooLarge", avatarLimitValues) };
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const validation = validateAvatarUpload(bytes);
-  if (!validation.ok) return { ok: false, error: avatarRejectionMessages[validation.reason] };
+  if (!validation.ok) {
+    return { ok: false, error: t(validation.reason, avatarLimitValues) };
+  }
 
   const avatarId = crypto.randomUUID();
   const { error } = await supabase.storage
@@ -42,11 +48,7 @@ export async function uploadAvatarObject(
     });
 
   if (error) {
-    return {
-      ok: false,
-      error:
-        "Yükleme reddedildi. Yetkinizi kontrol edin veya birkaç dakika sonra tekrar deneyin (10 dakikada en fazla 10 görsel).",
-    };
+    return { ok: false, error: t("uploadRefused") };
   }
 
   return { ok: true, avatarId };

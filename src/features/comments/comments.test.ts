@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 
+import trAdminComments from "@/messages/tr/adminComments.json";
+import trComments from "@/messages/tr/comments.json";
+
 import { commentsCacheTag, publicCommentsCacheTag } from "./cache";
 import {
   commentBodyMaxLength,
   commentInsertErrorResult,
   isCommentReportReason,
   isCommentStatus,
+  commentMessageKeys,
+  commentReportReasonKeys,
   isUuid,
   moderationErrorResult,
-  moderationStatusMessage,
+  moderationStatusFromQuery,
   normalizeCommentBody,
   reportInsertErrorResult,
 } from "./model";
@@ -47,15 +52,15 @@ describe("normalizeCommentBody", () => {
   });
 
   it("refuses empty and whitespace-only bodies", () => {
-    expect(normalizeCommentBody("").ok).toBe(false);
-    expect(normalizeCommentBody(" \n\t \u0000").ok).toBe(false);
+    expect(normalizeCommentBody("")).toEqual({ ok: false, error: "bodyEmpty" });
+    expect(normalizeCommentBody(" \n\t \u0000")).toEqual({ ok: false, error: "bodyEmpty" });
   });
 
   it("counts code points like Postgres char_length", () => {
     const emoji = "😀".repeat(commentBodyMaxLength);
     expect(emoji.length).toBe(commentBodyMaxLength * 2);
     expect(normalizeCommentBody(emoji).ok).toBe(true);
-    expect(normalizeCommentBody(`${emoji}a`).ok).toBe(false);
+    expect(normalizeCommentBody(`${emoji}a`)).toEqual({ ok: false, error: "bodyTooLong" });
   });
 });
 
@@ -169,10 +174,26 @@ describe("moderation queue pages and feedback", () => {
   });
 
   it("maps ?status= to a message only for comment statuses", () => {
-    expect(moderationStatusMessage("hidden")).toContain("gizlendi");
-    expect(moderationStatusMessage("visible")).toContain("yeniden");
-    expect(moderationStatusMessage("deleted")).toBe("Yorum silindi.");
-    expect(moderationStatusMessage("published")).toBeNull();
-    expect(moderationStatusMessage(["hidden"])).toBeNull();
+    expect(moderationStatusFromQuery("hidden")).toBe("hidden");
+    expect(moderationStatusFromQuery("visible")).toBe("visible");
+    expect(moderationStatusFromQuery("deleted")).toBe("deleted");
+    expect(trAdminComments.statusMessages.deleted).toBe("Yorum silindi.");
+    expect(moderationStatusFromQuery("published")).toBeNull();
+    expect(moderationStatusFromQuery(["hidden"])).toBeNull();
+  });
+});
+
+describe("message keys", () => {
+  it("point at Turkish catalog entries", () => {
+    for (const key of Object.values(commentMessageKeys)) {
+      expect(trComments.messages[key]).toBeTruthy();
+    }
+    for (const key of Object.values(commentReportReasonKeys)) {
+      expect(trComments.reportReasons[key]).toBeTruthy();
+    }
+    expect(trComments.validation.bodyEmpty).toBe("Yorum boş olamaz.");
+    expect(trComments.validation.bodyTooLong).toBe(
+      "Yorum en fazla {max} karakter olabilir.",
+    );
   });
 });

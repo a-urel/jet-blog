@@ -1,5 +1,6 @@
-// Error keys for ?error= on the admin post page and their Turkish copy. Kept
-// out of the Server Action module, which may export only async functions.
+// Error keys for ?error= on the admin post page. Kept out of the Server Action
+// module, which may export only async functions. The page translates them
+// through publicationErrorMessageKey.
 export type PublicationErrorKey =
   | "forbidden"
   | "conflict"
@@ -39,52 +40,38 @@ export function publicationErrorKey(error: {
   }
 }
 
-export const publicationErrorMessages: Record<PublicationErrorKey, string> = {
-  forbidden: "Yazı yayınlama ve yayından kaldırma yalnızca editörlere ve adminlere açıktır.",
-  conflict:
-    "Bu yazı sayfa açıldıktan sonra değişti. Sayfayı yenileyip güncel sürümle tekrar deneyin.",
-  category: "Yayınlamak için önce bir kategori seçip kaydedin.",
-  cover:
-    "Kapak görseli için alternatif metin girip kaydedin veya kapağı kaldırın; yayınlanan kapak, ekran okuyucular için bir açıklama gerektirir.",
-  body: "Yazı gövdesi geçersiz olduğu için yayınlanamadı.",
-  state: "Yazının durumu bu işlem için uygun değil. Sayfayı yenileyin.",
-  missing: "Yazı bulunamadı veya erişim yetkiniz yok.",
-  "rate-limited":
-    "Kısa sürede çok fazla yayınlama işlemi yapıldı (saatte en fazla 30). Biraz sonra tekrar deneyin.",
-  failed: "İşlem tamamlanamadı. Tekrar deneyin.",
+// Catalog key under adminPosts.publication.errors for each URL error key.
+// Message keys are camelCase; the URL keeps its established spelling.
+export type PublicationErrorMessageKey =
+  | Exclude<PublicationErrorKey, "rate-limited">
+  | "rateLimited";
+
+const publicationErrorMessageKeys: Record<PublicationErrorKey, PublicationErrorMessageKey> = {
+  forbidden: "forbidden",
+  conflict: "conflict",
+  category: "category",
+  cover: "cover",
+  body: "body",
+  state: "state",
+  missing: "missing",
+  "rate-limited": "rateLimited",
+  failed: "failed",
 };
 
-export function publicationErrorMessage(value: unknown): string | null {
-  return typeof value === "string" && Object.hasOwn(publicationErrorMessages, value)
-    ? publicationErrorMessages[value as PublicationErrorKey]
+// Untrusted ?error= value to a catalog key, or null for anything unknown.
+export function publicationErrorMessageKey(
+  value: unknown,
+): PublicationErrorMessageKey | null {
+  return typeof value === "string" && Object.hasOwn(publicationErrorMessageKeys, value)
+    ? publicationErrorMessageKeys[value as PublicationErrorKey]
     : null;
 }
 
-export type PublicationConfirmation = {
-  trigger: string;
-  title: string;
-  description: string;
-  confirm: string;
-};
-
-// Copy for the confirmation dialog in front of publish and unpublish. Both
-// actions change what anonymous readers see at once, so neither runs on the
-// first click.
-export function publicationConfirmation(
+// Catalog group (adminPosts.publication.publish or .unpublish) for the
+// confirmation dialog in front of publish and unpublish. Both actions change
+// what anonymous readers see at once, so neither runs on the first click.
+export function publicationConfirmationKey(
   published: boolean,
-  title: string,
-): PublicationConfirmation {
-  return published
-    ? {
-        trigger: "Yayından kaldır",
-        title: "Yazı yayından kaldırılsın mı?",
-        description: `“${title}” taslağa döner; genel sayfa, listeler, arama ve akış onu hemen göstermeyi bırakır. Daha sonra yeniden yayınlayabilirsiniz.`,
-        confirm: "Yayından kaldır",
-      }
-    : {
-        trigger: "Yayınla",
-        title: "Yazı yayınlansın mı?",
-        description: `“${title}” kaydedilmiş son sürümüyle herkese açık olur; ana sayfada, arşivlerde, aramada ve akışta görünür. Kaydedilmemiş değişiklikler yayına girmez.`,
-        confirm: "Yayınla",
-      };
+): "publish" | "unpublish" {
+  return published ? "unpublish" : "publish";
 }

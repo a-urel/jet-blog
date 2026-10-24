@@ -1,0 +1,75 @@
+{
+  "denied": {
+    "title": "Üye yönetimi kapalı",
+    "description": "Bu sayfa yalnızca admin rolüne açıktır."
+  },
+  "title": "Üyeler",
+  "intro": "Editöryal üyeleri davet edin, rollerini değiştirin veya deaktive edin.",
+  "status": {
+    "roleUpdated": "Rol güncellendi.",
+    "membershipUpdated": "Üyelik durumu güncellendi."
+  },
+  "errors": {
+    "invalid": "Geçersiz istek.",
+    "session": "Oturumunuz sona ermiş. Yeniden giriş yapın.",
+    "forbidden": "Bu işlem için admin yetkisi gerekir.",
+    "self": "Kendi rolünüzü veya aktiflik durumunuzu değiştiremezsiniz.",
+    "missing": "Üye bulunamadı.",
+    "lastAdmin": "Son aktif admin düşürülemez veya deaktive edilemez.",
+    "alreadyMember": "Bu kullanıcı zaten aktif bir üye.",
+    "unknown": "İşlem tamamlanamadı. Tekrar deneyin."
+  },
+  "invite": {
+    "title": "Yeni davet",
+    "description": "Yeni bir e-posta davet edin veya mevcut bir kullanıcıya rol verin. Editörler üye davet edemez.",
+    "secretTitle": "Sunucu anahtarı gerekli",
+    "secretDescription": "Davet göndermek için <code>.env.local</code> dosyasına yalnızca sunucuda kullanılan <code>SUPABASE_SECRET_KEY</code> değerini ekleyin."
+  },
+  "list": {
+    "title": "Üye listesi",
+    "description": "Deaktivasyon bir sonraki istekte geçerli olur.",
+    "loadError": "Üye listesi yüklenemedi.",
+    "empty": "Henüz editöryal üye yok.",
+    "columns": {
+      "user": "Kullanıcı",
+      "role": "Rol",
+      "status": "Durum",
+      "action": "İşlem"
+    },
+    "you": "Siz",
+    "roleLabel": "Rol",
+    "state": {
+      "deactivated": "Pasif",
+      "awaiting": "Davet bekliyor",
+      "active": "Aktif"
+    },
+    "selfRow": "Kendi kaydınız",
+    "activate": "Aktifleştir",
+    "deactivate": "Deaktive et"
+  },
+  "inviteForm": {
+    "email": "E-posta",
+    "displayName": "Görünen ad (isteğe bağlı)",
+    "role": "Rol",
+    "confirmAdmin": "Bu kişiye admin yetkisi vermeyi onaylıyorum.",
+    "sending": "Gönderiliyor…",
+    "submit": "Davet gönder"
+  },
+  "inviteResult": {
+    "emailRequired": "E-posta gerekli.",
+    "emailInvalid": "Geçerli bir e-posta girin.",
+    "roleInvalid": "Geçerli bir rol seçin.",
+    "confirmAdmin": "Admin rolü vermek için onay kutusunu işaretleyin.",
+    "displayNameTooLong": "Görünen ad {max, number, ::group-off} karakteri aşamaz.",
+    "verifyFailed": "İşlem şu anda doğrulanamadı. Tekrar deneyin.",
+    "rateLimited": "Saatlik davet sınırına ulaşıldı. Daha sonra tekrar deneyin.",
+    "sendFailed": "Davet gönderilemedi. Supabase ayarlarını kontrol edin.",
+    "userNotFound": "Bu e-posta kayıtlı görünüyor ancak kullanıcı bulunamadı.",
+    "unconfirmed": "Bu e-posta ile doğrulanmamış bir hesap var. Kişi önce e-posta adresini doğrulamalı.",
+    "noTarget": "Davet hedefi belirlenemedi.",
+    "grantFailed": "Davet işlendi ancak üyelik kaydı tamamlanamadı. Üye listesini kontrol edin.",
+    "invited": "Davet e-postası gönderildi.",
+    "granted": "Mevcut kullanıcıya rol verildi.",
+    "unexpected": "Beklenmeyen bir hata oluştu. Tekrar deneyin."
+  }
+}

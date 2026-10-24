@@ -11,7 +11,26 @@ export const authorLimits = {
 
 export type AuthorField = "name" | "slug" | "bio" | "profileId";
 
+// Translated messages, as shown next to the form fields.
 export type AuthorFieldErrors = Partial<Record<AuthorField, string>>;
+
+// Validation stays framework-free: it returns message keys of the
+// adminAuthors.validation catalog, which the Server Action translates.
+export type AuthorIssueKey =
+  | "nameRequired"
+  | "nameTooLong"
+  | "slugUnavailable"
+  | "slugTooLong"
+  | "slugInvalid"
+  | "bioTooLong"
+  | "profileInvalid";
+
+export type AuthorIssue = Readonly<{
+  key: AuthorIssueKey;
+  values?: Readonly<Record<string, number>>;
+}>;
+
+export type AuthorFieldIssues = Partial<Record<AuthorField, AuthorIssue>>;
 
 export type RawAuthorInput = Readonly<{
   name: string;
@@ -30,16 +49,16 @@ export type AuthorInput = Readonly<{
 
 export type AuthorValidation =
   | { ok: true; data: AuthorInput }
-  | { ok: false; fieldErrors: AuthorFieldErrors };
+  | { ok: false; fieldErrors: AuthorFieldIssues };
 
 export function validateAuthorInput(raw: RawAuthorInput): AuthorValidation {
-  const fieldErrors: AuthorFieldErrors = {};
+  const fieldErrors: AuthorFieldIssues = {};
 
   const name = normalizeName(raw.name);
   if (name.length === 0) {
-    fieldErrors.name = "Ad gerekli.";
+    fieldErrors.name = { key: "nameRequired" };
   } else if (name.length > authorLimits.name) {
-    fieldErrors.name = `Ad ${authorLimits.name} karakteri aşamaz.`;
+    fieldErrors.name = { key: "nameTooLong", values: { max: authorLimits.name } };
   }
 
   // Same Turkish-aware generation as taxonomy: "Deniz Örnek" -> "deniz-ornek".
@@ -47,16 +66,16 @@ export function validateAuthorInput(raw: RawAuthorInput): AuthorValidation {
   const slug = rawSlug.length > 0 ? rawSlug : slugify(name, authorLimits.slug);
 
   if (slug.length === 0) {
-    fieldErrors.slug = "Slug üretilemedi; elle girin.";
+    fieldErrors.slug = { key: "slugUnavailable" };
   } else if (slug.length > authorLimits.slug) {
-    fieldErrors.slug = `Slug ${authorLimits.slug} karakteri aşamaz.`;
+    fieldErrors.slug = { key: "slugTooLong", values: { max: authorLimits.slug } };
   } else if (!isValidSlug(slug)) {
-    fieldErrors.slug = "Slug yalnızca küçük harf, rakam ve tek tire içerebilir.";
+    fieldErrors.slug = { key: "slugInvalid" };
   }
 
   const bio = raw.bio.trim();
   if (bio.length > authorLimits.bio) {
-    fieldErrors.bio = `Biyografi ${authorLimits.bio} karakteri aşamaz.`;
+    fieldErrors.bio = { key: "bioTooLong", values: { max: authorLimits.bio } };
   }
 
   const profileValue = raw.profileId.trim();
@@ -65,7 +84,7 @@ export function validateAuthorInput(raw: RawAuthorInput): AuthorValidation {
     if (isUuid(profileValue)) {
       profileId = profileValue;
     } else {
-      fieldErrors.profileId = "Geçerli bir hesap seçin.";
+      fieldErrors.profileId = { key: "profileInvalid" };
     }
   }
 

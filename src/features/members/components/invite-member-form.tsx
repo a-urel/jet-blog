@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { CircleAlert, CircleCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +19,11 @@ import type { EditorialRole } from "@/lib/auth/editorial";
 
 const initialState: InviteMemberState = { status: "idle", message: null };
 
-const roleOptions: { value: EditorialRole; label: string }[] = [
-  { value: "author", label: "Yazar" },
-  { value: "editor", label: "Editör" },
-  { value: "admin", label: "Admin" },
-];
+const roleOptions: EditorialRole[] = ["author", "editor", "admin"];
 
 export function InviteMemberForm() {
+  const t = useTranslations("adminMembers.inviteForm");
+  const tRoles = useTranslations("admin.roles");
   const [role, setRole] = useState<EditorialRole>("author");
   const [state, formAction, pending] = useActionState(
     inviteMemberAction,
@@ -34,7 +33,7 @@ export function InviteMemberForm() {
   return (
     <form action={formAction} className="max-w-xl space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="invite-email">E-posta</Label>
+        <Label htmlFor="invite-email">{t("email")}</Label>
         <Input
           id="invite-email"
           name="email"
@@ -47,7 +46,7 @@ export function InviteMemberForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="invite-display-name">Görünen ad (isteğe bağlı)</Label>
+        <Label htmlFor="invite-display-name">{t("displayName")}</Label>
         <Input
           id="invite-display-name"
           name="displayName"
@@ -58,7 +57,7 @@ export function InviteMemberForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="invite-role">Rol</Label>
+        <Label htmlFor="invite-role">{t("role")}</Label>
         <NativeSelect
           className="w-full"
           id="invite-role"
@@ -76,8 +75,8 @@ export function InviteMemberForm() {
           }}
         >
           {roleOptions.map((option) => (
-            <NativeSelectOption key={option.value} value={option.value}>
-              {option.label}
+            <NativeSelectOption key={option} value={option}>
+              {tRoles(option)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
@@ -92,7 +91,7 @@ export function InviteMemberForm() {
             className="mt-1 size-4"
           />
           <Label htmlFor="invite-confirm-admin" className="leading-6">
-            Bu kişiye admin yetkisi vermeyi onaylıyorum.
+            {t("confirmAdmin")}
           </Label>
         </div>
       ) : null}
@@ -118,7 +117,7 @@ export function InviteMemberForm() {
       ) : null}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Gönderiliyor…" : "Davet gönder"}
+        {pending ? t("sending") : t("submit")}
       </Button>
     </form>
   );

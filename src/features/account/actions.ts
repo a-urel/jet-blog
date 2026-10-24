@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import { getTranslations } from "next-intl/server";
 
-import { authRateLimitMessages, consumeAuthRateLimit } from "@/features/auth/rate-limit";
-import { validateDisplayName } from "@/features/auth/validation";
+import { consumeAuthRateLimit } from "@/features/auth/rate-limit";
+import { displayNameMaxLength, validateDisplayName } from "@/features/auth/validation";
 import type { AvatarFormState } from "@/features/avatars/form-state";
 import {
   listOwnProfileAvatarIds,
@@ -20,6 +21,7 @@ import {
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 export type DisplayNameState = {
   status: "idle" | "error" | "success";
@@ -32,26 +34,32 @@ export type DeleteAccountState = {
 };
 
 
-const missingSessionMessage = "Oturum bulunamadı. Yeniden giriş yapın.";
-
 // Every account action takes the user from the verified session. No action
 // accepts a user id, role, or email from the form.
 export async function updateDisplayNameAction(
   _previousState: DisplayNameState,
   formData: FormData,
 ): Promise<DisplayNameState> {
+  const [t, tAuth] = await Promise.all([
+    getTranslations("account"),
+    getTranslations("auth"),
+  ]);
   const value = formData.get("displayName");
   if (typeof value !== "string") {
-    return { status: "error", message: "Görünen ad gerekli." };
+    return { status: "error", message: tAuth("displayName.required") };
   }
 
   const result = validateDisplayName(value);
   if (!result.ok) {
-    return { status: "error", message: result.message, value };
+    return {
+      status: "error",
+      message: tAuth(`displayName.${result.error}`, { max: displayNameMaxLength }),
+      value,
+    };
   }
 
   const user = await getSessionUser();
-  if (!user) return { status: "error", message: missingSessionMessage };
+  if (!user) return { status: "error", message: t("missingSession") };
 
   const supabase = await createServerSupabaseClient();
   // RLS limits the update to the caller's own row and the column grant to
@@ -66,16 +74,16 @@ export async function updateDisplayNameAction(
   if (error || !data) {
     return {
       status: "error",
-      message: "Görünen ad kaydedilemedi. Tekrar deneyin.",
+      message: t("displayName.saveFailed"),
       value: result.value,
     };
   }
 
-  revalidatePath("/account");
+  revalidateLocalizedPath("/account");
 
   return {
     status: "success",
-    message: "Görünen ad kaydedildi.",
+    message: t("displayName.saved"),
     value: result.value,
   };
 }
@@ -86,15 +94,16 @@ type OwnAvatarChange = {
   post_slugs: string[] | null;
 };
 
-function ownAvatarErrorMessage(code: string | undefined): string {
+// Message keys under account.avatar.
+function ownAvatarErrorKey(code: string | undefined) {
   switch (code) {
     case "PT429":
-      return "Profil fotoğrafını kısa sürede çok sık değiştirdiniz. Bir süre sonra tekrar deneyin.";
+      return "rateLimited" as const;
     case "P0002":
     case "22023":
-      return "Yüklenen görsel kabul edilmedi. Başka bir görselle tekrar deneyin.";
+      return "rejected" as const;
     default:
-      return "Profil fotoğrafı kaydedilemedi. Tekrar deneyin.";
+      return "saveFailed" as const;
   }
 }
 
@@ -109,13 +118,16 @@ async function setOwnAvatar(avatarId: string | null): Promise<string | null> {
     .rpc("set_own_avatar", { p_avatar_id: avatarId })
     .single<OwnAvatarChange>();
 
-  if (error || !data) return ownAvatarErrorMessage(error?.code);
+  if (error || !data) {
+    const t = await getTranslations("account.avatar");
+    return t(ownAvatarErrorKey(error?.code));
+  }
 
   await removeAvatarObjects(supabase, "profiles", [data.previous_avatar_id]);
 
   (data.post_ids ?? []).forEach((postId) => updateTag(commentsCacheTag(postId)));
-  (data.post_slugs ?? []).forEach((slug) => revalidatePath(`/posts/${slug}`));
-  revalidatePath("/account");
+  (data.post_slugs ?? []).forEach((slug) => revalidateLocalizedPath(`/posts/${slug}`));
+  revalidateLocalizedPath("/account");
 
   return null;
 }
@@ -124,8 +136,9 @@ export async function updateOwnAvatarAction(
   _previousState: AvatarFormState,
   formData: FormData,
 ): Promise<AvatarFormState> {
+  const t = await getTranslations("account");
   const user = await getSessionUser();
-  if (!user) return { status: "error", message: missingSessionMessage };
+  if (!user) return { status: "error", message: t("missingSession") };
 
   const supabase = await createServerSupabaseClient();
   const upload = await uploadAvatarObject(supabase, "profiles", formData.get("avatar"));
@@ -137,48 +150,53 @@ export async function updateOwnAvatarAction(
     return { status: "error", message: failure };
   }
 
-  return { status: "success", message: "Profil fotoğrafı kaydedildi." };
+  return { status: "success", message: t("avatar.saved") };
 }
 
 // Used as a form action through useActionState; it needs neither the previous
 // state nor form data.
 export async function removeOwnAvatarAction(): Promise<AvatarFormState> {
+  const t = await getTranslations("account");
   const user = await getSessionUser();
-  if (!user) return { status: "error", message: missingSessionMessage };
+  if (!user) return { status: "error", message: t("missingSession") };
 
   const failure = await setOwnAvatar(null);
   if (failure) return { status: "error", message: failure };
 
-  return { status: "success", message: "Profil fotoğrafı kaldırıldı." };
+  return { status: "success", message: t("avatar.removed") };
 }
 
 export async function deleteAccountAction(
   _previousState: DeleteAccountState,
   formData: FormData,
 ): Promise<DeleteAccountState> {
+  const [t, tAuth] = await Promise.all([
+    getTranslations("account"),
+    getTranslations("auth"),
+  ]);
   const password = formData.get("password");
   const confirmed = formData.get("confirmDelete");
 
   if (typeof password !== "string" || !password) {
-    return { error: "Hesabı silmek için parolanızı girin." };
+    return { error: t("delete.passwordRequired") };
   }
 
   if (confirmed !== "on") {
-    return { error: "Silme işlemini onaylamak için kutuyu işaretleyin." };
+    return { error: t("delete.confirmRequired") };
   }
 
   const user = await getSessionUser();
-  if (!user?.email) return { error: missingSessionMessage };
+  if (!user?.email) return { error: t("missingSession") };
 
   if (!isSupabaseAdminConfigured()) {
-    return { error: authRateLimitMessages.unavailable };
+    return { error: tAuth("rateLimit.unavailable") };
   }
 
   // Re-entering the password counts as a sign-in attempt, so a stolen session
   // cannot be used to brute-force it here either.
   const rateLimit = await consumeAuthRateLimit("auth.sign_in", user.email);
   if (rateLimit !== "allowed") {
-    return { error: authRateLimitMessages[rateLimit] };
+    return { error: tAuth(`rateLimit.${rateLimit}`) };
   }
 
   // Verify the password with a stateless client so the request's own session
@@ -195,7 +213,7 @@ export async function deleteAccountAction(
     await verifier.auth.signInWithPassword({ email: user.email, password });
 
   if (verifyError || verified.user?.id !== user.id) {
-    return { error: "Parola hatalı." };
+    return { error: t("delete.wrongPassword") };
   }
 
   await verifier.auth.signOut({ scope: "local" }).catch(() => null);
@@ -207,13 +225,10 @@ export async function deleteAccountAction(
 
   if (preflightError) {
     if (preflightError.code === "23514") {
-      return {
-        error:
-          "Aktif admin hesapları silinemez. Önce başka bir admin rolünüzü değiştirmeli veya üyeliğinizi devre dışı bırakmalı.",
-      };
+      return { error: t("delete.activeAdminError") };
     }
 
-    return { error: "Hesap silinemedi. Tekrar deneyin." };
+    return { error: t("delete.failed") };
   }
 
   // The preflight detached the profile avatar. Remove it and any upload that
@@ -228,7 +243,7 @@ export async function deleteAccountAction(
   const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
 
   if (deleteError) {
-    return { error: "Hesap silinemedi. Tekrar deneyin." };
+    return { error: t("delete.failed") };
   }
 
   // The Auth user and its sessions are gone; clear the local cookies.
@@ -238,8 +253,8 @@ export async function deleteAccountAction(
   // drop every cached comment read and regenerate post pages so the old
   // display name and avatar leave public output (src/features/comments/cache.ts).
   updateTag(publicCommentsCacheTag);
-  revalidatePath("/posts/[slug]", "page");
-  revalidatePath("/account", "layout");
-  revalidatePath("/admin", "layout");
+  revalidateLocalizedPath("/posts/[slug]", "page");
+  revalidateLocalizedPath("/account", "layout");
+  revalidateLocalizedPath("/admin", "layout");
   redirect("/login?account=deleted");
 }

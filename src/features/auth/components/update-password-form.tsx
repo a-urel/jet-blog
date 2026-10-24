@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { CircleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +13,13 @@ import {
 } from "@/features/auth/actions";
 import {
   passwordMinLength,
-  passwordPolicyHint,
+  passwordPolicyValues,
 } from "@/features/auth/password-policy";
 
 const initialState: UpdatePasswordState = { error: null };
 
 export function UpdatePasswordForm() {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
     updatePasswordAction,
     initialState,
@@ -26,7 +28,7 @@ export function UpdatePasswordForm() {
   return (
     <form action={formAction} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="new-password">Yeni parola</Label>
+        <Label htmlFor="new-password">{t("fields.newPassword")}</Label>
         <Input
           id="new-password"
           name="password"
@@ -37,11 +39,11 @@ export function UpdatePasswordForm() {
           aria-invalid={state.error ? true : undefined}
           aria-describedby={state.error ? "password-error" : undefined}
         />
-        <p className="text-xs text-muted-foreground">{passwordPolicyHint}</p>
+        <p className="text-xs text-muted-foreground">{t("passwordPolicy.hint", passwordPolicyValues)}</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirm-password">Yeni parola (tekrar)</Label>
+        <Label htmlFor="confirm-password">{t("fields.confirmNewPassword")}</Label>
         <Input
           id="confirm-password"
           name="confirmPassword"
@@ -66,7 +68,7 @@ export function UpdatePasswordForm() {
       ) : null}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Kaydediliyor…" : "Parolayı kaydet"}
+        {pending ? t("passwordForm.pending") : t("passwordForm.submit")}
       </Button>
     </form>
   );

@@ -1,0 +1,68 @@
+{
+  "title": "My account",
+  "notConfiguredAction": "manage your account",
+  "session": "Signed in as <email></email>",
+  "notices": {
+    "confirmed": "Your email address is confirmed. Welcome.",
+    "passwordUpdated": "Your password has been updated."
+  },
+  "membership": {
+    "title": "Editorial membership",
+    "description": "This account has access to the administration area.",
+    "goToAdmin": "Go to administration"
+  },
+  "saved": {
+    "title": "Saved",
+    "description": "Your saved posts are visible only to you.",
+    "link": "Saved posts"
+  },
+  "displayName": {
+    "title": "Display name",
+    "description": "The name shown in reader features such as comments.",
+    "missingDescription": "You have not set a display name yet. Enter a name before using reader features.",
+    "submit": "Save",
+    "pending": "Saving…",
+    "saved": "Display name saved.",
+    "saveFailed": "The display name could not be saved. Try again."
+  },
+  "avatar": {
+    "title": "Profile picture",
+    "description": "Shown next to your comments. When you change or remove it, the old picture is deleted and your comments show the new one.",
+    "alt": "Your profile picture",
+    "missingAlt": "No profile picture",
+    "saved": "Profile picture saved.",
+    "removed": "Profile picture removed.",
+    "rateLimited": "You changed your profile picture too often in a short time. Try again later.",
+    "rejected": "The uploaded image was not accepted. Try again with a different image.",
+    "saveFailed": "The profile picture could not be saved. Try again."
+  },
+  "password": {
+    "title": "Password and session",
+    "description": "You can change your password or sign out on this device.",
+    "change": "Change password",
+    "signOut": "Sign out"
+  },
+  "passwordPage": {
+    "title": "Change password",
+    "notConfiguredAction": "change your password",
+    "recoveryTitle": "Set a new password",
+    "recoveryDescription": "Your reset link is confirmed. Set your new password.",
+    "cardTitle": "New password",
+    "back": "Back to my account"
+  },
+  "delete": {
+    "title": "Delete account",
+    "description": "Your account, your profile, and the reader data linked to your account are permanently deleted. If you are an editorial member, the posts you wrote and your author credits stay published.",
+    "activeAdmin": "Active admin accounts cannot be deleted. Before you can delete this account, another admin must change your role or deactivate your membership.",
+    "passwordLabel": "Your password",
+    "confirmLabel": "I understand that my account will be permanently deleted and that this cannot be undone.",
+    "submit": "Delete account permanently",
+    "pending": "Deleting…",
+    "passwordRequired": "Enter your password to delete the account.",
+    "confirmRequired": "Check the box to confirm the deletion.",
+    "wrongPassword": "Incorrect password.",
+    "activeAdminError": "Active admin accounts cannot be deleted. Another admin must first change your role or deactivate your membership.",
+    "failed": "The account could not be deleted. Try again."
+  },
+  "missingSession": "No session found. Sign in again."
+}

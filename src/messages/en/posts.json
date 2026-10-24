@@ -1,0 +1,31 @@
+{
+  "home": {
+    "title": "Ideas grow when they are shared.",
+    "intro": "Notes on design, technology, and making things. A small reading space that brings different perspectives together.",
+    "latest": "Latest posts",
+    "empty": "No posts have been published yet."
+  },
+  "post": {
+    "allPosts": "All posts",
+    "tags": "Tags"
+  },
+  "list": {
+    "tags": "Tags",
+    "read": "Read post",
+    "readLabel": "{title} — read post"
+  },
+  "meta": {
+    "updated": "Updated <time>{date}</time>"
+  },
+  "pageCount": {
+    "total": "{count, plural, one {# post} other {# posts}}",
+    "page": "Page {page} of {pageCount}"
+  },
+  "pagination": {
+    "currentPage": "Page {page}, current page"
+  },
+  "body": {
+    "imageUnavailable": "The image cannot be loaded right now.",
+    "unsupported": "The content of this post cannot be displayed right now."
+  }
+}

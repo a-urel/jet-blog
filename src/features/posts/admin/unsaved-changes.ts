@@ -1,6 +1,3 @@
-export const unsavedChangesMessage =
-  "Kaydedilmemiş değişiklikleriniz var. Sayfadan ayrılırsanız bu değişiklikler kaybolacak.";
-
 export type LinkClick = Readonly<{
   href: string;
   target: string;

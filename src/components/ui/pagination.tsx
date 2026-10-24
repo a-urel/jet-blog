@@ -1,15 +1,17 @@
 import * as React from "react"
 import Link from "next/link"
 import { cn } from "cn"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+  const t = useTranslations("common.pagination")
   return (
     <nav
       role="navigation"
-      aria-label="Sayfalar"
+      aria-label={t("label")}
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -64,35 +66,37 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
-  text = "Önceki",
+  text,
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const t = useTranslations("common.pagination")
   return (
     <PaginationLink
-      aria-label="Önceki sayfaya git"
+      aria-label={t("previousLabel")}
       size="default"
       className={cn("pl-1.5!", className)}
       {...props}
     >
       <ChevronLeftIcon data-icon="inline-start" />
-      <span className="hidden sm:block">{text}</span>
+      <span className="hidden sm:block">{text ?? t("previous")}</span>
     </PaginationLink>
   )
 }
 
 function PaginationNext({
   className,
-  text = "Sonraki",
+  text,
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const t = useTranslations("common.pagination")
   return (
     <PaginationLink
-      aria-label="Sonraki sayfaya git"
+      aria-label={t("nextLabel")}
       size="default"
       className={cn("pr-1.5!", className)}
       {...props}
     >
-      <span className="hidden sm:block">{text}</span>
+      <span className="hidden sm:block">{text ?? t("next")}</span>
       <ChevronRightIcon data-icon="inline-end" />
     </PaginationLink>
   )
@@ -102,6 +106,7 @@ function PaginationEllipsis({
   className,
   ...props
 }: React.ComponentProps<"span">) {
+  const t = useTranslations("common.pagination")
   return (
     <span
       aria-hidden
@@ -114,7 +119,7 @@ function PaginationEllipsis({
     >
       <MoreHorizontalIcon
       />
-      <span className="sr-only">Diğer sayfalar</span>
+      <span className="sr-only">{t("more")}</span>
     </span>
   )
 }

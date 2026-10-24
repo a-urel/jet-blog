@@ -1,0 +1,75 @@
+{
+  "denied": {
+    "title": "Yazar yönetimi kapalı",
+    "description": "Bu sayfa yalnızca admin rolüne açıktır. Editörler mevcut yazarları yazılara kredilendirebilir."
+  },
+  "validation": {
+    "nameRequired": "Ad gerekli.",
+    "nameTooLong": "Ad {max, number, ::group-off} karakteri aşamaz.",
+    "slugUnavailable": "Slug üretilemedi; elle girin.",
+    "slugTooLong": "Slug {max, number, ::group-off} karakteri aşamaz.",
+    "slugInvalid": "Slug yalnızca küçük harf, rakam ve tek tire içerebilir.",
+    "bioTooLong": "Biyografi {max, number, ::group-off} karakteri aşamaz.",
+    "profileInvalid": "Geçerli bir hesap seçin."
+  },
+  "errors": {
+    "forbidden": "Yazar yönetimi için admin yetkisi gerekir.",
+    "stale": "Yazar siz sayfayı açtıktan sonra değişti. Sayfayı yenileyip değişikliği yeniden uygulayın.",
+    "missing": "Yazar bulunamadı.",
+    "accountTaken": "Bu hesap zaten başka bir yazara bağlı.",
+    "slugTaken": "Bu slug zaten kullanılıyor veya eski bir adresin yönlendirmesi.",
+    "inactiveAccount": "Yalnızca aktif bir editoryal üyenin hesabı bağlanabilir.",
+    "inactiveAccountField": "Aktif bir editoryal üye seçin.",
+    "credited": "Bu yazar yazılarda kredilendirilmiş. Silmeden önce yazı düzenleyicide kredilerini kaldırın.",
+    "avatarRejected": "Yüklenen görsel kabul edilmedi. Başka bir görselle tekrar deneyin."
+  },
+  "form": {
+    "name": "Ad",
+    "slug": "Slug",
+    "slugPlaceholder": "Boş bırakılırsa addan üretilir",
+    "slugHintEdit": "Slug değişirse eski yazar adresi yeni adrese yönlenir.",
+    "slugHintNew": "Küçük harf, rakam ve tire.",
+    "bio": "Biyografi",
+    "bioHint": "İsteğe bağlı. Yazar sayfasında ve arama sonuçlarında görünür.",
+    "account": "Bağlı hesap",
+    "accountNone": "Yok (misafir yazar)",
+    "accountHint": "Yalnızca editoryal üyeler bağlanabilir. Bağlantı yetki vermez; düzenleme hakları üyelik rolünden gelir.",
+    "accountDeactivated": "{label} — pasif"
+  },
+  "list": {
+    "title": "Yazarlar",
+    "intro": "Yazılarda görünen yazar kimlikleri. Misafir yazarların hesabı yoktur; bir kimlik bir editoryal üyeye bağlanabilir.",
+    "status": {
+      "created": "Yazar oluşturuldu.",
+      "updated": "Yazar güncellendi.",
+      "deleted": "Yazar silindi."
+    },
+    "listTitle": "Tüm yazarlar",
+    "listDescription": "Kredi sayısı taslakları da içerir. Yazar sayfası yalnızca yayındaki bir yazıda kredisi varsa görünür.",
+    "empty": "Henüz yazar yok.",
+    "linkedAccount": "Bağlı hesap",
+    "guest": "Misafir",
+    "creditCount": "{count, plural, other {# yazı}}",
+    "newTitle": "Yeni yazar",
+    "newDescription": "Slug benzersiz olmalı; ad tekrar edebilir.",
+    "create": "Yazar oluştur"
+  },
+  "author": {
+    "metaTitle": "Yazar düzenle",
+    "back": "← Yazarlar",
+    "credits": "{count, plural, other {# yazıda}} kredisi var",
+    "status": {
+      "avatarUpdated": "Yazar fotoğrafı kaydedildi.",
+      "avatarRemoved": "Yazar fotoğrafı kaldırıldı."
+    },
+    "avatarTitle": "Yazar fotoğrafı",
+    "avatarDescription": "Künyelerde ve yazar arşivinde görünür. Bağlı hesabın profil fotoğrafından bağımsızdır; değiştirildiğinde veya kaldırıldığında eski fotoğraf silinir.",
+    "avatarAlt": "{name} fotoğrafı",
+    "avatarNone": "Yazar fotoğrafı yok",
+    "editTitle": "Yazarı düzenle",
+    "deleteTitle": "Yazarı sil",
+    "deleteCredited": "Bu yazar {count, plural, other {# yazıda}} kredilendirilmiş. Silmeden önce yazı düzenleyicide kredilerini kaldırın.",
+    "deleteUncredited": "Bu yazarın hiçbir yazıda kredisi yok. Silinince eski yazar adresleri 404 döner.",
+    "confirm": "\"{name}\" yazarının silineceğini anlıyorum."
+  }
+}

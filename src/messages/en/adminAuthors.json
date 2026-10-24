@@ -1,0 +1,75 @@
+{
+  "denied": {
+    "title": "Author management is unavailable",
+    "description": "This page is open to the admin role only. Editors can credit existing authors on posts."
+  },
+  "validation": {
+    "nameRequired": "Name is required.",
+    "nameTooLong": "Name cannot exceed {max, number, ::group-off} characters.",
+    "slugUnavailable": "No slug could be generated; enter one manually.",
+    "slugTooLong": "Slug cannot exceed {max, number, ::group-off} characters.",
+    "slugInvalid": "Slug may contain only lowercase letters, digits, and single hyphens.",
+    "bioTooLong": "Biography cannot exceed {max, number, ::group-off} characters.",
+    "profileInvalid": "Choose a valid account."
+  },
+  "errors": {
+    "forbidden": "Managing authors requires admin permission.",
+    "stale": "The author changed after you opened the page. Reload the page and apply your change again.",
+    "missing": "Author not found.",
+    "accountTaken": "This account is already linked to another author.",
+    "slugTaken": "This slug is already in use or redirects from an old address.",
+    "inactiveAccount": "Only the account of an active editorial member can be linked.",
+    "inactiveAccountField": "Choose an active editorial member.",
+    "credited": "This author is credited on posts. Remove the credits in the post editor before deleting.",
+    "avatarRejected": "The uploaded image was not accepted. Try again with another image."
+  },
+  "form": {
+    "name": "Name",
+    "slug": "Slug",
+    "slugPlaceholder": "Generated from the name if left empty",
+    "slugHintEdit": "If the slug changes, the old author address redirects to the new one.",
+    "slugHintNew": "Lowercase letters, digits, and hyphens.",
+    "bio": "Biography",
+    "bioHint": "Optional. Shown on the author page and in search results.",
+    "account": "Linked account",
+    "accountNone": "None (guest author)",
+    "accountHint": "Only editorial members can be linked. A link grants no permissions; editing rights come from the membership role.",
+    "accountDeactivated": "{label} — deactivated"
+  },
+  "list": {
+    "title": "Authors",
+    "intro": "Author identities shown on posts. Guest authors have no account; an identity can be linked to an editorial member.",
+    "status": {
+      "created": "Author created.",
+      "updated": "Author updated.",
+      "deleted": "Author deleted."
+    },
+    "listTitle": "All authors",
+    "listDescription": "Credit counts include drafts. An author page is visible only when the author is credited on a published post.",
+    "empty": "No authors yet.",
+    "linkedAccount": "Linked account",
+    "guest": "Guest",
+    "creditCount": "{count, plural, one {# post} other {# posts}}",
+    "newTitle": "New author",
+    "newDescription": "The slug must be unique; names may repeat.",
+    "create": "Create author"
+  },
+  "author": {
+    "metaTitle": "Edit author",
+    "back": "← Authors",
+    "credits": "Credited on {count, plural, one {# post} other {# posts}}",
+    "status": {
+      "avatarUpdated": "Author photo saved.",
+      "avatarRemoved": "Author photo removed."
+    },
+    "avatarTitle": "Author photo",
+    "avatarDescription": "Shown in bylines and on the author archive. It is independent of the linked account’s profile picture; the old photo is deleted when it is replaced or removed.",
+    "avatarAlt": "Photo of {name}",
+    "avatarNone": "No author photo",
+    "editTitle": "Edit author",
+    "deleteTitle": "Delete author",
+    "deleteCredited": "This author is credited on {count, plural, one {# post} other {# posts}}. Remove the credits in the post editor before deleting.",
+    "deleteUncredited": "This author is not credited on any post. Once deleted, the old author addresses return 404.",
+    "confirm": "I understand that the author “{name}” will be deleted."
+  }
+}

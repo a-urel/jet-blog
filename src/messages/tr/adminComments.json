@@ -1,0 +1,58 @@
+{
+  "metaTitle": "Yorumlar",
+  "accessDenied": {
+    "title": "Yorum moderasyonu kapalı",
+    "description": "Yorumları yalnızca editörler ve adminler gizleyebilir veya silebilir."
+  },
+  "heading": "Yorumlar",
+  "intro": "Yorumlar gönderildiği anda yayımlanır; okur bildirimlerini inceleyip gerekirse gizleyin veya silin.",
+  "statusMessages": {
+    "hidden": "Yorum gizlendi; artık sitede görünmüyor.",
+    "visible": "Yorum yeniden gösteriliyor.",
+    "deleted": "Yorum silindi."
+  },
+  "filtersLabel": "Yorum filtreleri",
+  "filters": {
+    "reported": "Bildirilen",
+    "visible": "Görünür",
+    "hidden": "Gizlenen",
+    "deleted": "Silinen"
+  },
+  "filterTitles": {
+    "reported": "Bildirilen yorumlar",
+    "visible": "Görünür yorumlar",
+    "hidden": "Gizlenen yorumlar",
+    "deleted": "Silinen yorumlar"
+  },
+  "filterDescriptions": {
+    "reported": "En az bir bildirim almış ve hâlâ görünür olan yorumlar. Bildirimler yorumu kendiliğinden gizlemez.",
+    "visible": "Sitede görünen tüm yorumlar.",
+    "hidden": "Gizlenen yorumlar sitede görünmez; yeniden gösterilebilir.",
+    "deleted": "Silinen yorumlar kalıcı olarak gizlidir ve geri alınamaz."
+  },
+  "summary": "En yeni yorumlar önce; toplam {total}.",
+  "summaryPaged": "En yeni yorumlar önce; toplam {total} · Sayfa {page} / {pageCount}.",
+  "empty": "Bu filtrede yorum yok.",
+  "statusLabels": {
+    "visible": "Görünür",
+    "hidden": "Gizlendi",
+    "deleted": "Silindi"
+  },
+  "reportCount": "{count, plural, one {# bildirim} other {# bildirim}}",
+  "post": "Yazı: <link>{title}</link>",
+  "postUnpublished": "Yazı: <muted>{title} (yayında değil)</muted>",
+  "reasons": "Bildirim nedenleri: {reasons}",
+  "reasonCount": "{reason} ({count})",
+  "pagination": {
+    "label": "Yorum sayfaları",
+    "currentPage": "Sayfa {page}, geçerli sayfa"
+  },
+  "actions": {
+    "hide": "Gizle",
+    "restore": "Yeniden göster",
+    "delete": "Sil",
+    "confirmDelete": "Evet, sil",
+    "cancel": "Vazgeç",
+    "unauthenticated": "Oturum bulunamadı. Yeniden giriş yapın."
+  }
+}

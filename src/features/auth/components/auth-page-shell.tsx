@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,19 +38,23 @@ export function AuthPageShell({
   );
 }
 
+// `action` is a translated infinitive phrase that completes the sentence in
+// auth.notConfigured.description: "Giriş yapmak" (tr), "sign in" (en),
+// "sich anzumelden" (de, a zu-infinitive after "Um").
 export function SupabaseNotConfigured({ action }: { action: string }) {
+  const t = useTranslations("auth.notConfigured");
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Supabase yapılandırılmadı</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          {action} için <code>.env.local</code> dosyasına Supabase URL ve
-          publishable key değerlerini ekleyin.
+          {t.rich("description", { action, code: (chunks) => <code>{chunks}</code> })}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Button asChild variant="outline">
-          <Link href="/">Yazılara dön</Link>
+          <Link href="/">{t("back")}</Link>
         </Button>
       </CardContent>
     </Card>

@@ -61,7 +61,7 @@ export function defaultSocialImage(
 
 // Open Graph images plus the Twitter card that matches them: a large image
 // card when there is an image, a text-only summary otherwise.
-function socialImages(image: SocialImage | null, twitter: { title: string; description?: string }) {
+export function socialImages(image: SocialImage | null, twitter: { title: string; description?: string }) {
   return {
     openGraph: image ? { images: [image] } : {},
     twitter: image
@@ -103,9 +103,14 @@ export function buildPostMetadata(post: PostSummary, siteName: string): Metadata
   };
 }
 
+// Formats a later page's title ("<title> — Page 3") in the interface
+// language. Callers pass the translated format (listing-metadata.ts), so this
+// module stays free of copy and of the i18n runtime.
+export type PageTitleFormatter = (title: string, page: number) => string;
+
 // Later pages of a listing carry the page number in their title.
-export function pageTitle(title: string, page: number) {
-  return page > 1 ? `${title} — Sayfa ${page}` : title;
+export function pageTitle(title: string, page: number, format: PageTitleFormatter) {
+  return page > 1 ? format(title, page) : title;
 }
 
 // Each page of a listing is its own canonical URL (page 1 is the listing's
@@ -118,10 +123,14 @@ export function buildArchiveMetadata(input: {
   path: string;
   siteName: string;
   page?: number;
+  // Interface language of the listing: the page-title format and og:locale
+  // (interfaceOpenGraphLocales). Post pages use the post's own language.
+  pageTitle: PageTitleFormatter;
+  locale: string;
 }): Metadata {
   const page = input.page ?? 1;
   const path = pagePath(input.path, page);
-  const title = pageTitle(input.title, page);
+  const title = pageTitle(input.title, page, input.pageTitle);
   const social = socialImages(defaultSocialImage(input.siteName), {
     title,
     description: input.description,
@@ -135,7 +144,7 @@ export function buildArchiveMetadata(input: {
       type: "website",
       url: path,
       siteName: input.siteName,
-      locale: "tr_TR",
+      locale: input.locale,
       title,
       description: input.description,
       ...social.openGraph,

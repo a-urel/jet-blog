@@ -11,18 +11,14 @@ export const commentReportReasons = ["spam", "abuse", "off_topic", "other"] as c
 
 export type CommentReportReason = (typeof commentReportReasons)[number];
 
-export const commentReportReasonLabels: Record<CommentReportReason, string> = {
-  spam: "Spam veya reklam",
-  abuse: "Hakaret, taciz veya nefret söylemi",
-  off_topic: "Konu dışı",
-  other: "Diğer",
-};
-
-export const commentStatusLabels: Record<CommentStatus, string> = {
-  visible: "Görünür",
-  hidden: "Gizlendi",
-  deleted: "Silindi",
-};
+// Catalog keys of the reason labels (comments.reportReasons.*). The stored
+// reason values stay as they are; only their labels are translated.
+export const commentReportReasonKeys = {
+  spam: "spam",
+  abuse: "abuse",
+  off_topic: "offTopic",
+  other: "other",
+} as const satisfies Record<CommentReportReason, string>;
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,9 +38,12 @@ export function isCommentStatus(value: unknown): value is CommentStatus {
   return value === "visible" || value === "hidden" || value === "deleted";
 }
 
+// Catalog keys under comments.validation; bodyTooLong takes { max }.
+export type CommentBodyError = "bodyEmpty" | "bodyTooLong";
+
 export type CommentBodyResult =
   | { ok: true; value: string }
-  | { ok: false; message: string };
+  | { ok: false; error: CommentBodyError };
 
 // Plain text only: line endings are normalized, control characters other than
 // newline and tab are removed, runs of blank lines collapse to one, and the
@@ -57,14 +56,11 @@ export function normalizeCommentBody(value: string): CommentBodyResult {
     .trim();
 
   if (!normalized) {
-    return { ok: false, message: "Yorum boş olamaz." };
+    return { ok: false, error: "bodyEmpty" };
   }
 
   if ([...normalized].length > commentBodyMaxLength) {
-    return {
-      ok: false,
-      message: `Yorum en fazla ${commentBodyMaxLength} karakter olabilir.`,
-    };
+    return { ok: false, error: "bodyTooLong" };
   }
 
   return { ok: true, value: normalized };
@@ -81,25 +77,22 @@ export type CommentActionResult =
   | { status: "forbidden" }
   | { status: "error" };
 
-export const commentMessages = {
-  "display-name-required": "Yorum yapmadan önce hesabınızda bir görünen ad belirleyin.",
-  unavailable: "Bu yorum veya yazı şu anda kullanılamıyor.",
-  duplicate: "Bu yorumu kısa süre önce zaten gönderdiniz.",
-  "rate-limited": "Çok fazla istek gönderdiniz. Bir süre sonra tekrar deneyin.",
-  forbidden: "Bu işlem için yetkiniz yok.",
-  error: "İşlem tamamlanamadı. Tekrar deneyin.",
+// Catalog keys (comments.messages.*) of the failures a component shows.
+export const commentMessageKeys = {
+  "display-name-required": "displayNameRequired",
+  unavailable: "unavailable",
+  duplicate: "duplicate",
+  "rate-limited": "rateLimited",
+  forbidden: "forbidden",
+  error: "error",
 } as const;
 
-// ?status= values after a moderation action on /admin/comments; the value is
-// the comment's new status.
-export const moderationStatusMessages: Record<CommentStatus, string> = {
-  hidden: "Yorum gizlendi; artık sitede görünmüyor.",
-  visible: "Yorum yeniden gösteriliyor.",
-  deleted: "Yorum silindi.",
-};
+export type CommentMessageKey = (typeof commentMessageKeys)[keyof typeof commentMessageKeys];
 
-export function moderationStatusMessage(value: unknown): string | null {
-  return isCommentStatus(value) ? moderationStatusMessages[value] : null;
+// ?status= values after a moderation action on /admin/comments; the value is
+// the comment's new status, and the page shows adminComments.statusMessages.*.
+export function moderationStatusFromQuery(value: unknown): CommentStatus | null {
+  return isCommentStatus(value) ? value : null;
 }
 
 // Comment insert errors. 23502 is the missing display-name snapshot (the

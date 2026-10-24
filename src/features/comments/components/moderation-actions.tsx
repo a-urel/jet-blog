@@ -3,10 +3,11 @@
 import { useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { moderateCommentAction } from "../actions";
-import { commentMessages, type CommentStatus } from "../model";
+import { commentMessageKeys, type CommentStatus } from "../model";
 
 type ModerationActionsProps = {
   commentId: string;
@@ -18,6 +19,8 @@ type ModerationActionsProps = {
 // post page; on success the queue reloads with ?status=<new status>, which the
 // page shows through QueryStatus, so the row leaves the list with a message.
 export function ModerationActions({ commentId, status }: ModerationActionsProps) {
+  const t = useTranslations("adminComments.actions");
+  const tComments = useTranslations("comments.messages");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -47,11 +50,11 @@ export function ModerationActions({ commentId, status }: ModerationActionsProps)
           result.status === "invalid"
             ? result.message
             : result.status === "unauthenticated"
-              ? "Oturum bulunamadı. Yeniden giriş yapın."
-              : commentMessages[result.status],
+              ? t("unauthenticated")
+              : tComments(commentMessageKeys[result.status]),
         );
       } catch {
-        setMessage(commentMessages.error);
+        setMessage(tComments("error"));
       }
     });
   }
@@ -67,7 +70,7 @@ export function ModerationActions({ commentId, status }: ModerationActionsProps)
           onClick={() => moderate("hidden")}
         >
           <EyeOff aria-hidden="true" />
-          Gizle
+          {t("hide")}
         </Button>
       ) : (
         <Button
@@ -78,7 +81,7 @@ export function ModerationActions({ commentId, status }: ModerationActionsProps)
           onClick={() => moderate("visible")}
         >
           <Eye aria-hidden="true" />
-          Yeniden göster
+          {t("restore")}
         </Button>
       )}
       {confirmDelete ? (
@@ -90,7 +93,7 @@ export function ModerationActions({ commentId, status }: ModerationActionsProps)
             disabled={pending}
             onClick={() => moderate("deleted")}
           >
-            Evet, sil
+            {t("confirmDelete")}
           </Button>
           <Button
             type="button"
@@ -99,7 +102,7 @@ export function ModerationActions({ commentId, status }: ModerationActionsProps)
             disabled={pending}
             onClick={() => setConfirmDelete(false)}
           >
-            Vazgeç
+            {t("cancel")}
           </Button>
         </>
       ) : (
@@ -111,7 +114,7 @@ export function ModerationActions({ commentId, status }: ModerationActionsProps)
           onClick={() => setConfirmDelete(true)}
         >
           <Trash2 aria-hidden="true" />
-          Sil
+          {t("delete")}
         </Button>
       )}
       <span role="status" aria-live="polite" className="text-xs text-destructive">

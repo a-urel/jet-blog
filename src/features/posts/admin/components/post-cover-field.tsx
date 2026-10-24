@@ -3,6 +3,7 @@
 import { useId, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { Check, ImagePlus, Images, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ export function PostCoverField({
   onCoverChange,
   onAltChange,
 }: PostCoverFieldProps) {
+  const t = useTranslations("adminEditor");
   const id = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const [library, setLibrary] = useState(media);
@@ -64,14 +66,14 @@ export function PostCoverField({
     const file = fileRef.current?.files?.[0];
 
     if (!file) {
-      setUploadError("Bir görsel dosyası seçin.");
+      setUploadError(t("upload.fileRequired"));
       return;
     }
 
     // The server repeats this check. Catching it here avoids sending a body
     // that exceeds the Server Action limit, which would fail without a message.
     if (file.size > maxMediaBytes) {
-      setUploadError("Dosya en fazla 5 MB olabilir.");
+      setUploadError(t("upload.fileTooLarge"));
       return;
     }
 
@@ -84,9 +86,7 @@ export function PostCoverField({
       try {
         result = await uploadMediaAction(formData);
       } catch {
-        setUploadError(
-          "Yükleme tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin.",
-        );
+        setUploadError(t("upload.failed"));
         return;
       }
 
@@ -107,11 +107,10 @@ export function PostCoverField({
     <div className="space-y-3">
       <div>
         <p id={`${id}-label`} className="text-sm font-medium">
-          Kapak görseli (isteğe bağlı)
+          {t("cover.label")}
         </p>
         <p className="text-sm text-muted-foreground">
-          Yazı başlığında, liste kartlarında ve paylaşım önizlemelerinde 16:9
-          kırpılarak gösterilir.
+          {t("cover.help")}
         </p>
       </div>
 
@@ -129,7 +128,7 @@ export function PostCoverField({
             ) : null}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor={altId}>Kapak alternatif metni</Label>
+            <Label htmlFor={altId}>{t("cover.alt")}</Label>
             <Input
               id={altId}
               name="coverAlt"
@@ -138,12 +137,12 @@ export function PostCoverField({
               lang={lang}
               maxLength={maxCoverAltLength}
               onChange={(event) => onAltChange(event.target.value)}
-              placeholder="Görselde ne görünüyor?"
+              placeholder={t("upload.altPlaceholder")}
               aria-invalid={altError ? true : undefined}
               aria-describedby={`${altId}-help${altError ? ` ${altId}-error` : ""}`}
             />
             <p id={`${altId}-help`} className="text-sm text-muted-foreground">
-              Taslakta boş kalabilir; yayınlamak için gerekir.
+              {t("cover.altHelp")}
             </p>
             {altError ? (
               <p id={`${altId}-error`} className="text-sm text-destructive">
@@ -169,7 +168,7 @@ export function PostCoverField({
           onClick={() => setPanel(panel === "library" ? "closed" : "library")}
         >
           <Images aria-hidden="true" />
-          Kitaplıktan seç
+          {t("cover.chooseFromLibrary")}
         </Button>
         <Button
           type="button"
@@ -179,12 +178,12 @@ export function PostCoverField({
           onClick={() => setPanel(panel === "upload" ? "closed" : "upload")}
         >
           <ImagePlus aria-hidden="true" />
-          Yeni görsel yükle
+          {t("cover.uploadNew")}
         </Button>
         {coverMediaId ? (
           <Button type="button" variant="ghost" size="sm" onClick={remove}>
             <Trash2 aria-hidden="true" />
-            Kapağı kaldır
+            {t("cover.remove")}
           </Button>
         ) : null}
       </div>
@@ -193,11 +192,11 @@ export function PostCoverField({
         <div className="rounded-lg border p-3">
           {mediaError ? (
             <p role="alert" className="text-sm text-destructive">
-              Medya kitaplığı yüklenemedi. Yeni bir görsel yükleyebilirsiniz.
+              {t("cover.libraryError")}
             </p>
           ) : library.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Kitaplıkta görsel yok. Yeni bir görsel yükleyin.
+              {t("cover.libraryEmpty")}
             </p>
           ) : (
             <ul
@@ -207,6 +206,12 @@ export function PostCoverField({
               {library.map((item, index) => {
                 const src = mediaPublicUrl(item.id);
                 const selected = item.id === coverMediaId;
+                // Dimensions are pixel counts, shown without digit grouping.
+                const labelValues = {
+                  position: index + 1,
+                  width: String(item.width),
+                  height: String(item.height),
+                };
 
                 return (
                   <li key={item.id}>
@@ -214,7 +219,11 @@ export function PostCoverField({
                       type="button"
                       onClick={() => choose(item.id)}
                       aria-pressed={selected}
-                      aria-label={`Görsel ${index + 1}, ${item.width}×${item.height}${selected ? " (seçili)" : ""}`}
+                      aria-label={
+                        selected
+                          ? t("cover.libraryItemSelected", labelValues)
+                          : t("cover.libraryItem", labelValues)
+                      }
                       className={cn(
                         "relative block aspect-video w-full overflow-hidden rounded-md border bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                         selected && "ring-2 ring-primary",
@@ -246,7 +255,7 @@ export function PostCoverField({
       {panel === "upload" ? (
         <div className="space-y-3 rounded-lg border p-3">
           <div className="space-y-1.5">
-            <Label htmlFor={`${id}-file`}>Görsel dosyası</Label>
+            <Label htmlFor={`${id}-file`}>{t("upload.file")}</Label>
             <Input
               ref={fileRef}
               id={`${id}-file`}
@@ -256,8 +265,7 @@ export function PostCoverField({
               aria-describedby={`${id}-file-help`}
             />
             <p id={`${id}-file-help`} className="text-xs text-muted-foreground">
-              JPEG, PNG, WebP veya GIF; en fazla 5 MB. Yüklenen dosyalar herkese
-              açık bir adresten sunulur.
+              {t("upload.fileHelp")}
             </p>
           </div>
           {uploadError ? (
@@ -266,7 +274,7 @@ export function PostCoverField({
             </p>
           ) : null}
           <Button type="button" size="sm" onClick={upload} disabled={pending}>
-            {pending ? "Yükleniyor…" : "Yükle ve kapak yap"}
+            {pending ? t("upload.uploading") : t("cover.uploadAndSet")}
           </Button>
         </div>
       ) : null}

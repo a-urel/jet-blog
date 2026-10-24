@@ -1,0 +1,74 @@
+{
+  "toolbar": {
+    "label": "Formatierung",
+    "heading2": "Überschrift 2",
+    "heading3": "Überschrift 3",
+    "bold": "Fett",
+    "italic": "Kursiv",
+    "strike": "Durchgestrichen",
+    "code": "Inline-Code",
+    "link": "Link",
+    "bulletList": "Aufzählung",
+    "orderedList": "Nummerierte Liste",
+    "blockquote": "Zitat",
+    "codeBlock": "Codeblock",
+    "horizontalRule": "Trennlinie",
+    "insertImage": "Bild einfügen",
+    "editImage": "Bild bearbeiten",
+    "insertVideo": "YouTube-Video einfügen",
+    "editVideo": "Video bearbeiten",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen"
+  },
+  "link": {
+    "label": "Linkadresse",
+    "invalid": "Unterstützt werden nur http(s)-, mailto-, seiteninterne (/...) und Anker-Links (#...).",
+    "apply": "Übernehmen",
+    "remove": "Entfernen"
+  },
+  "cancel": "Abbrechen",
+  "loading": "Editor wird geladen…",
+  "upload": {
+    "file": "Bilddatei",
+    "fileHelp": "JPEG, PNG, WebP oder GIF; höchstens 5 MB. Hochgeladene Dateien werden über eine öffentliche Adresse ausgeliefert.",
+    "fileRequired": "Wählen Sie eine Bilddatei aus.",
+    "fileTooLarge": "Die Datei darf höchstens 5 MB groß sein.",
+    "failed": "Der Upload konnte nicht abgeschlossen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "uploading": "Wird hochgeladen…",
+    "altPlaceholder": "Was ist auf dem Bild zu sehen?"
+  },
+  "image": {
+    "alt": "Alternativtext",
+    "decorative": "Dekoratives Bild (wird von Screenreadern übersprungen)",
+    "caption": "Bildunterschrift (optional)",
+    "altRequired": "Geben Sie einen Alternativtext ein oder markieren Sie das Bild als dekorativ.",
+    "apply": "Übernehmen",
+    "uploadAndInsert": "Hochladen und einfügen",
+    "remove": "Bild entfernen"
+  },
+  "video": {
+    "url": "YouTube-Link",
+    "urlHelp": "Das Video wird über die datenschutzfreundliche Domain youtube-nocookie.com eingebettet. Eine Startzeit im Link (z. B. ?t=90) bleibt erhalten.",
+    "title": "Videotitel",
+    "titlePlaceholder": "Worum geht es im Video?",
+    "urlInvalid": "Unterstützt werden nur Links von youtube.com/watch, youtu.be, youtube.com/shorts und youtube.com/embed.",
+    "titleRequired": "Geben Sie einen Titel ein, der das Video für Screenreader beschreibt.",
+    "apply": "Übernehmen",
+    "insert": "Video einfügen",
+    "remove": "Video entfernen"
+  },
+  "cover": {
+    "label": "Titelbild (optional)",
+    "help": "Wird im Beitragskopf, in Listenkarten und in Teilen-Vorschauen auf 16:9 zugeschnitten angezeigt.",
+    "alt": "Alternativtext des Titelbilds",
+    "altHelp": "Darf im Entwurf leer bleiben; zum Veröffentlichen erforderlich.",
+    "chooseFromLibrary": "Aus Mediathek wählen",
+    "uploadNew": "Neues Bild hochladen",
+    "remove": "Titelbild entfernen",
+    "libraryError": "Die Mediathek konnte nicht geladen werden. Sie können ein neues Bild hochladen.",
+    "libraryEmpty": "Die Mediathek enthält keine Bilder. Laden Sie ein neues Bild hoch.",
+    "libraryItem": "Bild {position}, {width}×{height}",
+    "libraryItemSelected": "Bild {position}, {width}×{height} (ausgewählt)",
+    "uploadAndSet": "Hochladen und als Titelbild verwenden"
+  }
+}

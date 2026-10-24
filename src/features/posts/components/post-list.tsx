@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function PostList({
   posts: PostSummary[];
   headingLevel?: 2 | 3;
 }) {
+  const t = useTranslations("posts.list");
   const Heading = headingLevel === 2 ? "h2" : "h3";
 
   return (
@@ -69,7 +71,7 @@ export function PostList({
                   </p>
                 ) : null}
                 {post.tags.length > 0 ? (
-                  <ul aria-label="Etiketler" className="flex flex-wrap gap-2">
+                  <ul aria-label={t("tags")} className="flex flex-wrap gap-2">
                     {post.tags.map((tag) => (
                       <li key={tag.id}>
                         <Badge asChild variant="secondary">
@@ -83,8 +85,8 @@ export function PostList({
               <CardFooter className="flex-wrap items-start justify-between gap-3 bg-transparent">
                 <BookmarkToggle postId={post.id} postTitle={post.title} />
                 <Button asChild variant="ghost">
-                  <Link href={postPath(post.slug)} aria-label={`${post.title} — yazıyı oku`}>
-                    Yazıyı oku <ArrowRight aria-hidden="true" />
+                  <Link href={postPath(post.slug)} aria-label={t("readLabel", { title: post.title })}>
+                    {t("read")} <ArrowRight aria-hidden="true" />
                   </Link>
                 </Button>
               </CardFooter>

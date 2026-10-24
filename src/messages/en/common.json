@@ -1,0 +1,46 @@
+{
+  "site": {
+    "description": "Ideas, notes, and posts written together. A sample blog."
+  },
+  "layout": {
+    "skipToContent": "Skip to content",
+    "account": "My account",
+    "tagline": "Thinking together, writing together.",
+    "themeNote": "The appearance follows your system theme.",
+    "feed": "Atom feed",
+    "admin": "Administration"
+  },
+  "languageSwitcher": {
+    "label": "Interface language",
+    "trigger": "Interface language: {language}. Change"
+  },
+  "missingPage": {
+    "title": "Page not found",
+    "description": "There is nothing at this address. You can browse the other posts.",
+    "back": "Back to posts"
+  },
+  "error": {
+    "label": "Error",
+    "retry": "Try again",
+    "digest": "Error code:",
+    "publicTitle": "This page cannot be loaded right now",
+    "publicDescription": "The content is temporarily unavailable. Please try again shortly.",
+    "backToPosts": "Back to posts",
+    "globalTitle": "Something went wrong",
+    "globalHeading": "The site cannot be loaded right now",
+    "globalDescription": "An unexpected error occurred. Please try again shortly."
+  },
+  "pagination": {
+    "label": "Pages",
+    "previous": "Previous",
+    "previousLabel": "Go to the previous page",
+    "next": "Next",
+    "nextLabel": "Go to the next page",
+    "more": "More pages",
+    "page": "Page {page}",
+    "pageTitle": "{title} — Page {page}"
+  },
+  "dialog": {
+    "close": "Close"
+  }
+}

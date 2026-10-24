@@ -1,0 +1,46 @@
+{
+  "site": {
+    "description": "Fikirler, notlar ve birlikte üretilen yazılar. Örnek blog."
+  },
+  "layout": {
+    "skipToContent": "İçeriğe geç",
+    "account": "Hesabım",
+    "tagline": "Birlikte düşünmek, birlikte yazmak.",
+    "themeNote": "Görünüm sistem temanızı izler.",
+    "feed": "Atom akışı",
+    "admin": "Yönetim"
+  },
+  "languageSwitcher": {
+    "label": "Arayüz dili",
+    "trigger": "Arayüz dili: {language}. Değiştir"
+  },
+  "missingPage": {
+    "title": "Sayfa bulunamadı",
+    "description": "Bu bağlantıya ait bir içerik yok. Diğer yazılara göz atabilirsiniz.",
+    "back": "Yazılara dön"
+  },
+  "error": {
+    "label": "Hata",
+    "retry": "Tekrar dene",
+    "digest": "Hata kodu:",
+    "publicTitle": "Sayfa şu anda yüklenemedi",
+    "publicDescription": "İçerik geçici olarak alınamadı. Birazdan tekrar deneyin.",
+    "backToPosts": "Yazılara dön",
+    "globalTitle": "Bir hata oluştu",
+    "globalHeading": "Site şu anda yüklenemedi",
+    "globalDescription": "Beklenmeyen bir hata oluştu. Birazdan tekrar deneyin."
+  },
+  "pagination": {
+    "label": "Sayfalar",
+    "previous": "Önceki",
+    "previousLabel": "Önceki sayfaya git",
+    "next": "Sonraki",
+    "nextLabel": "Sonraki sayfaya git",
+    "more": "Diğer sayfalar",
+    "page": "Sayfa {page}",
+    "pageTitle": "{title} — Sayfa {page}"
+  },
+  "dialog": {
+    "close": "Kapat"
+  }
+}

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 import type { PostPage } from "../pagination";
 import { PostList } from "./post-list";
@@ -25,6 +26,8 @@ export function ArchiveLayout({
   basePath: string;
   posts: PostPage;
 }) {
+  const t = useTranslations("archives");
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       <header className="mb-12 max-w-2xl space-y-4">
@@ -48,7 +51,7 @@ export function ArchiveLayout({
       </header>
       <section aria-labelledby="archive-posts-title">
         <div className="mb-6 flex items-baseline justify-between gap-4 border-b pb-4">
-          <h2 id="archive-posts-title" className="text-xl font-semibold">Yazılar</h2>
+          <h2 id="archive-posts-title" className="text-xl font-semibold">{t("posts")}</h2>
           <PageCount {...posts} />
         </div>
         <PostList posts={posts.posts} />

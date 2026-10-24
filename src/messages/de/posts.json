@@ -1,0 +1,31 @@
+{
+  "home": {
+    "title": "Ideen wachsen, wenn man sie teilt.",
+    "intro": "Notizen über Design, Technologie und das Schaffen. Ein kleiner Leseraum, der unterschiedliche Blickwinkel zusammenbringt.",
+    "latest": "Neueste Beiträge",
+    "empty": "Es wurde noch kein Beitrag veröffentlicht."
+  },
+  "post": {
+    "allPosts": "Alle Beiträge",
+    "tags": "Schlagwörter"
+  },
+  "list": {
+    "tags": "Schlagwörter",
+    "read": "Beitrag lesen",
+    "readLabel": "{title} — Beitrag lesen"
+  },
+  "meta": {
+    "updated": "Aktualisiert am <time>{date}</time>"
+  },
+  "pageCount": {
+    "total": "{count, plural, one {# Beitrag} other {# Beiträge}}",
+    "page": "Seite {page} von {pageCount}"
+  },
+  "pagination": {
+    "currentPage": "Seite {page}, aktuelle Seite"
+  },
+  "body": {
+    "imageUnavailable": "Das Bild kann derzeit nicht geladen werden.",
+    "unsupported": "Der Inhalt dieses Beitrags kann derzeit nicht angezeigt werden."
+  }
+}

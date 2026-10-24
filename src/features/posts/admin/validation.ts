@@ -11,8 +11,29 @@ import { isValidSlug, normalizeName, slugify } from "@/lib/slug";
 export const maxCoverAltLength = maxImageAltLength;
 const controlCharacterPattern = /[\u0000-\u001f\u007f]/;
 
-export const invalidLanguageMessage =
-  "Geçerli bir dil kodu seçin ya da yazın (ör. fr, pt-BR, zh-Hant).";
+// Message keys under adminPosts.validation. The caller translates them, so
+// this module stays free of framework and locale code.
+export type PostValidationError =
+  | "titleRequired"
+  | "titleTooLong"
+  | "slugMissing"
+  | "slugTooLong"
+  | "slugInvalid"
+  | "excerptTooLong"
+  | "categoryInvalid"
+  | "languageInvalid"
+  | "coverInvalid"
+  | "coverAltTooLong"
+  | "tagInvalid"
+  | "tagDuplicate"
+  | "creditsIncomplete"
+  | "creditAuthorMissing"
+  | "creditAuthorInvalid"
+  | "creditOrderInvalid"
+  | "creditOrderRange"
+  | "creditDuplicate"
+  | "creditOrderDuplicate"
+  | "creditOrderGap";
 
 export type PostMetadataInput = Readonly<{
   title: string;
@@ -26,21 +47,19 @@ export type PostMetadataInput = Readonly<{
   credits: ReadonlyArray<{ authorId: string; sortOrder: number }>;
 }>;
 
-export type PostFieldErrors = Partial<
-  Record<
-    | "title"
-    | "slug"
-    | "excerpt"
-    | "categoryId"
-    | "language"
-    | "coverMediaId"
-    | "coverAlt"
-    | "tagIds"
-    | "credits"
-    | "body",
-    string
-  >
->;
+export type PostField =
+  | "title"
+  | "slug"
+  | "excerpt"
+  | "categoryId"
+  | "language"
+  | "coverMediaId"
+  | "coverAlt"
+  | "tagIds"
+  | "credits"
+  | "body";
+
+export type PostFieldErrors = Partial<Record<PostField, PostValidationError>>;
 
 export type RawPostMetadata = Readonly<{
   title: string;
@@ -73,26 +92,25 @@ export function validatePostMetadata(
 
   const title = normalizeName(raw.title);
   if (title.length === 0) {
-    fieldErrors.title = "Başlık gerekli.";
+    fieldErrors.title = "titleRequired";
   } else if (title.length > 200) {
-    fieldErrors.title = "Başlık 200 karakteri aşamaz.";
+    fieldErrors.title = "titleTooLong";
   }
 
   const rawSlug = raw.slug.trim();
   const slug = rawSlug.length > 0 ? rawSlug : slugify(title, 200);
 
   if (slug.length === 0) {
-    fieldErrors.slug = "Slug üretilemedi; elle girin.";
+    fieldErrors.slug = "slugMissing";
   } else if (slug.length > 200) {
-    fieldErrors.slug = "Slug 200 karakteri aşamaz.";
+    fieldErrors.slug = "slugTooLong";
   } else if (!isValidSlug(slug)) {
-    fieldErrors.slug =
-      "Slug yalnızca küçük harf, rakam ve tek tire içerebilir.";
+    fieldErrors.slug = "slugInvalid";
   }
 
   const excerpt = raw.excerpt.trim();
   if (excerpt.length > 500) {
-    fieldErrors.excerpt = "Özet 500 karakteri aşamaz.";
+    fieldErrors.excerpt = "excerptTooLong";
   }
 
   const categoryValue = raw.categoryId.trim();
@@ -100,7 +118,7 @@ export function validatePostMetadata(
 
   if (categoryValue.length > 0) {
     if (!isUuid(categoryValue)) {
-      fieldErrors.categoryId = "Geçerli bir kategori seçin.";
+      fieldErrors.categoryId = "categoryInvalid";
     } else {
       categoryId = categoryValue;
     }
@@ -113,7 +131,7 @@ export function validatePostMetadata(
   if (canonicalLanguage) {
     language = canonicalLanguage;
   } else {
-    fieldErrors.language = invalidLanguageMessage;
+    fieldErrors.language = "languageInvalid";
   }
 
   // Drafts may keep a cover without alt text; publishing requires it, which
@@ -124,7 +142,7 @@ export function validatePostMetadata(
 
   if (coverValue.length > 0) {
     if (!isUuid(coverValue)) {
-      fieldErrors.coverMediaId = "Geçerli bir kapak görseli seçin.";
+      fieldErrors.coverMediaId = "coverInvalid";
     } else {
       coverMediaId = coverValue.toLowerCase();
     }
@@ -134,7 +152,7 @@ export function validatePostMetadata(
     [...coverAltValue].length > maxCoverAltLength ||
     controlCharacterPattern.test(coverAltValue)
   ) {
-    fieldErrors.coverAlt = `Kapak alternatif metni en fazla ${maxCoverAltLength} karakter olabilir.`;
+    fieldErrors.coverAlt = "coverAltTooLong";
   }
 
   const tagIds: string[] = [];
@@ -145,12 +163,12 @@ export function validatePostMetadata(
     if (tagId.length === 0) continue;
 
     if (!isUuid(tagId)) {
-      fieldErrors.tagIds = "Geçersiz etiket seçimi.";
+      fieldErrors.tagIds = "tagInvalid";
       continue;
     }
 
     if (seenTags.has(tagId)) {
-      fieldErrors.tagIds = "Aynı etiket birden fazla kez eklenemez.";
+      fieldErrors.tagIds = "tagDuplicate";
       continue;
     }
 
@@ -161,7 +179,7 @@ export function validatePostMetadata(
   if (
     raw.creditAuthorIds.length !== raw.creditSortOrders.length
   ) {
-    fieldErrors.credits = "Yazar sırası bilgisi eksik.";
+    fieldErrors.credits = "creditsIncomplete";
   }
 
   const credits: { authorId: string; sortOrder: number }[] = [];
@@ -177,17 +195,17 @@ export function validatePostMetadata(
     const sortOrderValue = raw.creditSortOrders[index]?.trim() ?? "";
 
     if (authorId.length === 0) {
-      fieldErrors.credits = "Her sıra için bir yazar seçin.";
+      fieldErrors.credits = "creditAuthorMissing";
       break;
     }
 
     if (!isUuid(authorId)) {
-      fieldErrors.credits = "Geçersiz yazar seçimi.";
+      fieldErrors.credits = "creditAuthorInvalid";
       break;
     }
 
     if (!/^[0-9]+$/.test(sortOrderValue)) {
-      fieldErrors.credits = "Yazar sırası geçersiz.";
+      fieldErrors.credits = "creditOrderInvalid";
       break;
     }
 
@@ -198,17 +216,17 @@ export function validatePostMetadata(
       sortOrder < 0 ||
       sortOrder > 999
     ) {
-      fieldErrors.credits = "Yazar sırası 0 ile 999 arasında olmalı.";
+      fieldErrors.credits = "creditOrderRange";
       break;
     }
 
     if (seenAuthors.has(authorId)) {
-      fieldErrors.credits = "Aynı yazar birden fazla kez eklenemez.";
+      fieldErrors.credits = "creditDuplicate";
       break;
     }
 
     if (seenSortOrders.has(sortOrder)) {
-      fieldErrors.credits = "Yazar sıraları benzersiz olmalı.";
+      fieldErrors.credits = "creditOrderDuplicate";
       break;
     }
 
@@ -223,8 +241,7 @@ export function validatePostMetadata(
     );
 
     if (!contiguous) {
-      fieldErrors.credits =
-        "Yazar sıraları 0'dan başlayıp kesintisiz olmalı.";
+      fieldErrors.credits = "creditOrderGap";
     }
   }
 

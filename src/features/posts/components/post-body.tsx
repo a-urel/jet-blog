@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 import { mediaPublicUrl } from "@/features/media/url";
 
@@ -76,6 +77,12 @@ function renderListItems(items: ListItemNode[]): ReactNode {
   ));
 }
 
+// Placeholder for an image without a delivery URL (Supabase not configured).
+function ImageUnavailable() {
+  const t = useTranslations("posts.body");
+  return t("imageUnavailable");
+}
+
 // Images go through the framework image component, which serves resized
 // variants from the public media URL allowed in next.config.ts. Width and height
 // come from the node, so the layout reserves space before the image loads.
@@ -100,7 +107,7 @@ function renderImage(attrs: ImageAttrs, key: number): ReactNode {
           aria-hidden={alt ? undefined : true}
           className="block rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground"
         >
-          Görsel şu anda yüklenemiyor.
+          <ImageUnavailable />
         </span>
       )}
       {attrs.caption ? <figcaption>{attrs.caption}</figcaption> : null}
@@ -177,6 +184,7 @@ export function PostBody({
   body: unknown;
   contentVersion: number;
 }) {
+  const t = useTranslations("posts.body");
   const validation =
     contentVersion === currentContentVersion ? validateBodyDocument(body) : null;
 
@@ -186,7 +194,7 @@ export function PostBody({
         role="note"
         className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground"
       >
-        Bu yazının içeriği şu anda görüntülenemiyor.
+        {t("unsupported")}
       </div>
     );
   }

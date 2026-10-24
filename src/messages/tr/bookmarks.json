@@ -1,0 +1,25 @@
+{
+  "toggle": {
+    "label": "Kaydet",
+    "labelWithTitle": "Kaydet<sr>: {title}</sr>",
+    "saved": "Yazı kaydedildi.",
+    "removed": "Yazı kaydedilenlerden çıkarıldı."
+  },
+  "messages": {
+    "unavailable": "Bu yazı şu anda kaydedilemiyor.",
+    "rateLimited": "Çok fazla kaydetme isteği gönderdiniz. Birkaç dakika sonra tekrar deneyin.",
+    "error": "Kayıt güncellenemedi. Tekrar deneyin."
+  },
+  "savedPage": {
+    "metaTitle": "Kaydedilenler",
+    "notConfiguredAction": "Kaydedilen yazıları görmek",
+    "eyebrow": "Hesap",
+    "heading": "Kaydedilenler",
+    "intro": "Yalnızca sizin görebileceğiniz kişisel okuma listeniz.",
+    "loadErrorTitle": "Kaydedilen yazılar yüklenemedi",
+    "loadErrorDescription": "Liste geçici olarak alınamadı. Sayfayı yenileyerek tekrar deneyin.",
+    "emptyTitle": "Henüz kaydedilen yazı yok",
+    "emptyDescription": "Yazılardaki “Kaydet” düğmesiyle daha sonra okumak istediğiniz yazıları burada toplayabilirsiniz. Yayından kaldırılan yazılar listede görünmez.",
+    "browse": "Yazılara göz atın"
+  }
+}

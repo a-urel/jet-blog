@@ -7,6 +7,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useTranslations } from "next-intl";
 import type { PostLanguage } from "@/features/posts/language";
 import { paginationItems } from "@/features/posts/pagination";
 import { searchUrl } from "../query";
@@ -24,6 +25,7 @@ export function SearchPagination({
   page: number;
   pageCount: number;
 }) {
+  const t = useTranslations();
   if (pageCount <= 1) return null;
 
   const href = (target: number) => searchUrl(query, { page: target, language });
@@ -44,7 +46,11 @@ export function SearchPagination({
               <PaginationLink
                 href={href(item)}
                 isActive={item === page}
-                aria-label={item === page ? `Sayfa ${item}, geçerli sayfa` : `Sayfa ${item}`}
+                aria-label={
+                  item === page
+                    ? t("posts.pagination.currentPage", { page: item })
+                    : t("common.pagination.page", { page: item })
+                }
               >
                 {item}
               </PaginationLink>

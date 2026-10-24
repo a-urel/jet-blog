@@ -1,0 +1,48 @@
+{
+  "section": {
+    "heading": "Kommentare",
+    "commentLabel": "Kommentar von {name}",
+    "empty": "Noch keine Kommentare."
+  },
+  "form": {
+    "loading": "Kommentarformular wird geladen",
+    "signInPrompt": "<link>Melden Sie sich an</link>, um einen Kommentar zu schreiben.",
+    "loadError": "Das Kommentarformular konnte nicht geladen werden. Laden Sie die Seite neu und versuchen Sie es erneut.",
+    "displayNamePrompt": "Bevor Sie kommentieren, <link>legen Sie in Ihrem Konto einen Anzeigenamen fest</link>. Ihre Kommentare erscheinen unter diesem Namen.",
+    "label": "Ihr Kommentar",
+    "hint": "Nur Text; Links und Formatierungen werden nicht dargestellt. {length}/{max} Zeichen.",
+    "published": "Ihr Kommentar wurde veröffentlicht.",
+    "submit": "Kommentar senden",
+    "submitting": "Wird gesendet…"
+  },
+  "validation": {
+    "bodyEmpty": "Der Kommentar darf nicht leer sein.",
+    "bodyTooLong": "Der Kommentar darf höchstens {max} Zeichen lang sein."
+  },
+  "messages": {
+    "displayNameRequired": "Legen Sie in Ihrem Konto einen Anzeigenamen fest, bevor Sie kommentieren.",
+    "unavailable": "Dieser Kommentar oder Beitrag ist derzeit nicht verfügbar.",
+    "duplicate": "Sie haben diesen Kommentar gerade erst gesendet.",
+    "rateLimited": "Sie haben zu viele Anfragen gesendet. Versuchen Sie es später erneut.",
+    "forbidden": "Sie sind dazu nicht berechtigt.",
+    "error": "Der Vorgang konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+  },
+  "itemActions": {
+    "deletePrompt": "Ihren Kommentar endgültig löschen?",
+    "confirmDelete": "Ja, löschen",
+    "deleting": "Wird gelöscht…",
+    "cancel": "Abbrechen",
+    "delete": "Löschen<sr>: Ihr eigener Kommentar</sr>",
+    "reported": "Sie haben diesen Kommentar gemeldet. Die Redaktion prüft ihn.",
+    "report": "Melden<sr>: Kommentar von {name}</sr>",
+    "reasonLegend": "Grund der Meldung",
+    "submitReport": "Melden",
+    "submitting": "Wird gesendet…"
+  },
+  "reportReasons": {
+    "spam": "Spam oder Werbung",
+    "abuse": "Beleidigung, Belästigung oder Hassrede",
+    "offTopic": "Themenfremd",
+    "other": "Sonstiges"
+  }
+}

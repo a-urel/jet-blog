@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +16,7 @@ import { FormAlert } from "@/features/auth/components/form-alert";
 const initialState: DeleteAccountState = { error: null };
 
 export function DeleteAccountForm() {
+  const t = useTranslations("account.delete");
   const [state, formAction, pending] = useActionState(
     deleteAccountAction,
     initialState,
@@ -23,7 +25,7 @@ export function DeleteAccountForm() {
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="delete-password">Parolanız</Label>
+        <Label htmlFor="delete-password">{t("passwordLabel")}</Label>
         <Input
           id="delete-password"
           name="password"
@@ -38,8 +40,7 @@ export function DeleteAccountForm() {
       <div className="flex items-start gap-3">
         <Checkbox id="confirm-delete" name="confirmDelete" required />
         <Label htmlFor="confirm-delete" className="leading-snug font-normal">
-          Hesabımın kalıcı olarak silineceğini ve bu işlemin geri alınamayacağını
-          anlıyorum.
+          {t("confirmLabel")}
         </Label>
       </div>
 
@@ -50,7 +51,7 @@ export function DeleteAccountForm() {
       ) : null}
 
       <Button type="submit" variant="destructive" disabled={pending}>
-        {pending ? "Siliniyor…" : "Hesabı kalıcı olarak sil"}
+        {pending ? t("pending") : t("submit")}
       </Button>
     </form>
   );

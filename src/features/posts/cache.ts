@@ -18,6 +18,13 @@
 //      entries are regenerated. Route patterns cover both slugs of a slug
 //      change (the old URL now redirects) without tracking them.
 //
+// Pages render once per interface locale under the internal [locale] segment
+// (src/proxy.ts rewrites /posts/a to /<locale>/posts/a). The routes below are
+// public URL patterns; publicCacheInvalidation returns the internal route
+// pattern of each page (/[locale]/posts/[slug], "page"), so one revalidatePath
+// regenerates every locale's copy. sitemap.xml and feed.xml are Route
+// Handlers outside [locale], with one copy each.
+//
 // Listings are paginated by path (./pagination.ts). A page pattern such as
 // /tags/[slug] does not cover the nested /tags/[slug]/page/[page], so the
 // later pages are listed as their own patterns. Every page of every listing is
@@ -26,6 +33,8 @@
 //
 // Drafts never reach public reads, so saving a draft changes nothing public.
 // Member previews are force-dynamic and never cached.
+
+import { localizedRoutePattern } from "@/lib/localized-paths";
 
 export const publicPostsCacheTag = "public-posts";
 
@@ -76,6 +85,16 @@ export const publicContentRoutes: readonly PublicRoute[] = [
   { path: "/feed.xml" },
 ];
 
+// Route Handlers outside src/app/[locale]: one copy, no locale.
+const unlocalizedRoutes = new Set(["/sitemap.xml", "/feed.xml"]);
+
+// The revalidatePath target of a public route: every page is the
+// [locale]-prefixed pattern, invalidated as a page for all locales.
+export function internalRoute(route: PublicRoute): PublicRoute {
+  if (unlocalizedRoutes.has(route.path)) return route;
+  return { path: localizedRoutePattern(route.path), type: "page" };
+}
+
 const noInvalidation: CacheInvalidation = { tags: [], routes: [] };
 
 export function publicCacheInvalidation(change: PublicContentChange): CacheInvalidation {
@@ -87,6 +106,6 @@ export function publicCacheInvalidation(change: PublicContentChange): CacheInval
     case "published-post-updated":
     case "taxonomy-changed":
     case "author-changed":
-      return { tags: [publicPostsCacheTag], routes: [...publicContentRoutes] };
+      return { tags: [publicPostsCacheTag], routes: publicContentRoutes.map(internalRoute) };
   }
 }

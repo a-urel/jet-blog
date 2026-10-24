@@ -1,0 +1,19 @@
+{
+  "form": {
+    "remove": "Fotoğrafı kaldır",
+    "removing": "Kaldırılıyor…",
+    "newPhoto": "Yeni fotoğraf",
+    "photo": "Fotoğraf",
+    "hint": "JPEG, PNG veya WebP; en fazla {maxMegabytes} MB. Kare olmayan görseller ortadan kırpılarak gösterilir.",
+    "upload": "Yükle",
+    "uploading": "Yükleniyor…"
+  },
+  "rejection": {
+    "noFile": "Bir görsel dosyası seçin.",
+    "empty": "Dosya boş.",
+    "tooLarge": "Profil fotoğrafı en fazla {maxMegabytes} MB olabilir.",
+    "unsupportedType": "Yalnızca JPEG, PNG ve WebP görseller yüklenebilir.",
+    "invalidDimensions": "Görsel kenarları {min}–{max} piksel arasında olmalı.",
+    "uploadRefused": "Yükleme reddedildi. Yetkinizi kontrol edin veya birkaç dakika sonra tekrar deneyin (10 dakikada en fazla 10 görsel)."
+  }
+}

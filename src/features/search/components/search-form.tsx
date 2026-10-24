@@ -1,5 +1,6 @@
 import Form from "next/form";
 import { Search } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,8 @@ export function SearchForm({
   query?: string;
   language?: PostLanguage | null;
 }) {
+  const t = useTranslations("search.form");
+  const locale = useLocale();
   const inputId = `search-${variant}-q`;
   // A filter from the URL that is not in the common list stays selectable.
   const languageOptions =
@@ -29,21 +32,21 @@ export function SearchForm({
 
   if (variant === "header") {
     return (
-      <Form action={searchPath} role="search" aria-label="Site içinde ara" className="flex items-center gap-1">
+      <Form action={searchPath} role="search" aria-label={t("headerLabel")} className="flex items-center gap-1">
         <label htmlFor={inputId} className="sr-only">
-          Yazılarda ara
+          {t("inputLabel")}
         </label>
         <Input
           id={inputId}
           type="search"
           name="q"
-          placeholder="Yazılarda ara"
+          placeholder={t("placeholder")}
           maxLength={maxSearchQueryLength}
           autoComplete="off"
           enterKeyHint="search"
           className="h-8 w-full sm:w-48"
         />
-        <Button type="submit" variant="ghost" size="icon" aria-label="Ara">
+        <Button type="submit" variant="ghost" size="icon" aria-label={t("submit")}>
           <Search aria-hidden="true" />
         </Button>
       </Form>
@@ -51,10 +54,10 @@ export function SearchForm({
   }
 
   return (
-    <Form action={searchPath} role="search" aria-label="Yazılarda ara" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+    <Form action={searchPath} role="search" aria-label={t("pageLabel")} className="flex flex-col gap-3 sm:flex-row sm:items-end">
       <div className="flex flex-1 flex-col gap-2">
         <label htmlFor={inputId} className="text-sm font-medium">
-          Aranacak sözcükler
+          {t("queryLabel")}
         </label>
         <Input
           id={inputId}
@@ -68,12 +71,12 @@ export function SearchForm({
           className="h-10"
         />
         <p id={`${inputId}-hint`} className="text-sm text-muted-foreground">
-          Tam ifade için tırnak, hariç tutmak için eksi kullanın: &quot;küçük adım&quot; -taslak
+          {t("hint")}
         </p>
       </div>
       <div className="flex flex-col gap-2 sm:mb-7">
         <label htmlFor={`${inputId}-language`} className="text-sm font-medium">
-          Dil
+          {t("language")}
         </label>
         <NativeSelect
           id={`${inputId}-language`}
@@ -81,17 +84,17 @@ export function SearchForm({
           defaultValue={language ?? ""}
           className="w-full sm:w-56"
         >
-          <NativeSelectOption value="">Tüm diller</NativeSelectOption>
+          <NativeSelectOption value="">{t("allLanguages")}</NativeSelectOption>
           {languageOptions.map((code) => (
             <NativeSelectOption key={code} value={code}>
-              {postLanguageLabel(code)}
+              {postLanguageLabel(code, locale)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
       </div>
       <Button type="submit" className="h-10 sm:mb-7">
         <Search aria-hidden="true" />
-        Ara
+        {t("submit")}
       </Button>
     </Form>
   );

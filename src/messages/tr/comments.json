@@ -1,0 +1,48 @@
+{
+  "section": {
+    "heading": "Yorumlar",
+    "commentLabel": "{name} adlı kişinin yorumu",
+    "empty": "Henüz yorum yok."
+  },
+  "form": {
+    "loading": "Yorum formu yükleniyor",
+    "signInPrompt": "Yorum yazmak için <link>giriş yapın</link>.",
+    "loadError": "Yorum formu yüklenemedi. Sayfayı yenileyip tekrar deneyin.",
+    "displayNamePrompt": "Yorum yazmadan önce <link>hesabınızda bir görünen ad belirleyin</link>. Yorumlarınız bu adla görünür.",
+    "label": "Yorumunuz",
+    "hint": "Düz metin; bağlantılar ve biçimlendirme işlenmez. {length}/{max} karakter.",
+    "published": "Yorumunuz yayımlandı.",
+    "submit": "Yorumu gönder",
+    "submitting": "Gönderiliyor…"
+  },
+  "validation": {
+    "bodyEmpty": "Yorum boş olamaz.",
+    "bodyTooLong": "Yorum en fazla {max} karakter olabilir."
+  },
+  "messages": {
+    "displayNameRequired": "Yorum yapmadan önce hesabınızda bir görünen ad belirleyin.",
+    "unavailable": "Bu yorum veya yazı şu anda kullanılamıyor.",
+    "duplicate": "Bu yorumu kısa süre önce zaten gönderdiniz.",
+    "rateLimited": "Çok fazla istek gönderdiniz. Bir süre sonra tekrar deneyin.",
+    "forbidden": "Bu işlem için yetkiniz yok.",
+    "error": "İşlem tamamlanamadı. Tekrar deneyin."
+  },
+  "itemActions": {
+    "deletePrompt": "Yorumunuz kalıcı olarak silinsin mi?",
+    "confirmDelete": "Evet, sil",
+    "deleting": "Siliniyor…",
+    "cancel": "Vazgeç",
+    "delete": "Sil<sr>: kendi yorumunuz</sr>",
+    "reported": "Bu yorumu bildirdiniz. Editörler inceleyecek.",
+    "report": "Bildir<sr>: {name} adlı kişinin yorumu</sr>",
+    "reasonLegend": "Bildirme nedeni",
+    "submitReport": "Bildir",
+    "submitting": "Gönderiliyor…"
+  },
+  "reportReasons": {
+    "spam": "Spam veya reklam",
+    "abuse": "Hakaret, taciz veya nefret söylemi",
+    "offTopic": "Konu dışı",
+    "other": "Diğer"
+  }
+}

@@ -3,6 +3,7 @@
 import { useId, useRef, useState, useTransition } from "react";
 import type { Editor } from "@tiptap/react";
 import { Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +29,7 @@ type PostImagePanelProps = {
 // one. Alt text belongs to this occurrence, so the same media can carry a
 // different description in another post.
 export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProps) {
+  const t = useTranslations("adminEditor");
   const id = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const [alt, setAlt] = useState(selected?.alt ?? "");
@@ -46,7 +48,7 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
     const trimmedCaption = caption.trim();
 
     if (!decorative && trimmedAlt.length === 0) {
-      setError("Alternatif metin girin veya görseli dekoratif olarak işaretleyin.");
+      setError(t("image.altRequired"));
       return null;
     }
 
@@ -79,14 +81,14 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
     const file = fileRef.current?.files?.[0];
 
     if (!file) {
-      setError("Bir görsel dosyası seçin.");
+      setError(t("upload.fileRequired"));
       return;
     }
 
     // The server repeats this check. Catching it here avoids sending a body
     // that exceeds the Server Action limit, which would fail without a message.
     if (file.size > maxMediaBytes) {
-      setError("Dosya en fazla 5 MB olabilir.");
+      setError(t("upload.fileTooLarge"));
       return;
     }
 
@@ -99,7 +101,7 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
       try {
         result = await uploadMediaAction(formData);
       } catch {
-        setError("Yükleme tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin.");
+        setError(t("upload.failed"));
         return;
       }
 
@@ -157,7 +159,7 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
     >
       {selected ? null : (
         <div className="space-y-1.5">
-          <Label htmlFor={`${id}-file`}>Görsel dosyası</Label>
+          <Label htmlFor={`${id}-file`}>{t("upload.file")}</Label>
           <Input
             ref={fileRef}
             id={`${id}-file`}
@@ -168,14 +170,13 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
             aria-describedby={`${id}-file-help`}
           />
           <p id={`${id}-file-help`} className="text-xs text-muted-foreground">
-            JPEG, PNG, WebP veya GIF; en fazla 5 MB. Yüklenen dosyalar herkese
-            açık bir adresten sunulur.
+            {t("upload.fileHelp")}
           </p>
         </div>
       )}
 
       <div className="space-y-1.5">
-        <Label htmlFor={`${id}-alt`}>Alternatif metin</Label>
+        <Label htmlFor={`${id}-alt`}>{t("image.alt")}</Label>
         <Input
           id={`${id}-alt`}
           type="text"
@@ -186,7 +187,7 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
           aria-invalid={error && !decorative && alt.trim() === "" ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           onChange={(event) => setAlt(event.target.value)}
-          placeholder="Görselde ne görünüyor?"
+          placeholder={t("upload.altPlaceholder")}
         />
       </div>
 
@@ -198,12 +199,12 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
           onCheckedChange={(checked) => setDecorative(checked === true)}
         />
         <Label htmlFor={`${id}-decorative`} className="font-normal">
-          Dekoratif görsel (ekran okuyucular atlar)
+          {t("image.decorative")}
         </Label>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor={`${id}-caption`}>Altyazı (isteğe bağlı)</Label>
+        <Label htmlFor={`${id}-caption`}>{t("image.caption")}</Label>
         <Input
           id={`${id}-caption`}
           type="text"
@@ -222,16 +223,20 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
 
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" onClick={apply} disabled={pending}>
-          {selected ? "Uygula" : pending ? "Yükleniyor…" : "Yükle ve ekle"}
+          {selected
+            ? t("image.apply")
+            : pending
+              ? t("upload.uploading")
+              : t("image.uploadAndInsert")}
         </Button>
         {selected ? (
           <Button type="button" size="sm" variant="outline" onClick={remove}>
             <Trash2 aria-hidden="true" />
-            Görseli kaldır
+            {t("image.remove")}
           </Button>
         ) : null}
         <Button type="button" size="sm" variant="ghost" onClick={close} disabled={pending}>
-          Vazgeç
+          {t("cancel")}
         </Button>
       </div>
     </div>

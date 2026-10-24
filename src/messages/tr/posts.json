@@ -1,0 +1,31 @@
+{
+  "home": {
+    "title": "Fikirler paylaştıkça büyür.",
+    "intro": "Tasarım, teknoloji ve üretmek üzerine notlar. Farklı bakış açılarını bir araya getiren küçük bir okuma alanı.",
+    "latest": "Son yazılar",
+    "empty": "Henüz yayınlanmış bir yazı yok."
+  },
+  "post": {
+    "allPosts": "Tüm yazılar",
+    "tags": "Etiketler"
+  },
+  "list": {
+    "tags": "Etiketler",
+    "read": "Yazıyı oku",
+    "readLabel": "{title} — yazıyı oku"
+  },
+  "meta": {
+    "updated": "Güncellendi <time>{date}</time>"
+  },
+  "pageCount": {
+    "total": "{count, plural, one {# yazı} other {# yazı}}",
+    "page": "Sayfa {page} / {pageCount}"
+  },
+  "pagination": {
+    "currentPage": "Sayfa {page}, geçerli sayfa"
+  },
+  "body": {
+    "imageUnavailable": "Görsel şu anda yüklenemiyor.",
+    "unsupported": "Bu yazının içeriği şu anda görüntülenemiyor."
+  }
+}

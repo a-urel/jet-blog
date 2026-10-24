@@ -1,0 +1,68 @@
+{
+  "title": "Mein Konto",
+  "notConfiguredAction": "Ihr Konto zu verwalten",
+  "session": "Angemeldet als <email></email>",
+  "notices": {
+    "confirmed": "Ihre E-Mail-Adresse wurde bestätigt. Willkommen.",
+    "passwordUpdated": "Ihr Passwort wurde aktualisiert."
+  },
+  "membership": {
+    "title": "Redaktionsmitgliedschaft",
+    "description": "Dieses Konto hat Zugang zum Verwaltungsbereich.",
+    "goToAdmin": "Zum Verwaltungsbereich"
+  },
+  "saved": {
+    "title": "Gespeichert",
+    "description": "Ihre gespeicherten Beiträge sind nur für Sie sichtbar.",
+    "link": "Gespeicherte Beiträge"
+  },
+  "displayName": {
+    "title": "Anzeigename",
+    "description": "Der Name, der bei Leserfunktionen wie Kommentaren erscheint.",
+    "missingDescription": "Sie haben noch keinen Anzeigenamen festgelegt. Geben Sie einen Namen ein, bevor Sie Leserfunktionen nutzen.",
+    "submit": "Speichern",
+    "pending": "Wird gespeichert…",
+    "saved": "Anzeigename gespeichert.",
+    "saveFailed": "Der Anzeigename konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
+  },
+  "avatar": {
+    "title": "Profilbild",
+    "description": "Erscheint neben Ihren Kommentaren. Wenn Sie es ändern oder entfernen, wird das alte Bild gelöscht und Ihre Kommentare zeigen das neue.",
+    "alt": "Ihr Profilbild",
+    "missingAlt": "Kein Profilbild",
+    "saved": "Profilbild gespeichert.",
+    "removed": "Profilbild entfernt.",
+    "rateLimited": "Sie haben Ihr Profilbild in kurzer Zeit zu oft geändert. Bitte versuchen Sie es später erneut.",
+    "rejected": "Das hochgeladene Bild wurde nicht akzeptiert. Versuchen Sie es mit einem anderen Bild.",
+    "saveFailed": "Das Profilbild konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
+  },
+  "password": {
+    "title": "Passwort und Sitzung",
+    "description": "Sie können Ihr Passwort ändern oder sich auf diesem Gerät abmelden.",
+    "change": "Passwort ändern",
+    "signOut": "Abmelden"
+  },
+  "passwordPage": {
+    "title": "Passwort ändern",
+    "notConfiguredAction": "Ihr Passwort zu ändern",
+    "recoveryTitle": "Neues Passwort festlegen",
+    "recoveryDescription": "Ihr Link zum Zurücksetzen wurde bestätigt. Legen Sie Ihr neues Passwort fest.",
+    "cardTitle": "Neues Passwort",
+    "back": "Zurück zu meinem Konto"
+  },
+  "delete": {
+    "title": "Konto löschen",
+    "description": "Ihr Konto, Ihr Profil und die mit Ihrem Konto verknüpften Leserdaten werden dauerhaft gelöscht. Wenn Sie Redaktionsmitglied sind, bleiben Ihre Beiträge und Autorennennungen veröffentlicht.",
+    "activeAdmin": "Aktive Admin-Konten können nicht gelöscht werden. Bevor Sie das Konto löschen, muss ein anderer Admin Ihre Rolle ändern oder Ihre Mitgliedschaft deaktivieren.",
+    "passwordLabel": "Ihr Passwort",
+    "confirmLabel": "Ich verstehe, dass mein Konto dauerhaft gelöscht wird und dieser Vorgang nicht rückgängig gemacht werden kann.",
+    "submit": "Konto dauerhaft löschen",
+    "pending": "Wird gelöscht…",
+    "passwordRequired": "Geben Sie Ihr Passwort ein, um das Konto zu löschen.",
+    "confirmRequired": "Aktivieren Sie das Kontrollkästchen, um das Löschen zu bestätigen.",
+    "wrongPassword": "Das Passwort ist falsch.",
+    "activeAdminError": "Aktive Admin-Konten können nicht gelöscht werden. Zuerst muss ein anderer Admin Ihre Rolle ändern oder Ihre Mitgliedschaft deaktivieren.",
+    "failed": "Das Konto konnte nicht gelöscht werden. Bitte versuchen Sie es erneut."
+  },
+  "missingSession": "Keine Sitzung gefunden. Melden Sie sich erneut an."
+}

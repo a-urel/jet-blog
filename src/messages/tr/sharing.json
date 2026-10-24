@@ -1,0 +1,11 @@
+{
+  "heading": "Paylaş",
+  "email": "E-posta",
+  "shareVia": "{provider} ile paylaş",
+  "shareViaNewTab": "{provider} ile paylaş (yeni sekmede açılır)",
+  "copy": "Bağlantıyı kopyala",
+  "copied": "Bağlantı kopyalandı",
+  "copiedStatus": "Bağlantı panoya kopyalandı.",
+  "copyFailed": "Bağlantı kopyalanamadı. Aşağıdaki adresi seçip kopyalayın.",
+  "linkLabel": "Yazının bağlantısı"
+}

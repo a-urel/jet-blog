@@ -3,12 +3,13 @@
 import { useOptimistic, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Bookmark, BookmarkCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { signInPathFor } from "@/features/auth/return-path";
 import { cn } from "@/lib/utils";
 import { setBookmarkAction } from "../actions";
-import { bookmarkMessages } from "../result";
+import { bookmarkMessageKeys } from "../result";
 import { useBookmarks } from "./bookmark-provider";
 
 type BookmarkToggleProps = {
@@ -24,6 +25,7 @@ type BookmarkToggleProps = {
 // The optimistic state shows at once and settles on the Server Action's
 // answer: the confirmed state on success, the previous state on failure.
 export function BookmarkToggle({ postId, postTitle, className }: BookmarkToggleProps) {
+  const t = useTranslations("bookmarks");
   const { status, isSaved, setSaved, markAnonymous } = useBookmarks();
   const router = useRouter();
   const pathname = usePathname();
@@ -52,13 +54,13 @@ export function BookmarkToggle({ postId, postTitle, className }: BookmarkToggleP
       try {
         result = await setBookmarkAction(postId, next);
       } catch {
-        setMessage(bookmarkMessages.error);
+        setMessage(t("messages.error"));
         return;
       }
 
       if (result.status === "ok") {
         setSaved(postId, result.saved);
-        setMessage(result.saved ? "Yazı kaydedildi." : "Yazı kaydedilenlerden çıkarıldı.");
+        setMessage(result.saved ? t("toggle.saved") : t("toggle.removed"));
         return;
       }
 
@@ -68,7 +70,7 @@ export function BookmarkToggle({ postId, postTitle, className }: BookmarkToggleP
         return;
       }
 
-      setMessage(bookmarkMessages[result.status]);
+      setMessage(t(`messages.${bookmarkMessageKeys[result.status]}`));
     });
   }
 
@@ -88,8 +90,12 @@ export function BookmarkToggle({ postId, postTitle, className }: BookmarkToggleP
           aria-hidden="true"
           className={cn(optimisticSaved && "fill-current")}
         />
-        Kaydet
-        {postTitle ? <span className="sr-only">: {postTitle}</span> : null}
+        {postTitle
+          ? t.rich("toggle.labelWithTitle", {
+              title: postTitle,
+              sr: (chunks) => <span className="sr-only">{chunks}</span>,
+            })
+          : t("toggle.label")}
       </Button>
       <span role="status" aria-live="polite" className="text-xs text-muted-foreground">
         {message}

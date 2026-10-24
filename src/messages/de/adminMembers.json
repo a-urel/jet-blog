@@ -1,0 +1,75 @@
+{
+  "denied": {
+    "title": "Mitgliederverwaltung nicht verfügbar",
+    "description": "Diese Seite steht nur der Admin-Rolle offen."
+  },
+  "title": "Mitglieder",
+  "intro": "Laden Sie Redaktionsmitglieder ein, ändern Sie ihre Rollen oder deaktivieren Sie sie.",
+  "status": {
+    "roleUpdated": "Rolle aktualisiert.",
+    "membershipUpdated": "Mitgliedschaftsstatus aktualisiert."
+  },
+  "errors": {
+    "invalid": "Ungültige Anfrage.",
+    "session": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+    "forbidden": "Für diesen Vorgang ist die Admin-Berechtigung erforderlich.",
+    "self": "Sie können Ihre eigene Rolle oder Ihren Aktivstatus nicht ändern.",
+    "missing": "Mitglied nicht gefunden.",
+    "lastAdmin": "Der letzte aktive Admin kann nicht herabgestuft oder deaktiviert werden.",
+    "alreadyMember": "Diese Person ist bereits ein aktives Mitglied.",
+    "unknown": "Der Vorgang konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+  },
+  "invite": {
+    "title": "Neue Einladung",
+    "description": "Laden Sie eine neue E-Mail-Adresse ein oder geben Sie einem bestehenden Benutzer eine Rolle. Redakteure können keine Mitglieder einladen.",
+    "secretTitle": "Serverschlüssel erforderlich",
+    "secretDescription": "Um Einladungen zu senden, fügen Sie der Datei <code>.env.local</code> den nur auf dem Server verwendeten Wert <code>SUPABASE_SECRET_KEY</code> hinzu."
+  },
+  "list": {
+    "title": "Mitgliederliste",
+    "description": "Eine Deaktivierung wird bei der nächsten Anfrage wirksam.",
+    "loadError": "Die Mitgliederliste konnte nicht geladen werden.",
+    "empty": "Noch keine Redaktionsmitglieder.",
+    "columns": {
+      "user": "Benutzer",
+      "role": "Rolle",
+      "status": "Status",
+      "action": "Aktion"
+    },
+    "you": "Sie",
+    "roleLabel": "Rolle",
+    "state": {
+      "deactivated": "Deaktiviert",
+      "awaiting": "Einladung ausstehend",
+      "active": "Aktiv"
+    },
+    "selfRow": "Ihr eigener Eintrag",
+    "activate": "Aktivieren",
+    "deactivate": "Deaktivieren"
+  },
+  "inviteForm": {
+    "email": "E-Mail",
+    "displayName": "Anzeigename (optional)",
+    "role": "Rolle",
+    "confirmAdmin": "Ich bestätige, dieser Person die Admin-Berechtigung zu erteilen.",
+    "sending": "Wird gesendet…",
+    "submit": "Einladung senden"
+  },
+  "inviteResult": {
+    "emailRequired": "E-Mail ist erforderlich.",
+    "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+    "roleInvalid": "Wählen Sie eine gültige Rolle.",
+    "confirmAdmin": "Aktivieren Sie das Bestätigungskästchen, um die Admin-Rolle zu vergeben.",
+    "displayNameTooLong": "Der Anzeigename darf höchstens {max, number, ::group-off} Zeichen lang sein.",
+    "verifyFailed": "Der Vorgang konnte gerade nicht überprüft werden. Versuchen Sie es erneut.",
+    "rateLimited": "Das stündliche Einladungslimit ist erreicht. Versuchen Sie es später erneut.",
+    "sendFailed": "Die Einladung konnte nicht gesendet werden. Prüfen Sie die Supabase-Einstellungen.",
+    "userNotFound": "Diese E-Mail-Adresse scheint registriert zu sein, der Benutzer wurde jedoch nicht gefunden.",
+    "unconfirmed": "Für diese E-Mail-Adresse existiert ein nicht bestätigtes Konto. Die Person muss zuerst ihre E-Mail-Adresse bestätigen.",
+    "noTarget": "Das Ziel der Einladung konnte nicht ermittelt werden.",
+    "grantFailed": "Die Einladung wurde verarbeitet, die Mitgliedschaft konnte jedoch nicht angelegt werden. Prüfen Sie die Mitgliederliste.",
+    "invited": "Einladungs-E-Mail gesendet.",
+    "granted": "Dem bestehenden Benutzer wurde eine Rolle zugewiesen.",
+    "unexpected": "Ein unerwarteter Fehler ist aufgetreten. Versuchen Sie es erneut."
+  }
+}

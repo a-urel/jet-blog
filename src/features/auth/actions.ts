@@ -1,20 +1,18 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getTranslations } from "next-intl/server";
 
 import { getAppOrigin } from "@/lib/app-origin";
 import { getSessionUser } from "@/lib/auth/session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import {
-  checkPasswordPolicy,
-  passwordPolicyMessages,
-} from "./password-policy";
-import { authRateLimitMessages, consumeAuthRateLimit } from "./rate-limit";
+import { checkPasswordPolicy, passwordPolicyValues } from "./password-policy";
+import { consumeAuthRateLimit } from "./rate-limit";
 import { normalizeEmail } from "./rate-limit-subjects";
 import { returnPathForMember } from "./return-path";
-import { validateDisplayName } from "./validation";
+import { displayNameMaxLength, validateDisplayName } from "./validation";
+import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 export type SignInState = {
   error: string | null;
@@ -34,12 +32,6 @@ export type PasswordResetRequestState = {
   message: string | null;
 };
 
-const invalidCredentialsMessage = "E-posta veya parola hatalı.";
-const missingFieldsMessage = "E-posta ve parola gerekli.";
-const emailNotConfirmedMessage =
-  "E-posta adresiniz henüz doğrulanmadı. Gelen kutunuzdaki doğrulama bağlantısını açın.";
-const invalidEmailMessage = "Geçerli bir e-posta girin.";
-
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 320;
 }
@@ -47,8 +39,8 @@ function isValidEmail(email: string) {
 // Only the dynamic, per-user layouts. Never revalidate "/" here: that would
 // expire every public ISR page on each sign-in.
 function revalidateSignedInRoutes() {
-  revalidatePath("/admin", "layout");
-  revalidatePath("/account", "layout");
+  revalidateLocalizedPath("/admin", "layout");
+  revalidateLocalizedPath("/account", "layout");
 }
 
 // Editorial members land in /admin; everyone else is a reader. The membership
@@ -67,22 +59,23 @@ export async function signInAction(
   _previousState: SignInState,
   formData: FormData,
 ): Promise<SignInState> {
+  const t = await getTranslations("auth");
   const email = formData.get("email");
   const password = formData.get("password");
 
   if (typeof email !== "string" || typeof password !== "string") {
-    return { error: missingFieldsMessage };
+    return { error: t("errors.missingFields") };
   }
 
   const normalizedEmail = normalizeEmail(email);
 
   if (!normalizedEmail || !password) {
-    return { error: missingFieldsMessage };
+    return { error: t("errors.missingFields") };
   }
 
   const rateLimit = await consumeAuthRateLimit("auth.sign_in", normalizedEmail);
   if (rateLimit !== "allowed") {
-    return { error: authRateLimitMessages[rateLimit] };
+    return { error: t(`rateLimit.${rateLimit}`) };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -95,10 +88,10 @@ export async function signInAction(
     // Supabase checks the password before the confirmation state, so this
     // message only reaches someone who already knows the password.
     if (error?.code === "email_not_confirmed") {
-      return { error: emailNotConfirmedMessage };
+      return { error: t("errors.emailNotConfirmed") };
     }
 
-    return { error: invalidCredentialsMessage };
+    return { error: t("errors.invalidCredentials") };
   }
 
   // A validated ?next= path (for example the post a visitor tried to save, or
@@ -115,6 +108,7 @@ export async function signUpAction(
   _previousState: SignUpState,
   formData: FormData,
 ): Promise<SignUpState> {
+  const t = await getTranslations("auth");
   const email = formData.get("email");
   const password = formData.get("password");
   const confirmPassword = formData.get("confirmPassword");
@@ -126,31 +120,37 @@ export async function signUpAction(
     typeof confirmPassword !== "string" ||
     typeof displayNameValue !== "string"
   ) {
-    return { status: "error", message: "Tüm alanları doldurun." };
+    return { status: "error", message: t("errors.allFieldsRequired") };
   }
 
   const displayName = validateDisplayName(displayNameValue);
   if (!displayName.ok) {
-    return { status: "error", message: displayName.message };
+    return {
+      status: "error",
+      message: t(`displayName.${displayName.error}`, { max: displayNameMaxLength }),
+    };
   }
 
   const normalizedEmail = normalizeEmail(email);
   if (!isValidEmail(normalizedEmail)) {
-    return { status: "error", message: invalidEmailMessage };
+    return { status: "error", message: t("errors.invalidEmail") };
   }
 
   const policyError = checkPasswordPolicy(password);
   if (policyError) {
-    return { status: "error", message: passwordPolicyMessages[policyError] };
+    return {
+      status: "error",
+      message: t(`passwordPolicy.${policyError}`, passwordPolicyValues),
+    };
   }
 
   if (password !== confirmPassword) {
-    return { status: "error", message: "Parolalar eşleşmiyor." };
+    return { status: "error", message: t("errors.passwordMismatch") };
   }
 
   const rateLimit = await consumeAuthRateLimit("auth.sign_up", normalizedEmail);
   if (rateLimit !== "allowed") {
-    return { status: "error", message: authRateLimitMessages[rateLimit] };
+    return { status: "error", message: t(`rateLimit.${rateLimit}`) };
   }
 
   const origin = await getAppOrigin();
@@ -175,43 +175,34 @@ export async function signUpAction(
     if (error.code === "weak_password") {
       return {
         status: "error",
-        message: passwordPolicyMessages["letters-digits"],
+        message: t("passwordPolicy.lettersDigits"),
       };
     }
 
     if (error.code === "over_email_send_rate_limit") {
-      return { status: "error", message: authRateLimitMessages.limited };
+      return { status: "error", message: t("rateLimit.limited") };
     }
 
-    return {
-      status: "error",
-      message: "Hesap oluşturulamadı. Daha sonra tekrar deneyin.",
-    };
+    return { status: "error", message: t("errors.signUpFailed") };
   }
 
-  return {
-    status: "success",
-    message:
-      "Doğrulama bağlantısı e-posta adresinize gönderildi. Hesabınızı etkinleştirmek için bağlantıyı aynı tarayıcıda açın.",
-  };
+  return { status: "success", message: t("success.signUp") };
 }
-
-const passwordResetSentMessage =
-  "Bu adrese kayıtlı bir hesap varsa parola sıfırlama bağlantısı gönderildi. Gelen kutunuzu kontrol edin.";
 
 export async function requestPasswordResetAction(
   _previousState: PasswordResetRequestState,
   formData: FormData,
 ): Promise<PasswordResetRequestState> {
+  const t = await getTranslations("auth");
   const email = formData.get("email");
 
   if (typeof email !== "string") {
-    return { status: "error", message: invalidEmailMessage };
+    return { status: "error", message: t("errors.invalidEmail") };
   }
 
   const normalizedEmail = normalizeEmail(email);
   if (!isValidEmail(normalizedEmail)) {
-    return { status: "error", message: invalidEmailMessage };
+    return { status: "error", message: t("errors.invalidEmail") };
   }
 
   // The limit depends only on the submitted email and the client, never on
@@ -221,7 +212,7 @@ export async function requestPasswordResetAction(
     normalizedEmail,
   );
   if (rateLimit !== "allowed") {
-    return { status: "error", message: authRateLimitMessages[rateLimit] };
+    return { status: "error", message: t(`rateLimit.${rateLimit}`) };
   }
 
   const origin = await getAppOrigin();
@@ -236,36 +227,33 @@ export async function requestPasswordResetAction(
     })
     .catch(() => null);
 
-  return { status: "success", message: passwordResetSentMessage };
+  return { status: "success", message: t("success.passwordResetSent") };
 }
-
-const passwordMismatchMessage = "Parolalar eşleşmiyor.";
-const passwordMissingSessionMessage =
-  "Oturum bulunamadı. Bağlantıyı yeniden açın veya yeniden giriş yapın.";
 
 export async function updatePasswordAction(
   _previousState: UpdatePasswordState,
   formData: FormData,
 ): Promise<UpdatePasswordState> {
+  const t = await getTranslations("auth");
   const password = formData.get("password");
   const confirmPassword = formData.get("confirmPassword");
 
   if (typeof password !== "string" || typeof confirmPassword !== "string") {
-    return { error: passwordPolicyMessages["too-short"] };
+    return { error: t("passwordPolicy.tooShort", passwordPolicyValues) };
   }
 
   const policyError = checkPasswordPolicy(password);
   if (policyError) {
-    return { error: passwordPolicyMessages[policyError] };
+    return { error: t(`passwordPolicy.${policyError}`, passwordPolicyValues) };
   }
 
   if (password !== confirmPassword) {
-    return { error: passwordMismatchMessage };
+    return { error: t("errors.passwordMismatch") };
   }
 
   const user = await getSessionUser();
   if (!user) {
-    return { error: passwordMissingSessionMessage };
+    return { error: t("errors.missingSession") };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -273,16 +261,14 @@ export async function updatePasswordAction(
 
   if (error) {
     if (error.code === "same_password") {
-      return { error: "Yeni parola mevcut paroladan farklı olmalı." };
+      return { error: t("errors.samePassword") };
     }
 
     if (error.code === "weak_password") {
-      return { error: passwordPolicyMessages["letters-digits"] };
+      return { error: t("passwordPolicy.lettersDigits") };
     }
 
-    return {
-      error: "Parola güncellenemedi. Bağlantıyı yeniden açıp tekrar deneyin.",
-    };
+    return { error: t("errors.passwordUpdateFailed") };
   }
 
   const home = await homePathFor(supabase, user.id);

@@ -1,0 +1,25 @@
+{
+  "toggle": {
+    "label": "Save",
+    "labelWithTitle": "Save<sr>: {title}</sr>",
+    "saved": "Post saved.",
+    "removed": "Post removed from your saved posts."
+  },
+  "messages": {
+    "unavailable": "This post cannot be saved right now.",
+    "rateLimited": "You have sent too many save requests. Try again in a few minutes.",
+    "error": "Your saved posts could not be updated. Try again."
+  },
+  "savedPage": {
+    "metaTitle": "Saved",
+    "notConfiguredAction": "view your saved posts",
+    "eyebrow": "Account",
+    "heading": "Saved",
+    "intro": "Your personal reading list, visible only to you.",
+    "loadErrorTitle": "Saved posts could not be loaded",
+    "loadErrorDescription": "The list is temporarily unavailable. Refresh the page to try again.",
+    "emptyTitle": "No saved posts yet",
+    "emptyDescription": "Use the “Save” button on posts to collect the ones you want to read later. Unpublished posts do not appear in the list.",
+    "browse": "Browse posts"
+  }
+}

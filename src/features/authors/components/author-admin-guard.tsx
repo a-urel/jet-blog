@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { EditorialAccessDenied } from "@/features/auth/components/editorial-access-denied";
 import { canManageAuthors, getEditorialContext } from "@/lib/auth/editorial";
@@ -10,10 +11,12 @@ export async function authorAccessDenial() {
 
   if (canManageAuthors(membership)) return null;
 
+  const t = await getTranslations("adminAuthors.denied");
+
   return (
     <EditorialAccessDenied
-      title="Yazar yönetimi kapalı"
-      description="Bu sayfa yalnızca admin rolüne açıktır. Editörler mevcut yazarları yazılara kredilendirebilir."
+      title={t("title")}
+      description={t("description")}
       email={user.email}
     />
   );

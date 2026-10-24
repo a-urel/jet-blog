@@ -172,9 +172,10 @@ publish permissions.
   applies the session, and forwards to `/login/password`. The invitee sets a
   password before continuing to `/admin`.
 - `src/proxy.ts` refreshes expired Auth tokens and copies refreshed cookies to
-  both the Server Components and the browser response. Proxy matchers cover
-  `/admin`, `/account`, `/login`, and `/signup`, so public pages do not pay for
-  session checks. It keeps the editorial (`/admin`) and reader (`/account`)
+  both the Server Components and the browser response. Since Phase 22 it runs
+  on every page to pick the interface locale, but the session check still
+  runs only for `/admin`, `/account`, `/login`, and `/signup`, so public pages
+  do not pay for it. It keeps the editorial (`/admin`) and reader (`/account`)
   route groups separate and only redirects signed-out visitors of either to
   `/login?next=` with the requested path and query; editorial access is
   decided by the admin layout, never by Proxy.
@@ -371,8 +372,9 @@ Each post is written in one language, stored in `posts.language` as a
 canonical BCP 47 tag (Phase 21; Phases 14–20 allowed only `tr`, `en`, `de`).
 The default is `tr`. Post languages are independent of the interface
 languages: `src/lib/interface-locales.ts` holds the separate, fixed interface
-set (`tr`, `en`, `de`) that Phase 22 will use for UI localization; until then
-the whole interface stays Turkish.
+set (`tr`, `en`, `de`) chosen per reader since Phase 22 (see
+[Interface localization](#interface-localization-phase-22)). Every post is
+shown in every interface language.
 
 - **Accepted grammar.** A pragmatic subset of BCP 47 in canonical casing:
   language (2–3 lowercase letters), an optional script (4 letters, first
@@ -1061,6 +1063,109 @@ the first post declare an absolute `og:image` with `summary_large_image`, and
 (with `SMOKE_SUPABASE_URL` and `SMOKE_SUPABASE_PUBLISHABLE_KEY`) that a direct
 `rpc/search_published_posts` call with the publishable key is refused.
 
+## Interface localization (Phase 22)
+
+The interface (navigation, pages, forms, validation and Server Action
+messages, dialogs, empty/error/loading states, metadata titles and
+descriptions, admin) is available in Turkish, English, and German, with
+Turkish as the default. Post content is not translated, and every post is
+listed in every interface language. New dependency: `next-intl` 4.14.9
+(declares Next.js 16 support; its plugin only aliases the request
+configuration here, message extraction is not used). The shadcn
+`dropdown-menu` component was added for the switcher.
+
+- **Locale in a cookie, never in the URL.** `src/proxy.ts` runs on every page
+  request (not on `_next`, files with an extension such as `feed.xml`,
+  `sitemap.xml`, and `robots.txt`, the `/auth/callback` and `/auth/recovery`
+  Route Handlers, or `/opengraph-image`). It resolves the locale from the
+  `locale` cookie, then `Accept-Language` (quality-ordered, primary subtag),
+  then `tr`, and rewrites the request to the internal segment:
+  `/posts/a` renders `src/app/[locale]/posts/[slug]` with `locale=en`. An
+  invalid cookie value falls back silently. Internal paths are not public: a
+  request for `/en/posts/a` is rewritten to `/<locale>/en/posts/a`, which the
+  `[locale]/[...rest]` catch-all answers with the localized 404. Supabase
+  session refresh still runs only for `/admin`, `/account`, `/login`, and
+  `/signup`.
+- **Static per locale.** The root layout lives in `src/app/[locale]/layout.tsx`
+  and returns every locale from `generateStaticParams`, so each public ISR
+  page is prerendered three times. Pages read the locale through the
+  `next/root-params` getter (Next.js 16.3+), not `cookies()`, so they stay
+  static. `src/i18n/request.ts` gives next-intl that root parameter; Server
+  Actions and Route Handlers cannot read root parameters, so they read the
+  `x-interface-locale` request header that the proxy always overwrites.
+  Validation errors from a Server Action therefore come back in the reader's
+  language.
+- **URLs stay locale-free.** Links, redirects, canonical URLs, Open Graph
+  URLs, the sitemap, the feed, slug redirects, and `?next=` paths are written
+  without a locale. `<html lang>` follows the interface locale; post content
+  keeps its own `lang`, `og:locale`, and JSON-LD `inLanguage`. Listings and
+  archives declare the interface locale's `og:locale` (`tr_TR`, `en_US`,
+  `de_DE`).
+- **Cache invalidation covers every locale.** `revalidatePath` must name the
+  internal route. `publicCacheInvalidation` (`src/features/posts/cache.ts`)
+  returns `[locale]` route patterns (`/[locale]/posts/[slug]`, `"page"`; the
+  home listing is `/[locale]`, `"page"`), so one call regenerates the tr, en,
+  and de copies; `sitemap.xml` and `feed.xml` stay literal. Concrete paths
+  (one post's comments, admin pages) go through `revalidateLocalizedPath`
+  (`src/lib/revalidate.ts`), which revalidates each locale's path or, with a
+  type, the `[locale]` pattern.
+- **Messages.** One JSON catalog per locale and namespace in
+  `src/messages/<locale>/` (`common`, `posts`, `archives`, `search`,
+  `sharing`, `comments`, `bookmarks`, `auth`, `account`, `avatars`, and the
+  `admin*` namespaces), registered in `src/i18n/catalogs.ts`. Turkish is the
+  source: `src/i18n/app-config.d.ts` types every key and ICU argument against
+  it, and the other locales must have the same shape. Counts use ICU plurals.
+  Pure modules (validation, password policy, comment model) return message
+  keys; the action or component translates them. Client Components get every
+  non-admin namespace from the root layout; the admin layout adds the admin
+  namespaces for its subtree only, so public pages do not ship admin copy.
+- **Formatting.** Dates use named formats (`src/i18n/formats.ts`) in the
+  interface language and the publication time zone (Europe/Istanbul), so a
+  prerendered date never differs from the client. Post language names
+  (`Intl.DisplayNames`) and file sizes follow the interface locale.
+- **Switcher.** `LanguageSwitcher` (shadcn `DropdownMenu` with radio items;
+  endonyms with their own `lang`) sits in the public header and the admin
+  sidebar. Choosing a language writes `locale=<tr|en|de>; Path=/;
+  Max-Age=31536000; SameSite=Lax` (plus `Secure` on HTTPS) and calls
+  `router.refresh()`; the URL does not change and the choice survives reloads.
+  The cookie is strictly functional (it only selects the interface language,
+  holds no identifier, and is not used for analytics), so it falls under the
+  ePrivacy "strictly necessary" exemption and needs no consent banner. The
+  switcher needs JavaScript; without it, the `Accept-Language` negotiation
+  still applies.
+- **Shared caches: no `Vary` header.** The same URL renders differently per
+  locale cookie and `Accept-Language`, yet public pages keep
+  `Cache-Control: s-maxage=300, stale-while-revalidate`. Next.js 16 sets
+  `Vary` itself on every App Router page response (`res.setHeader("Vary",
+  …)` with its RSC headers in `app-page-runtime`), overwriting a value from
+  the proxy or `next.config.ts` `headers()`; both were tried. `next start`
+  alone is correct (it rewrites before its ISR cache), but a CDN or reverse
+  proxy that caches HTML by URL would serve the first locale it saw to
+  everyone. Before putting one in front, key its cache on the `locale` cookie
+  and `Accept-Language` (or add `Vary: Cookie, Accept-Language` at the edge,
+  accepting that `Vary: Cookie` also splits by session cookies), or do not
+  cache HTML at the edge. See the hosting checklist.
+- **Left as is.** The provisional site name (`NEXT_PUBLIC_SITE_NAME`,
+  default "Yazılar") is a brand, not copy. Supabase Auth email templates
+  (invitation, confirmation, recovery) are configured in Supabase, not in this
+  repository, and stay in their current language for now. The Atom feed,
+  sitemap, and the site-wide social image are locale-free and use the default
+  locale where they need any text. `global-error.tsx` (rendered without the
+  root layout) inlines its five strings per locale and picks the locale from
+  the cookie and browser languages.
+
+Tests: `src/i18n/catalogs.test.ts` checks that every locale has exactly the
+Turkish keys, no empty message, the same ICU arguments and tags, and that every
+message formats without an ICU error. `src/lib/interface-locales.test.ts`
+covers cookie and `Accept-Language` resolution (qualities, regional ranges,
+`q=0`, wildcards, malformed and invalid values); `localized-paths.test.ts`
+and `cache.test.ts` cover the per-locale invalidation targets. The smoke test
+requests `/` and the newest post with `Cookie: locale=en`, `locale=de`, an
+invalid cookie, and `Accept-Language: de-AT`, and checks `<html lang>`, a
+translated string, the unchanged canonical URL, public cacheability, an ISR
+cache hit per locale, and that internal `/en/...` paths are 404s while
+the anonymous default stays Turkish.
+
 ## Structure and sample content
 
 ```text
@@ -1400,7 +1505,12 @@ review the hosted Auth rate limits and SMTP, apply the reader-account Auth
 settings (confirm email and confirm phone on, `letters_digits` password rule,
 the `/auth/callback` and `/auth/recovery` redirect URLs, production SMTP, and
 reviewed Turkish confirmation and recovery templates using the `token_hash`
-links), schedule database and Storage
+links; Auth emails are not localized per interface language), make sure the
+CDN or proxy in front of the app keys cached HTML on the `locale` cookie and
+`Accept-Language` (Next.js sends no such `Vary`; a cache keyed by URL alone
+would serve one interface language to every reader, so add the cache key or
+`Vary` at the edge, or do not cache HTML there),
+schedule database and Storage
 backups, revisit D4 (draft images are public by URL), and run
 `npm run test:smoke` against the deployment.
 
@@ -1885,7 +1995,9 @@ Back/Forward guard, admin return paths, more avatars, a default social image,
 and a server-only search function). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-All planned phases (1–20) are implemented; see ROADMAP.md for the open
+Phase 21 opened post languages to any BCP 47 tag, and Phase 22 added the
+Turkish, English, and German interface (cookie-selected, locale-free URLs).
+All planned phases (1–22) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand
