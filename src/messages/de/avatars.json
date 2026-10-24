@@ -2,10 +2,26 @@
   "form": {
     "remove": "Bild entfernen",
     "removing": "Wird entfernt…",
-    "hint": "JPEG, PNG oder WebP; höchstens {maxMegabytes} MB. Nicht quadratische Bilder werden mittig zugeschnitten.",
+    "hint": "JPEG, PNG, WebP oder GIF. Nach der Auswahl können Sie das Bild quadratisch zuschneiden; GIFs werden zu Standbildern.",
     "choose": "Bild hochladen",
     "change": "Bild ändern",
-    "uploading": "Wird hochgeladen…"
+    "uploading": "Wird hochgeladen…",
+    "preparing": "Wird vorbereitet…"
+  },
+  "crop": {
+    "title": "Bild zuschneiden",
+    "instructions": "Ziehen Sie das Bild oder verwenden Sie die Pfeiltasten, um es zu positionieren, und zoomen Sie mit dem Schieberegler oder den Tasten + und −. Der Kreis zeigt, wie das Profilbild erscheint.",
+    "area": "Zuschneidebereich",
+    "zoom": "Zoom",
+    "zoomValue": "{percent} %",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "sourceTooLarge": "Diese Datei ist zu groß für die Bearbeitung im Browser (höchstens 25 MB).",
+    "decodeFailed": "Dieses Bild konnte nicht geöffnet werden. Wählen Sie eine JPEG-, PNG-, WebP- oder GIF-Datei.",
+    "exportFailed": "Das zugeschnittene Bild konnte nicht erstellt werden. Versuchen Sie es erneut oder wählen Sie ein anderes Bild."
   },
   "rejection": {
     "noFile": "Wählen Sie eine Bilddatei aus.",

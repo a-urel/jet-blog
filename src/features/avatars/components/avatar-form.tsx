@@ -1,15 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Trash2, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/features/auth/components/form-alert";
+import { CropSourceFailure, loadCropSource, type CropSource, type CropSourceError } from "../crop-image";
 import { avatarChangedEvent } from "../events";
 import type { AvatarFormState } from "../form-state";
-import { allowedAvatarTypes, avatarLimitValues } from "../validation";
+import { allowedAvatarTypes } from "../validation";
+import { AvatarCropDialog } from "./avatar-crop-dialog";
 
 type AvatarAction = (state: AvatarFormState, formData: FormData) => Promise<AvatarFormState>;
 
@@ -26,10 +35,14 @@ type AvatarFormProps = {
 
 const initialState: AvatarFormState = { status: "idle", message: null };
 
-// Upload and removal for one avatar. The button opens the file picker and the
-// upload starts as soon as a file is chosen, so there is no separate submit
-// step. The server validates the file signature, type, size, and dimensions;
-// accept only narrows the file picker.
+// The browser decodes these for cropping; the export is always WebP or JPEG,
+// so a GIF becomes a static picture of its first frame.
+const pickerTypes = [...allowedAvatarTypes, "image/gif"].join(",");
+
+// Upload and removal for one avatar. The button opens the file picker; the
+// chosen file opens the crop dialog, and saving uploads the cropped square, so
+// there is no separate submit step. The server still validates the file
+// signature, type, size, and dimensions; the crop and accept are conveniences.
 export function AvatarForm({
   preview,
   hasAvatar,
@@ -39,12 +52,19 @@ export function AvatarForm({
   idPrefix,
 }: AvatarFormProps) {
   const t = useTranslations("avatars.form");
+  const tCrop = useTranslations("avatars.crop");
   const [uploadState, upload, uploading] = useActionState(uploadAction, initialState);
   const [removeState, remove, removing] = useActionState(removeAction, initialState);
   const fileInput = useRef<HTMLInputElement>(null);
+  const uploadForm = useRef<HTMLFormElement>(null);
+  const uploadButton = useRef<HTMLButtonElement>(null);
+  const [cropSource, setCropSource] = useState<CropSource | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  // Decoding or cropping failures happen before any action runs.
+  const [cropError, setCropError] = useState<CropSourceError | null>(null);
   // Both actions report into one place; show the one the user ran last.
   const [lastAction, setLastAction] = useState<"upload" | "remove">("upload");
-  const pending = uploading || removing;
+  const pending = uploading || removing || preparing;
   const hintId = `${idPrefix}-avatar-hint`;
   const statusId = `${idPrefix}-avatar-status`;
   const state = lastAction === "upload" ? uploadState : removeState;
@@ -62,6 +82,35 @@ export function AvatarForm({
     if (removeState.status === "success" && removeState.message) toast.success(removeState.message);
   }, [removeState]);
 
+  const chooseFile = async (file: File) => {
+    setCropError(null);
+    setPreparing(true);
+    try {
+      setCropSource(await loadCropSource(file));
+    } catch (error) {
+      setCropError(error instanceof CropSourceFailure ? error.reason : "decodeFailed");
+    } finally {
+      setPreparing(false);
+    }
+  };
+
+  const uploadCropped = (file: File) => {
+    setCropSource(null);
+    if (!uploadForm.current) return;
+    // The form supplies the hidden fields; the cropped file replaces the pick.
+    const formData = new FormData(uploadForm.current);
+    formData.set("avatar", file);
+    setLastAction("upload");
+    startTransition(() => upload(formData));
+  };
+
+  // Only errors are shown inline; successes are toasts.
+  const message = cropError
+    ? tCrop(cropError)
+    : state.status === "error"
+      ? state.message
+      : null;
+
   const hidden = Object.entries(hiddenFields).map(([name, value]) => (
     <input key={name} type="hidden" name={name} value={value} />
   ));
@@ -71,38 +120,51 @@ export function AvatarForm({
       <div className="flex flex-wrap items-center gap-4">
         {preview}
         <div className="flex flex-wrap gap-2">
-          <form action={upload}>
+          {/* Never submitted natively: it only collects the hidden fields
+              for the cropped upload. */}
+          <form ref={uploadForm}>
             {hidden}
             <input
               ref={fileInput}
               name="avatar"
               type="file"
-              accept={allowedAvatarTypes.join(",")}
+              accept={pickerTypes}
               className="sr-only"
               tabIndex={-1}
               aria-hidden="true"
               onChange={(event) => {
-                if (event.currentTarget.files?.length) {
-                  setLastAction("upload");
-                  event.currentTarget.form?.requestSubmit();
-                }
+                const file = event.currentTarget.files?.[0];
+                // Clear the pick so choosing the same file again reopens the crop.
+                event.currentTarget.value = "";
+                if (file) void chooseFile(file);
               }}
             />
             <Button
+              ref={uploadButton}
               type="button"
               variant="outline"
               disabled={pending}
-              aria-describedby={
-                state.status === "error" && state.message ? `${hintId} ${statusId}` : hintId
-              }
+              aria-describedby={message ? `${hintId} ${statusId}` : hintId}
               onClick={() => fileInput.current?.click()}
             >
               <Upload aria-hidden="true" />
-              {uploading ? t("uploading") : hasAvatar ? t("change") : t("choose")}
+              {uploading
+                ? t("uploading")
+                : preparing
+                  ? t("preparing")
+                  : hasAvatar
+                    ? t("change")
+                    : t("choose")}
             </Button>
           </form>
           {hasAvatar ? (
-            <form action={remove} onSubmit={() => setLastAction("remove")}>
+            <form
+              action={remove}
+              onSubmit={() => {
+                setCropError(null);
+                setLastAction("remove");
+              }}
+            >
               {hidden}
               <Button type="submit" variant="ghost" disabled={pending}>
                 <Trash2 aria-hidden="true" />
@@ -114,14 +176,21 @@ export function AvatarForm({
       </div>
 
       <p id={hintId} className="text-sm text-muted-foreground">
-        {t("hint", { maxMegabytes: avatarLimitValues.maxMegabytes })}
+        {t("hint")}
       </p>
 
-      {state.status === "error" && state.message ? (
+      {message ? (
         <FormAlert id={statusId} tone="error">
-          {state.message}
+          {message}
         </FormAlert>
       ) : null}
+
+      <AvatarCropDialog
+        source={cropSource}
+        onCancel={() => setCropSource(null)}
+        onSave={uploadCropped}
+        returnFocusRef={uploadButton}
+      />
     </div>
   );
 }
