@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
+
 import { archivePaths } from "../archives";
 import { wasUpdatedAfterPublication } from "../mapping";
 import type { PostSummary } from "../types";
@@ -11,21 +13,42 @@ const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
   timeZone: "Europe/Istanbul",
 });
 
-export function PostMeta({ post }: { post: PostSummary }) {
+// Listing cards keep a text-only byline; the post header passes withAvatars.
+// Avatars are decorative there: each one sits inside the link with the
+// visible author name.
+export function PostMeta({
+  post,
+  withAvatars = false,
+}: {
+  post: PostSummary;
+  withAvatars?: boolean;
+}) {
   const updated = wasUpdatedAfterPublication(post);
 
   return (
-    <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
       {post.authors.length > 0 ? (
         <>
-          <span>
+          <span className={withAvatars ? "flex flex-wrap items-center gap-x-1 gap-y-2" : undefined}>
             {post.authors.map(({ author }, index) => (
-              <span key={author.id}>
-                {index > 0 ? ", " : null}
+              <span key={author.id} className={withAvatars ? "inline-flex items-center" : undefined}>
+                {index > 0 ? <span className={withAvatars ? "mr-2" : undefined}>, </span> : null}
                 <Link
                   href={archivePaths.author(author.slug)}
-                  className="rounded-sm hover:text-foreground hover:underline underline-offset-4"
+                  className={
+                    withAvatars
+                      ? "inline-flex items-center gap-2 rounded-sm hover:text-foreground hover:underline underline-offset-4"
+                      : "rounded-sm hover:text-foreground hover:underline underline-offset-4"
+                  }
                 >
+                  {withAvatars ? (
+                    <IdentityAvatar
+                      kind="authors"
+                      avatarId={author.avatarId}
+                      name={author.name}
+                      size="sm"
+                    />
+                  ) : null}
                   {author.name}
                 </Link>
               </span>

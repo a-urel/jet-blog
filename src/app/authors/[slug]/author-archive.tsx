@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 
+import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
 import { archivePaths } from "@/features/posts/archives";
 import { ArchiveLayout } from "@/features/posts/components/archive-layout";
 import { findAuthorArchive } from "@/features/posts/data";
@@ -39,6 +40,14 @@ export async function AuthorArchive({ slug, page }: { slug: string; page: number
     <ArchiveLayout
       eyebrow="Yazar"
       title={lookup.subject.name}
+      avatar={
+        <IdentityAvatar
+          kind="authors"
+          avatarId={lookup.subject.avatar_id}
+          name={lookup.subject.name}
+          size="xl"
+        />
+      }
       description={lookup.subject.bio}
       basePath={archivePaths.author(lookup.subject.slug)}
       posts={lookup.posts}

@@ -14,8 +14,8 @@ export const publishedPost: PostSummary = {
   publishedAt: "2026-10-20T09:00:00+00:00",
   updatedAt: "2026-10-21T10:30:00+00:00",
   authors: [
-    { author: { id: "a1", name: "Birinci Yazar", slug: "birinci-yazar" }, sortOrder: 0 },
-    { author: { id: "a2", name: "İkinci Yazar", slug: "ikinci-yazar" }, sortOrder: 1 },
+    { author: { id: "a1", name: "Birinci Yazar", slug: "birinci-yazar", avatarId: null }, sortOrder: 0 },
+    { author: { id: "a2", name: "İkinci Yazar", slug: "ikinci-yazar", avatarId: null }, sortOrder: 1 },
   ],
   category: { id: "c2", name: "Yazılım", slug: "yazilim", parentId: "c1" },
   tags: [

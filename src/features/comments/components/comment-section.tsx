@@ -1,3 +1,4 @@
+import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
 import type { PublicComment } from "../queries";
 import { CommentForm } from "./comment-form";
 import { CommentItemActions } from "./comment-item-actions";
@@ -33,16 +34,23 @@ export function CommentSection({ postId, comments }: CommentSectionProps) {
             {comments.map((comment) => (
               <li key={comment.id} id={`comment-${comment.id}`} className="space-y-2">
                 <article aria-label={`${comment.displayName} adlı kişinin yorumu`}>
-                  <header className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                    <span className="font-medium">{comment.displayName}</span>
-                    <time
-                      dateTime={comment.createdAt}
-                      className="text-muted-foreground"
-                    >
-                      {dateFormatter.format(new Date(comment.createdAt))}
-                    </time>
+                  <header className="flex items-center gap-3 text-sm">
+                    <IdentityAvatar
+                      kind="profiles"
+                      avatarId={comment.avatarId}
+                      name={comment.displayName}
+                    />
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="font-medium">{comment.displayName}</span>
+                      <time
+                        dateTime={comment.createdAt}
+                        className="text-muted-foreground"
+                      >
+                        {dateFormatter.format(new Date(comment.createdAt))}
+                      </time>
+                    </div>
                   </header>
-                  <p className="mt-1 leading-relaxed break-words whitespace-pre-line">
+                  <p className="mt-1 pl-11 leading-relaxed break-words whitespace-pre-line">
                     {comment.body}
                   </p>
                 </article>

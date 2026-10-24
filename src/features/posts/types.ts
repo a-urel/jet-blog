@@ -4,6 +4,9 @@ export type Author = {
   id: string;
   name: string;
   slug: string;
+  // The author identity's own avatar (authors.avatar_id), never the linked
+  // account's.
+  avatarId: string | null;
 };
 
 export type Category = {

@@ -1303,6 +1303,77 @@ rules (readers, deactivated members, unknown ids, one author per account), and
 the `author.write` limit. Unit tests cover input validation and the account
 choices offered by the form.
 
+## Profile pictures (avatars)
+
+Accounts and public author identities have separate avatars. Migration:
+`20261024160000_avatars.sql`; code in `src/features/avatars/`.
+
+- **Whose avatar.** Every account holder (reader or editorial member) sets
+  their own picture at `/account` ("Profil fotoğrafı"); it is stored in
+  `profiles.avatar_id` and shows next to their comments. Admins set an author
+  identity's picture at `/admin/authors/[id]` ("Yazar fotoğrafı"); it is stored
+  in `authors.avatar_id` and shows in the post byline and the author archive
+  header. Guest authors get one the same way. An author never falls back to its
+  linked account's picture, because equal pictures would reveal the link that
+  `authors.user_id` keeps private.
+- **Storage.** One public `avatars` bucket, separate from post media (2 MiB,
+  JPEG/PNG/WebP only, no GIF or SVG). Objects are named `profiles/<uuid>` or
+  `authors/<uuid>` with a fresh UUID per upload, so URLs name no user or author
+  and objects are never overwritten. Storage policies: any signed-in account
+  may upload under `profiles/`, only active admins under `authors/`; ten
+  uploads per user per ten minutes; profile objects are visible to and
+  removable by their uploader only, author objects by admins only; an object
+  in use cannot be deleted by anyone. Anonymous visitors only fetch public URLs.
+- **Validation.** `uploadAvatarObject` identifies the format from the file
+  signature (the declared type and name are ignored), and requires 16–4096
+  pixel edges. The RPCs re-read type and size from Storage metadata and require
+  the caller to own the object. No server-side resizing: `next/image` delivers
+  a square, cropped (`object-cover`) rendition at the displayed size.
+- **Writes.** `set_own_avatar(p_avatar_id)` (any signed-in user, own profile
+  only, `avatar.update` limit of 10 per hour; `null` removes) and
+  `set_author_avatar(p_author_id, p_expected_updated_at, p_avatar_id)` (active
+  admins, `author.write` limit, stale-form check, audit entries
+  `author.avatar_set`/`author.avatar_removed`) return the detached avatar,
+  which the Server Action deletes right away. `profiles.avatar_id` has no
+  client update grant. Deleting an author removes its avatar object too.
+- **Comments follow the live avatar.** Unlike the display-name snapshot, a
+  comment shows the commenter's current picture: replacing or removing an
+  avatar deletes the old object, so a snapshot would point at a missing file,
+  and a reader who removes their picture expects it gone from public pages.
+  `comments.avatar_id` is a denormalized copy (set by the insert trigger, kept
+  in sync by `set_own_avatar`, cleared by anonymization), so public reads never
+  touch `profiles`. `set_own_avatar` returns the posts the user commented on;
+  the action expires those posts' comment tags and revalidates their paths, so
+  post pages stay ISR.
+- **Account deletion.** `prepare_own_account_deletion()` also clears the
+  profile avatar (comment avatars go with anonymization); the action then lists
+  and removes every `profiles/` object the user owns, including uploads that
+  were never attached, before deleting the Auth user. An Auth user deleted out
+  of band (without the preflight) can leave an orphan object; it is unlisted and
+  can be removed through the Storage API.
+- **UI.** The shadcn/ui `avatar` component with an initials fallback (Turkish
+  case mapping) and the muted/border tokens of both system themes. Avatars next
+  to a visible name are decorative (`alt=""`, initials `aria-hidden`); the
+  previews on `/account` and the admin author page are labelled. Images load
+  after hydration (Radix), so a missing object shows initials instead of a
+  broken image. The CSP already allowed the Supabase origin and `'self'`
+  (the image optimizer); `next.config.ts` adds the bucket path to
+  `images.remotePatterns`.
+- **Caches.** An author avatar change is an `author-changed` public content
+  change (`features/posts/cache.ts`). Own avatar changes invalidate only the
+  affected post pages (`features/comments/cache.ts`).
+
+Tests: `features/avatars/avatars.test.ts` and
+`features/avatars/components/identity-avatar.test.tsx` cover signature, type,
+size, and dimension validation, initials, URLs, and fallback markup;
+`src/lib/supabase/avatars.rls.test.ts` covers the bucket config, uploads by
+role and path (anonymous/reader/author/editor/admin, admin-only author
+avatars, malformed paths, SVG/GIF/HTML, oversize, overwrite), the upload and
+change rate limits, own-object listing, attaching own vs others' uploads,
+closed direct column writes, replacement and removal cleanup, comment avatar
+sync and forged inserts, author avatars by role with stale forms, public reads
+without the account link, audit entries, and account-deletion cleanup.
+
 ## Bookmarks (Phase 12)
 
 Signed-in users (readers and editorial members alike) can save published posts
@@ -1487,7 +1558,7 @@ redirects anonymous visitors to sign-in.
 
 ## Next increment
 
-Phases 1–16 are implemented: authentication, editorial membership with
+Phases 1–17 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
@@ -1500,10 +1571,10 @@ states, security headers, backup runbook, smoke test), self-service reader
 accounts (Phase 11), taxonomy administration, author identity
 administration, private bookmarks (Phase 12), post-moderated comments
 (Phase 13), per-post language (Phase 14), public listing pagination
-(Phase 15), and post cover images (Phase 16). See
+(Phase 15), post cover images (Phase 16), and profile pictures (Phase 17). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-All planned phases (1–16) are implemented; see ROADMAP.md for the open
+All planned phases (1–17) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

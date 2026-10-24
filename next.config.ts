@@ -1,26 +1,26 @@
 import type { NextConfig } from "next";
 
+import { avatarPublicPath } from "./src/features/avatars/url";
 import { mediaPublicPath } from "./src/features/media/url";
 import { firstPageRedirects } from "./src/features/posts/pagination";
 import { buildSecurityHeaders, isLoopbackHostname } from "./src/lib/security-headers";
 
-// Public media lives in the Supabase Storage bucket chosen by decision D4. Only
-// that bucket path is allowed as a remote image source.
+// Public media lives in the Supabase Storage bucket chosen by decision D4, and
+// avatars in their own public bucket. Only those two bucket paths are allowed
+// as remote image sources.
 function mediaRemotePatterns(): NonNullable<NextConfig["images"]>["remotePatterns"] {
   const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!raw) return [];
 
   const url = new URL(raw);
 
-  return [
-    {
-      protocol: url.protocol === "http:" ? "http" : "https",
-      hostname: url.hostname,
-      port: url.port,
-      pathname: `${mediaPublicPath("")}**`,
-      search: "",
-    },
-  ];
+  return [mediaPublicPath(""), avatarPublicPath("")].map((path) => ({
+    protocol: url.protocol === "http:" ? "http" : "https",
+    hostname: url.hostname,
+    port: url.port,
+    pathname: `${path}**`,
+    search: "",
+  }));
 }
 
 // The local Supabase stack listens on a loopback address, which the image

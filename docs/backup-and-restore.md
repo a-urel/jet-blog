@@ -6,8 +6,10 @@ A complete backup of jet-blog has two parts that must be taken together:
    (`public` schema: profiles, membership, audit log, posts, taxonomy, credits,
    redirects, media rows, rate-limit events). The schema itself is rebuilt from
    `supabase/migrations/`.
-2. **Storage bytes**: the image files in the `media` bucket. A database dump
-   contains at most the `storage.objects` metadata rows, never the bytes.
+2. **Storage bytes**: the image files in the `media` bucket and the profile
+   and author pictures in the `avatars` bucket (`npm run backup:storage`
+   copies every bucket). A database dump contains at most the
+   `storage.objects` metadata rows, never the bytes.
 
 `public.media.object_path` equals the media id and post bodies reference media
 ids, so a restore is consistent only when both parts come from the same moment.
@@ -110,6 +112,16 @@ from public.media
 left join storage.objects
   on objects.bucket_id = media.bucket_id and objects.name = media.object_path
 where objects.id is null;
+```
+
+Every avatar reference needs its object too:
+
+```sql
+select 'profiles/' || avatar_id from public.profiles where avatar_id is not null
+union all
+select 'authors/' || avatar_id from public.authors where avatar_id is not null
+except
+select name from storage.objects where bucket_id = 'avatars';
 ```
 
 An empty result is required. Objects without a media row are leftovers of

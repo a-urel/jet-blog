@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 15 listing pagination and Phase 16 post cover image merged)
+Last updated: 2026-10-24 (Phase 17 profile pictures, on `claude/profile-pictures-0e5f66`)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–16, complete)
+## Current baseline (Phases 1–17, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -143,6 +143,17 @@ does not add requirements on its own.
   preview, alt text, and remove. The post header, listing cards, and member
   preview render it in a 16:9 `next/image` box; Open Graph `images`, Twitter
   `summary_large_image`, and JSON-LD `image` use its absolute media URL.
+- Phase 17 profile pictures: a public `avatars` bucket separate from media
+  (2 MiB, JPEG/PNG/WebP, `profiles/<uuid>` and `authors/<uuid>` object
+  names), `profiles.avatar_id` set by the account holder at `/account`
+  through `set_own_avatar()`, `authors.avatar_id` set by admins at
+  `/admin/authors/[id]` through `set_author_avatar()`, Storage policies for
+  own-only profile objects and admin-only author objects with an upload rate
+  limit, detached objects deleted on replace, remove, author deletion, and
+  account deletion, comment avatars that follow the live profile picture
+  (denormalized `comments.avatar_id`, cleared by anonymization), and the
+  shadcn/ui avatar with an initials fallback in the post byline, the author
+  archive header, and comments.
 - 443 unit tests and 339 local-Supabase RLS tests (including the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
   administration suites, the Phase 11
@@ -195,7 +206,10 @@ post keeps its row, so its owner can still see that post id through the API
 appear only after the browser read; the moderation queue lists the latest 100
 rows per filter without pagination; a comment's display name is a snapshot and
 does not follow later profile renames; an owner's delete is a hard delete, so
-its reports disappear with it.
+its reports disappear with it. Avatars are not cropped interactively (the
+center of a non-square upload shows), listing cards and the admin author list
+show no avatars, and an Auth user deleted out of band (without the account
+page) can leave an unlisted orphan object in the `avatars` bucket.
 
 ## Where to resume (session handoff)
 
@@ -223,6 +237,26 @@ an explicit request.
   kept its child-category links. After the editor unpublished one synthetic
   post, the next anonymous requests for the already cached `/page/3` and the
   tag, author, and category later pages showed the shifted posts and totals.
+
+- Last verified (Phase 17, branch `claude/profile-pictures-0e5f66`, not
+  merged or committed yet): `npm run lint`, `npm run typecheck`, `npm test`
+  (546 tests), `npm run test:rls` (415 tests, 41 in the new avatar suite),
+  `npm run build`, and `npm run test:smoke` (against `next start` on port
+  3100) pass after a clean `supabase db reset` of the worktree's own stack
+  (eighteen migrations). A browser journey on `next start` with synthetic
+  accounts: a reader uploaded a picture at `/account` and commented on
+  `/posts/birlikte-yazmak`; the anonymous page showed the avatar; after the
+  reader replaced it (PNG to WebP), the next anonymous request
+  (`x-nextjs-cache: HIT`) carried the new id and the old object returned 404;
+  an SVG renamed to `.png` was refused ("Yalnızca JPEG, PNG ve WebP…"). An
+  editor got the "Yazar yönetimi kapalı" view at `/admin/authors`. An admin set
+  a JPEG avatar for `deniz-ornek`; the archive header (80 px) and the post
+  byline showed it in light and dark themes, then "Fotoğrafı kaldır" restored
+  the initials and deleted the object. The reader then deleted the account:
+  the avatar object was gone and the comment showed "Silinmiş kullanıcı"
+  without an avatar. Synthetic accounts were deleted and the stack reset
+  afterwards. The pane cannot pick files, so uploads were driven with a
+  canvas-generated `File` set on the input.
 
 - Last verified (Phase 16, before the merge): `npm run lint`, `npm run typecheck`, `npm test`
   (502 tests), `npm run test:rls` (368 tests), `npm run build`, and
@@ -421,6 +455,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 14 | Post language | Per-post language (tr, en, de) in form, markup, OG, JSON-LD | Phase 9 | Done |
 | 15 | Listing pagination | Path-based ISR pages for home and archives, stable order | Phase 9, 10 | Done |
 | 16 | Post cover image | Optional cover with alt text in header, cards, OG/Twitter, JSON-LD | Phases 6, 9 | Done |
+| 17 | Profile pictures | Own account avatars, admin-set author avatars, avatars in bylines, archives, and comments | Phases 6, 11, 13, author administration | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1339,6 +1374,46 @@ Follow-ups, not requested: a site-wide default social image, a focal point or
 per-cover aspect choice, and a 1200×630 Open Graph rendition (for example
 through the image optimizer on the site origin) with width/height.
 
+### Phase 17 — Profile pictures (avatars)
+
+Goal: account holders and public author identities can have a picture that
+appears in bylines, the author archive, and comments.
+
+Status: complete on 2026-10-24 (branch `claude/profile-pictures-0e5f66`,
+migration `20261024160000_avatars.sql`). Verified as recorded in the handoff
+above. See the README "Profile pictures (avatars)" section.
+
+Decisions (2026-10-24, recommended defaults accepted in the task):
+
+- **Two avatars, two owners.** Account holders (readers and editorial members)
+  set their own `profiles.avatar_id` at `/account`; admins set an author
+  identity's `authors.avatar_id` at `/admin/authors`, guests included. An
+  author never inherits the linked account's picture: equal pictures would
+  reveal `authors.user_id`, which stays unreadable.
+- **Separate public bucket.** `avatars` is public (an avatar is public by
+  nature) and separate from `media` (D4 covers post media only). Object names
+  carry a kind prefix and a fresh UUID, never a user or author id. Profile
+  objects are writable and removable by their uploader only, author objects by
+  admins only; objects in use cannot be removed. JPEG, PNG, and WebP up to
+  2 MiB with 16–4096 pixel edges, checked by signature on the server; ten
+  uploads per user per ten minutes in the Storage policy and ten avatar
+  changes per hour in `set_own_avatar`.
+- **No resizing or crop step.** The original is stored; `next/image` serves a
+  square `object-cover` rendition at the displayed size.
+- **Comments follow the live avatar** (unlike the display-name snapshot).
+  Replacing or removing an avatar deletes the old object, so a snapshot would
+  break, and a reader who removes a picture expects it gone. The copy in
+  `comments.avatar_id` keeps public reads off `profiles`; `set_own_avatar`
+  returns the affected posts so only their ISR pages are invalidated.
+  Anonymization clears it, so a deleted account leaves no avatar.
+- **Account deletion** clears the profile avatar in the preflight, then the
+  action removes every `profiles/` object the user owns (current and never
+  attached) before deleting the Auth user.
+
+Follow-ups, not requested: a client-side crop/focal-point step, avatars on
+listing cards and the admin author list, Article JSON-LD author `image`, and a
+periodic sweep for orphan objects left by out-of-band Auth deletions.
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1392,7 +1467,7 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Every phase in the table (through Phase 16, post cover image), both
+Every phase in the table (through Phase 17, profile pictures), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

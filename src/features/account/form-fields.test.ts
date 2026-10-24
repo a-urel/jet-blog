@@ -15,7 +15,8 @@ const actionFiles = {
     // Sign-in return path; validated by safeReturnPath, never an identity.
     "next",
   ],
-  "features/account/actions.ts": ["displayName", "password", "confirmDelete"],
+  // "avatar" is the uploaded file; the owner is the session user.
+  "features/account/actions.ts": ["displayName", "password", "confirmDelete", "avatar"],
 } as const;
 
 function formFields(source: string) {

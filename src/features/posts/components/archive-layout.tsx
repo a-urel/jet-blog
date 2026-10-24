@@ -10,6 +10,7 @@ import { PostPagination } from "./post-pagination";
 export function ArchiveLayout({
   eyebrow,
   title,
+  avatar,
   description,
   children,
   basePath,
@@ -17,6 +18,8 @@ export function ArchiveLayout({
 }: {
   eyebrow: string;
   title: string;
+  // Shown beside the title, for example the author's avatar.
+  avatar?: ReactNode;
   description?: string | null;
   children?: ReactNode;
   basePath: string;
@@ -26,9 +29,18 @@ export function ArchiveLayout({
     <div className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       <header className="mb-12 max-w-2xl space-y-4">
         <p className="text-sm font-medium text-muted-foreground">{eyebrow}</p>
-        <h1 className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-          {title}
-        </h1>
+        {avatar ? (
+          <div className="flex items-center gap-5">
+            {avatar}
+            <h1 className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
+              {title}
+            </h1>
+          </div>
+        ) : (
+          <h1 className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
+            {title}
+          </h1>
+        )}
         {description ? (
           <p className="text-lg leading-relaxed text-muted-foreground">{description}</p>
         ) : null}

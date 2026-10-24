@@ -46,8 +46,9 @@ export type PublicContentChange =
   // breadcrumb, and the sitemap; old slugs start redirecting.
   | "taxonomy-changed"
   // Author identity administration (/admin/authors): create, rename, re-slug,
-  // re-describe, link, or delete an author. Names and slugs appear in post
-  // bylines, author archives, and the sitemap; old slugs start redirecting.
+  // re-describe, link, set or remove the avatar of, or delete an author.
+  // Names, slugs, and avatars appear in post bylines and author archives
+  // (names and slugs also in the sitemap); old slugs start redirecting.
   | "author-changed";
 
 export type PublicRoute = {
