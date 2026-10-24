@@ -1,11 +1,15 @@
 // Sign-in return paths arrive from the query string (?next=), so they are
-// untrusted. Only same-origin, absolute paths to public or reader pages are
-// accepted; anything else falls back to the role-based home path.
+// untrusted. Only same-origin, absolute paths to public, reader, or editorial
+// pages are accepted; anything else falls back to the role-based home path.
+// An editorial path is honored only for active members (see
+// returnPathForMember), so a reader never lands on the access-denied view.
 
 const maxReturnPathLength = 512;
 
-// Auth pages would loop or act on a stale state; /admin decides its own entry.
-const refusedPrefixes = ["/login", "/signup", "/auth", "/admin", "/api"];
+// Auth pages would loop or act on a stale state.
+const refusedPrefixes = ["/login", "/signup", "/auth", "/api"];
+
+const editorialPrefix = "/admin";
 
 export function safeReturnPath(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -36,6 +40,19 @@ export function safeReturnPath(value: unknown): string | null {
   }
 
   return `${path}${url.search}`;
+}
+
+export function isEditorialPath(path: string): boolean {
+  const pathname = path.split("?")[0];
+  return pathname === editorialPrefix || pathname.startsWith(`${editorialPrefix}/`);
+}
+
+// The validated return path for a signed-in user, or null for the role-based
+// home path: an editorial path is dropped for someone without a membership.
+export function returnPathForMember(value: unknown, isMember: boolean): string | null {
+  const safe = safeReturnPath(value);
+  if (!safe) return null;
+  return isEditorialPath(safe) && !isMember ? null : safe;
 }
 
 export function signInPathFor(returnPath: string): string {

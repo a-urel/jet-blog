@@ -59,3 +59,32 @@ export function publicationErrorMessage(value: unknown): string | null {
     ? publicationErrorMessages[value as PublicationErrorKey]
     : null;
 }
+
+export type PublicationConfirmation = {
+  trigger: string;
+  title: string;
+  description: string;
+  confirm: string;
+};
+
+// Copy for the confirmation dialog in front of publish and unpublish. Both
+// actions change what anonymous readers see at once, so neither runs on the
+// first click.
+export function publicationConfirmation(
+  published: boolean,
+  title: string,
+): PublicationConfirmation {
+  return published
+    ? {
+        trigger: "Yayından kaldır",
+        title: "Yazı yayından kaldırılsın mı?",
+        description: `“${title}” taslağa döner; genel sayfa, listeler, arama ve akış onu hemen göstermeyi bırakır. Daha sonra yeniden yayınlayabilirsiniz.`,
+        confirm: "Yayından kaldır",
+      }
+    : {
+        trigger: "Yayınla",
+        title: "Yazı yayınlansın mı?",
+        description: `“${title}” kaydedilmiş son sürümüyle herkese açık olur; ana sayfada, arşivlerde, aramada ve akışta görünür. Kaydedilmemiş değişiklikler yayına girmez.`,
+        confirm: "Yayınla",
+      };
+}

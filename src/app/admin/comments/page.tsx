@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 
+import { QueryStatus } from "@/components/status/query-status";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -12,16 +13,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EditorialAccessDenied } from "@/features/auth/components/editorial-access-denied";
+import { signInPathFor } from "@/features/auth/return-path";
+import { FormAlert } from "@/features/auth/components/form-alert";
 import { ModerationActions } from "@/features/comments/components/moderation-actions";
+import { ModerationPagination } from "@/features/comments/components/moderation-pagination";
 import { listModerationQueue } from "@/features/comments/data";
 import {
   commentReportReasonLabels,
   commentStatusLabels,
   isCommentReportReason,
+  moderationStatusMessage,
 } from "@/features/comments/model";
 import {
   isModerationFilter,
-  moderationQueueLimit,
+  moderationPageCount,
+  moderationQueuePath,
+  moderationQueueUrl,
+  parseModerationPage,
   type ModerationFilter,
 } from "@/features/comments/queries";
 import { postPath } from "@/features/posts/archives";
@@ -76,7 +84,7 @@ export default async function AdminCommentsPage({
   searchParams,
 }: PageProps<"/admin/comments">) {
   const { user, membership } = await getEditorialContext();
-  if (!user) redirect("/login");
+  if (!user) redirect(signInPathFor(moderationQueuePath));
 
   if (!canModerateComments(membership)) {
     return (
@@ -88,9 +96,23 @@ export default async function AdminCommentsPage({
     );
   }
 
-  const { filter: rawFilter } = await searchParams;
+  const { filter: rawFilter, page: rawPage, status } = await searchParams;
   const filter: ModerationFilter = isModerationFilter(rawFilter) ? rawFilter : "reported";
-  const comments = await listModerationQueue(filter);
+  const page = parseModerationPage(rawPage);
+  const { comments, total } = await listModerationQueue(filter, page);
+  const pageCount = moderationPageCount(total);
+  const statusMessage = moderationStatusMessage(status);
+
+  // Moderating the last row of the last page leaves that page empty; move to
+  // the new last page and keep the success message.
+  if (page > pageCount) {
+    redirect(
+      moderationQueueUrl(filter, {
+        page: pageCount,
+        status: typeof status === "string" ? status : undefined,
+      }),
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -102,11 +124,17 @@ export default async function AdminCommentsPage({
         </p>
       </div>
 
+      {statusMessage ? (
+        <QueryStatus>
+          <FormAlert tone="success">{statusMessage}</FormAlert>
+        </QueryStatus>
+      ) : null}
+
       <nav aria-label="Yorum filtreleri" className="flex flex-wrap gap-2">
         {(Object.keys(filterLabels) as ModerationFilter[]).map((option) => (
           <Link
             key={option}
-            href={`/admin/comments?filter=${option}`}
+            href={moderationQueueUrl(option)}
             aria-current={option === filter ? "page" : undefined}
             className={cn(
               "rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted/80",
@@ -125,7 +153,8 @@ export default async function AdminCommentsPage({
             {filterLabels[filter]} yorumlar
           </CardTitle>
           <CardDescription>
-            {filterDescriptions[filter]} En yeni {moderationQueueLimit} yorum listelenir.
+            {filterDescriptions[filter]} En yeni yorumlar önce; toplam {total}
+            {pageCount > 1 ? ` · Sayfa ${page} / ${pageCount}` : null}.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -177,6 +206,7 @@ export default async function AdminCommentsPage({
               ))}
             </ul>
           )}
+          <ModerationPagination filter={filter} page={page} pageCount={pageCount} />
         </CardContent>
       </Card>
     </div>

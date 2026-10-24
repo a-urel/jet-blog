@@ -90,6 +90,18 @@ export const commentMessages = {
   error: "İşlem tamamlanamadı. Tekrar deneyin.",
 } as const;
 
+// ?status= values after a moderation action on /admin/comments; the value is
+// the comment's new status.
+export const moderationStatusMessages: Record<CommentStatus, string> = {
+  hidden: "Yorum gizlendi; artık sitede görünmüyor.",
+  visible: "Yorum yeniden gösteriliyor.",
+  deleted: "Yorum silindi.",
+};
+
+export function moderationStatusMessage(value: unknown): string | null {
+  return isCommentStatus(value) ? moderationStatusMessages[value] : null;
+}
+
 // Comment insert errors. 23502 is the missing display-name snapshot (the
 // profile has no display name). A failed RLS check (42501) or foreign key
 // (23503) means the post is not published or does not exist; neither reveals

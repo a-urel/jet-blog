@@ -35,11 +35,22 @@ export async function listVisibleComments(postId: string): Promise<PublicComment
 // Reads through the caller's session; the admin route is dynamic.
 export async function listModerationQueue(
   filter: ModerationFilter,
-): Promise<ModerationComment[]> {
+  page: number,
+): Promise<{ comments: ModerationComment[]; total: number }> {
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await selectModerationQueue(supabase, filter);
+  let result = await selectModerationQueue(supabase, filter, page);
 
-  if (error) throw new Error(`Moderation queue could not be loaded: ${error.message}`);
+  // PostgREST answers an offset past the end with 416 (PGRST103) and no
+  // count; page 1 carries the total the page needs to clamp to the last page.
+  if (result.error?.code === "PGRST103" && page > 1) {
+    const first = await selectModerationQueue(supabase, filter, 1);
+    if (!first.error) return { comments: [], total: first.count ?? 0 };
+    result = first;
+  }
 
-  return mapModerationQueue(data);
+  if (result.error) {
+    throw new Error(`Moderation queue could not be loaded: ${result.error.message}`);
+  }
+
+  return { comments: mapModerationQueue(result.data), total: result.count ?? 0 };
 }

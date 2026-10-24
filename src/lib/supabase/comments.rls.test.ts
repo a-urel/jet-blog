@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { mapPublicComments, selectVisibleComments } from "@/features/comments/queries";
+import {
+  mapModerationQueue,
+  mapPublicComments,
+  moderationPageSize,
+  selectModerationQueue,
+  selectVisibleComments,
+} from "@/features/comments/queries";
 
 // Phase 13: post-moderated comments and reports. Readers sign up through the
 // public Auth API, as visitors do; editorial accounts are created by the admin
@@ -610,6 +616,65 @@ describe("moderation", () => {
     for (const key of ["author", "otherReader"] as const) {
       const { data } = await clients[key].from("comments").select("id").eq("id", hiddenId);
       expect(data).toEqual([]);
+    }
+  });
+});
+
+// Phase 20: the /admin/comments queue is paginated with an exact count.
+describe("moderation queue pages", () => {
+  it("pages hidden comments without overlap and with a stable total", async () => {
+    const seeded = moderationPageSize + 2;
+    const { error } = await service.from("comments").insert(
+      Array.from({ length: seeded }, (_, index) => ({
+        post_id: fixtures.published,
+        user_id: userIds.reader,
+        display_name: "yok",
+        body: uniqueBody(`Sayfa ${index}`),
+        status: "hidden",
+      })),
+    );
+    expect(error).toBeNull();
+
+    const first = await selectModerationQueue(clients.editor, "hidden", 1);
+    const second = await selectModerationQueue(clients.editor, "hidden", 2);
+
+    expect(first.error).toBeNull();
+    expect(second.error).toBeNull();
+    expect(first.count).toBeGreaterThanOrEqual(seeded);
+    expect(second.count).toBe(first.count);
+    expect(first.data).toHaveLength(moderationPageSize);
+
+    const firstIds = mapModerationQueue(first.data).map((row) => row.id);
+    const secondIds = mapModerationQueue(second.data).map((row) => row.id);
+    expect(secondIds.length).toBeGreaterThanOrEqual(2);
+    expect(firstIds.filter((id) => secondIds.includes(id))).toEqual([]);
+    expect(mapModerationQueue(first.data).every((row) => row.status === "hidden")).toBe(true);
+  });
+
+  it("answers a page past the end without rows", async () => {
+    const { data, error } = await selectModerationQueue(clients.admin, "hidden", 10000);
+
+    // PostgREST refuses an offset past the end (416, PGRST103); the page
+    // treats that like an empty page and clamps to the last one.
+    if (error) expect(error.code).toBe("PGRST103");
+    else expect(data).toEqual([]);
+  });
+
+  it("counts only reported visible comments for the reported filter", async () => {
+    const { data, count, error } = await selectModerationQueue(clients.editor, "reported", 1);
+    const rows = mapModerationQueue(data);
+
+    expect(error).toBeNull();
+    expect(rows.every((row) => row.status === "visible" && row.reports.length > 0)).toBe(true);
+    if ((count ?? 0) <= moderationPageSize) expect(rows).toHaveLength(count ?? 0);
+  });
+
+  it("shows other readers and authors an empty queue with a zero count", async () => {
+    for (const key of ["otherReader", "author"] as const) {
+      const { data, count, error } = await selectModerationQueue(clients[key], "hidden", 1);
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+      expect(count).toBe(0);
     }
   });
 });

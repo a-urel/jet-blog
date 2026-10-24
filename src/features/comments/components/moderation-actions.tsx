@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,21 +15,32 @@ type ModerationActionsProps = {
 
 // Hide and restore are reversible and act at once; the soft delete is final,
 // so it asks for a second click. The action revalidates the queue and the
-// post page, so the row moves to its new filter after the refresh.
+// post page; on success the queue reloads with ?status=<new status>, which the
+// page shows through QueryStatus, so the row leaves the list with a message.
 export function ModerationActions({ commentId, status }: ModerationActionsProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   if (status === "deleted") return null;
 
   function moderate(next: CommentStatus) {
     setMessage(null);
+    // An earlier success message no longer describes the latest action.
+    const params = new URLSearchParams(searchParams);
+    params.delete("status");
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+
     startTransition(async () => {
       try {
         const result = await moderateCommentAction(commentId, next);
         if (result.status === "ok") {
           setConfirmDelete(false);
+          params.set("status", next);
+          router.replace(`${pathname}?${params.toString()}`, { scroll: false });
           return;
         }
         setMessage(

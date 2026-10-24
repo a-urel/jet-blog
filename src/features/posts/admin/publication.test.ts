@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  publicationConfirmation,
   publicationErrorKey,
   publicationErrorMessage,
   publicationErrorMessages,
@@ -50,5 +51,25 @@ describe("publicationErrorMessage", () => {
     expect(publicationErrorMessage("toString")).toBeNull();
     expect(publicationErrorMessage(["category"])).toBeNull();
     expect(publicationErrorMessage(undefined)).toBeNull();
+  });
+});
+
+describe("publicationConfirmation", () => {
+  it("asks before publishing a draft and names the post", () => {
+    const copy = publicationConfirmation(false, "İlk yazı");
+
+    expect(copy.trigger).toBe("Yayınla");
+    expect(copy.confirm).toBe("Yayınla");
+    expect(copy.title).toBe("Yazı yayınlansın mı?");
+    expect(copy.description).toContain("“İlk yazı”");
+    expect(copy.description).toContain("Kaydedilmemiş değişiklikler");
+  });
+
+  it("asks before unpublishing a published post", () => {
+    const copy = publicationConfirmation(true, "İlk yazı");
+
+    expect(copy.trigger).toBe("Yayından kaldır");
+    expect(copy.title).toBe("Yazı yayından kaldırılsın mı?");
+    expect(copy.description).toContain("taslağa döner");
   });
 });

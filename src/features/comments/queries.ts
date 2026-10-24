@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { parsePageParam } from "@/features/posts/pagination";
 import { isUuid, type CommentStatus } from "./model";
 
 // Shared by the server data boundaries and the RLS tests. Column lists are
@@ -74,18 +75,46 @@ export type ModerationComment = {
   reports: { reason: string; createdAt: string }[];
 };
 
-export const moderationQueueLimit = 100;
+// The queue is dynamic (session read), so pages use ?page= like /search
+// rather than the path segments of the ISR listings.
+export const moderationPageSize = 20;
+
+export const moderationQueuePath = "/admin/comments";
+
+// Missing or malformed means page 1; a page past the end is clamped by the
+// page once the total is known.
+export function parseModerationPage(value: unknown): number {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return (typeof raw === "string" && parsePageParam(raw)) || 1;
+}
+
+export function moderationPageCount(total: number) {
+  return Math.max(1, Math.ceil(total / moderationPageSize));
+}
+
+export function moderationQueueUrl(
+  filter: ModerationFilter,
+  options: { page?: number; status?: string } = {},
+) {
+  const params = new URLSearchParams({ filter });
+  if (options.page && options.page > 1) params.set("page", String(options.page));
+  if (options.status) params.set("status", options.status);
+  return `${moderationQueuePath}?${params.toString()}`;
+}
 
 // The moderation queue for editors and admins (RLS: comments_select_editor,
 // comment_reports_select_editor). "reported" lists visible comments with at
-// least one report (inner join); the other filters list one status. Reporter
-// identity is not selectable.
+// least one report (inner join, which the exact count respects); the other
+// filters list one status. Reporter identity is not selectable. Ordered by
+// id after created_at so pages do not overlap when timestamps tie.
 export function selectModerationQueue(
   client: SupabaseClient,
   filter: ModerationFilter,
+  page = 1,
 ) {
   const reports = filter === "reported" ? "comment_reports!inner" : "comment_reports";
   const status: CommentStatus = filter === "reported" ? "visible" : filter;
+  const from = (page - 1) * moderationPageSize;
 
   return client
     .from("comments")
@@ -93,10 +122,12 @@ export function selectModerationQueue(
       `id, display_name, body, status, created_at,
        post:posts(id, title, slug, status),
        reports:${reports}(reason, created_at)`,
+      { count: "exact" },
     )
     .eq("status", status)
     .order("created_at", { ascending: false })
-    .limit(moderationQueueLimit);
+    .order("id", { ascending: false })
+    .range(from, from + moderationPageSize - 1);
 }
 
 type RawModerationComment = {

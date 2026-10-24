@@ -5,8 +5,17 @@ import {
   buildArchiveMetadata,
   buildPostMetadata,
   canonicalAlternates,
+  defaultSocialImage,
   noIndexMetadata,
 } from "./metadata";
+
+const defaultImage = {
+  url: "/opengraph-image",
+  alt: "Örnek Site",
+  width: 1200,
+  height: 630,
+  type: "image/png",
+};
 
 describe("buildPostMetadata", () => {
   const metadata = buildPostMetadata(publishedPost, "Örnek Site");
@@ -41,9 +50,32 @@ describe("buildPostMetadata", () => {
     });
   });
 
-  it("keeps a text-only card without a cover", () => {
-    expect(metadata.openGraph).not.toHaveProperty("images");
-    expect(metadata.twitter).not.toHaveProperty("images");
+  it("shares the site-wide image without a cover", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
+
+    try {
+      const withDefault = buildPostMetadata(publishedPost, "Örnek Site");
+      expect(withDefault.openGraph).toMatchObject({ images: [defaultImage] });
+      expect(withDefault.twitter).toMatchObject({
+        card: "summary_large_image",
+        images: [defaultImage],
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("keeps a text-only card without a cover or a site origin", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+
+    try {
+      const textOnly = buildPostMetadata(publishedPost, "Örnek Site");
+      expect(textOnly.openGraph).not.toHaveProperty("images");
+      expect(textOnly.twitter).toMatchObject({ card: "summary" });
+      expect(textOnly.twitter).not.toHaveProperty("images");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("omits the description when there is no excerpt", () => {
@@ -77,8 +109,17 @@ describe("buildPostMetadata with a cover", () => {
     });
   });
 
-  it("falls back to a text-only card without a media origin", () => {
+  it("prefers the cover over the site-wide image", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
+    const metadata = buildPostMetadata(postWithCover, "S");
+
+    expect(metadata.openGraph).toMatchObject({ images: [{ url: coverUrl }] });
+    expect(JSON.stringify(metadata)).not.toContain("/opengraph-image");
+  });
+
+  it("falls back to a text-only card without a media or site origin", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
     const metadata = buildPostMetadata(postWithCover, "S");
 
     expect(metadata.openGraph).not.toHaveProperty("images");
@@ -139,6 +180,38 @@ describe("buildArchiveMetadata", () => {
     });
 
     expect(metadata.alternates?.canonical).toBe("/page/2");
+  });
+});
+
+describe("archive social image", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const input = { title: "Şema etiketi", description: "Açıklama", path: "/tags/sema", siteName: "Örnek Site" };
+
+  it("uses the site-wide image and a large card with a site origin", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
+    const metadata = buildArchiveMetadata(input);
+
+    expect(metadata.openGraph).toMatchObject({ images: [defaultImage] });
+    expect(metadata.twitter).toMatchObject({ card: "summary_large_image", images: [defaultImage] });
+  });
+
+  it("stays text-only without a site origin", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+    const metadata = buildArchiveMetadata(input);
+
+    expect(metadata.openGraph).not.toHaveProperty("images");
+    expect(metadata.twitter).toMatchObject({ card: "summary" });
+  });
+
+  it("declares the default image only for a site origin", () => {
+    expect(defaultSocialImage("S", null)).toBeNull();
+    expect(defaultSocialImage("S", new URL("https://example.test"))).toMatchObject({
+      url: "/opengraph-image",
+      alt: "S",
+    });
   });
 });
 

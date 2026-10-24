@@ -3,9 +3,12 @@ import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Phase 19: full-text search over published posts. Visibility by role (drafts
-// are never found, not even by their own author), language-specific stemming
-// and accent folding, injection-like input, paging, and the search rate limit.
+// Phase 19: full-text search over published posts. Visibility (drafts are
+// never found), language-specific stemming and accent folding, injection-like
+// input, paging, and the search rate limit. Since Phase 20 only the server
+// (service_role) may execute the search function, so clients cannot bypass
+// the page's per-IP limit through the Data API; the function's own published
+// filter is the visibility rule and is tested through that caller.
 
 const url = process.env.SUPABASE_TEST_URL;
 const publishableKey = process.env.SUPABASE_TEST_PUBLISHABLE_KEY;
@@ -277,30 +280,47 @@ describe("search visibility matrix", () => {
   });
 
   for (const role of roles) {
-    it(`never finds a draft term as ${role}`, async () => {
-      const { data, error } = await search(clientFor(role), draftTerm);
-
-      expect(error).toBeNull();
-      expect(data).toEqual([]);
-    });
-
-    it(`finds published posts as ${role}, without draft rows in the total or snippets`, async () => {
+    it(`refuses direct execution as ${role}`, async () => {
       const { data, error } = await search(clientFor(role), sharedTerm);
-      const rows = data as SearchRow[];
 
-      expect(error).toBeNull();
-      expect(rows.map((row) => row.post_id)).toEqual([fixtures.turkish]);
-      expect(Number(rows[0].total_count)).toBe(1);
-      expect(rows[0].snippet).not.toContain(draftTerm);
-      expect(rows[0].title_highlight).not.toContain(draftTerm);
+      expect(error?.code).toBe("42501");
+      expect(data).toBeNull();
     });
   }
+
+  it("never finds a draft term through the server caller", async () => {
+    const { data, error } = await search(service, draftTerm);
+
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
+  });
+
+  it("finds published posts without draft rows in the total or snippets", async () => {
+    const { data, error } = await search(service, sharedTerm);
+    const rows = data as SearchRow[];
+
+    expect(error).toBeNull();
+    expect(rows.map((row) => row.post_id)).toEqual([fixtures.turkish]);
+    expect(Number(rows[0].total_count)).toBe(1);
+    expect(rows[0].snippet).not.toContain(draftTerm);
+    expect(rows[0].title_highlight).not.toContain(draftTerm);
+  });
+
+  it("keeps the published post readable to anonymous clients for the cards", async () => {
+    const { data, error } = await anonymousClient()
+      .from("posts")
+      .select("id")
+      .in("id", [fixtures.turkish, fixtures.draft]);
+
+    expect(error).toBeNull();
+    expect((data ?? []).map((row) => row.id)).toEqual([fixtures.turkish]);
+  });
 
   it("still hides the draft from the search after an editor views it", async () => {
     const { data } = await clients.editor.from("posts").select("id").eq("id", fixtures.draft);
     expect(data).toHaveLength(1);
 
-    expect(await searchIds(clients.editor, `"${draftTerm} taslak"`)).toEqual([]);
+    expect(await searchIds(service, `"${draftTerm} taslak"`)).toEqual([]);
   });
 
   it("drops a post from results as soon as it is unpublished", async () => {
@@ -312,7 +332,7 @@ describe("search visibility matrix", () => {
       language: "tr",
     });
 
-    expect(await searchIds(anonymousClient(), `geçici ${marker}`)).toEqual([postId]);
+    expect(await searchIds(service, `geçici ${marker}`)).toEqual([postId]);
 
     const { data } = await service.from("posts").select("revision").eq("id", postId).single();
     const { error } = await clients.editor.rpc("unpublish_post", {
@@ -321,32 +341,32 @@ describe("search visibility matrix", () => {
     });
     expect(error).toBeNull();
 
-    expect(await searchIds(anonymousClient(), `geçici ${marker}`)).toEqual([]);
+    expect(await searchIds(service, `geçici ${marker}`)).toEqual([]);
   });
 });
 
 describe("language-specific stemming and folding", () => {
   it("matches Turkish inflections through the Turkish stemmer", async () => {
     // "kitap" against "kitapları" needs the Turkish stem.
-    expect(await searchIds(anonymousClient(), `kitap ${marker}`)).toEqual([fixtures.turkish]);
+    expect(await searchIds(service, `kitap ${marker}`)).toEqual([fixtures.turkish]);
   });
 
   it("matches Turkish text without diacritics in either direction", async () => {
-    expect(await searchIds(anonymousClient(), `kucuk ${marker}`)).toEqual([fixtures.turkish]);
-    expect(await searchIds(anonymousClient(), `küçük ${marker}`)).toEqual([fixtures.turkish]);
+    expect(await searchIds(service, `kucuk ${marker}`)).toEqual([fixtures.turkish]);
+    expect(await searchIds(service, `küçük ${marker}`)).toEqual([fixtures.turkish]);
     // Dotted/dotless i: the body says "IŞIK".
-    expect(await searchIds(anonymousClient(), `ışık ${marker}`)).toEqual([fixtures.turkish]);
-    expect(await searchIds(anonymousClient(), `isik ${marker}`)).toEqual([fixtures.turkish]);
+    expect(await searchIds(service, `ışık ${marker}`)).toEqual([fixtures.turkish]);
+    expect(await searchIds(service, `isik ${marker}`)).toEqual([fixtures.turkish]);
   });
 
   it("matches English inflections only through the English stemmer", async () => {
-    expect(await searchIds(anonymousClient(), `runs library ${marker}`)).toEqual([fixtures.english]);
+    expect(await searchIds(service, `runs library ${marker}`)).toEqual([fixtures.english]);
   });
 
   it("matches German inflections and folded umlauts", async () => {
-    expect(await searchIds(anonymousClient(), `Haus ${marker}`)).toEqual([fixtures.german]);
-    expect(await searchIds(anonymousClient(), `uber hauser ${marker}`)).toEqual([fixtures.german]);
-    expect(await searchIds(anonymousClient(), `Strasse ${marker}`)).toEqual([fixtures.german]);
+    expect(await searchIds(service, `Haus ${marker}`)).toEqual([fixtures.german]);
+    expect(await searchIds(service, `uber hauser ${marker}`)).toEqual([fixtures.german]);
+    expect(await searchIds(service, `Strasse ${marker}`)).toEqual([fixtures.german]);
   });
 
   it("ranks a title match above a body-only match", async () => {
@@ -365,16 +385,16 @@ describe("language-specific stemming and folding", () => {
       language: "tr",
     });
 
-    expect(await searchIds(anonymousClient(), `defter ${marker}`)).toEqual([titleHit, bodyHit]);
+    expect(await searchIds(service, `defter ${marker}`)).toEqual([titleHit, bodyHit]);
   });
 
   it("filters by post language", async () => {
-    expect(await searchIds(anonymousClient(), marker, "de")).toEqual([fixtures.german]);
-    expect(await searchIds(anonymousClient(), marker, "en")).toEqual([fixtures.english]);
+    expect(await searchIds(service, marker, "de")).toEqual([fixtures.german]);
+    expect(await searchIds(service, marker, "en")).toEqual([fixtures.english]);
   });
 
   it("highlights the matched words with control markers", async () => {
-    const { data } = await search(anonymousClient(), `kucuk ${marker}`);
+    const { data } = await search(service, `kucuk ${marker}`);
     const [row] = data as SearchRow[];
 
     expect(plain(row.title_highlight)).toBe(`Küçük kitapları okumak ${marker}`);
@@ -384,14 +404,14 @@ describe("language-specific stemming and folding", () => {
   it("highlights stemmed and accent-folded matches together", async () => {
     // "kitap" matches "kitapları" through the stemmer, "kucuk" matches
     // "Küçük" through folding.
-    const { data } = await search(anonymousClient(), `kucuk kitap ${marker}`);
+    const { data } = await search(service, `kucuk kitap ${marker}`);
     const [row] = data as SearchRow[];
 
     expect(marked(row.title_highlight)).toEqual(["Küçük", "kitapları", marker]);
   });
 
   it("highlights body text in the snippet", async () => {
-    const { data } = await search(anonymousClient(), `ışık ${marker}`);
+    const { data } = await search(service, `ışık ${marker}`);
     const [row] = data as SearchRow[];
 
     expect(marked(row.snippet)).toContain("IŞIK");
@@ -414,7 +434,7 @@ describe("injection-like input", () => {
 
   for (const input of inputs) {
     it(`treats ${JSON.stringify(input)} as plain search text`, async () => {
-      const { data, error } = await search(anonymousClient(), input);
+      const { data, error } = await search(service, input);
 
       expect(error).toBeNull();
       expect(Array.isArray(data)).toBe(true);
@@ -435,7 +455,7 @@ describe("injection-like input", () => {
   });
 
   it("returns markup in titles and excerpts as text, with only its own markers", async () => {
-    const { data, error } = await search(anonymousClient(), `işaretli ${marker}`);
+    const { data, error } = await search(service, `işaretli ${marker}`);
     const rows = data as SearchRow[];
 
     expect(error).toBeNull();
@@ -449,10 +469,10 @@ describe("injection-like input", () => {
   });
 
   it("refuses queries over 200 characters", async () => {
-    const { error } = await search(anonymousClient(), "a".repeat(201));
+    const { error } = await search(service, "a".repeat(201));
     expect(error?.code).toBe("22023");
 
-    const { error: okError } = await search(anonymousClient(), "ğ".repeat(200));
+    const { error: okError } = await search(service, "ğ".repeat(200));
     expect(okError).toBeNull();
   });
 
@@ -464,7 +484,7 @@ describe("injection-like input", () => {
       { offset: -1 },
       { offset: 1001 },
     ]) {
-      const { error } = await search(anonymousClient(), marker, options);
+      const { error } = await search(service, marker, options);
       expect(error?.code, JSON.stringify(options)).toBe("22023");
     }
   });
@@ -472,13 +492,13 @@ describe("injection-like input", () => {
 
 describe("paging", () => {
   it("pages through matches in a stable order with a constant total", async () => {
-    const { data: all } = await search(anonymousClient(), marker, { limit: 50 });
+    const { data: all } = await search(service, marker, { limit: 50 });
     const allRows = all as SearchRow[];
     expect(allRows.length).toBeGreaterThanOrEqual(5);
 
     const paged: string[] = [];
     for (let offset = 0; offset < allRows.length; offset += 2) {
-      const { data, error } = await search(anonymousClient(), marker, { limit: 2, offset });
+      const { data, error } = await search(service, marker, { limit: 2, offset });
       expect(error).toBeNull();
       for (const row of data as SearchRow[]) {
         expect(Number(row.total_count)).toBe(allRows.length);
@@ -490,7 +510,7 @@ describe("paging", () => {
   });
 
   it("returns an empty page past the end", async () => {
-    const { data, error } = await search(anonymousClient(), marker, { offset: 1000 });
+    const { data, error } = await search(service, marker, { offset: 1000 });
     expect(error).toBeNull();
     expect(data).toEqual([]);
   });

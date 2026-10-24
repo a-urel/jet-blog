@@ -34,3 +34,24 @@ export function linkClickLeavesPage(click: LinkClick, currentHref: string): bool
 
   return !(samePage && destination.hash !== "");
 }
+
+// The subset of a Navigation API NavigateEvent the guard reads. TypeScript's
+// DOM library does not declare the Navigation API yet.
+export type HistoryNavigation = Readonly<{
+  navigationType: "push" | "replace" | "reload" | "traverse";
+  cancelable: boolean;
+  hashChange: boolean;
+}>;
+
+// Decides whether a Back/Forward traversal should ask first. Next.js moves
+// between app pages on popstate and has no hook to block it, so the guard
+// cancels the traversal itself before popstate fires. Only cancelable,
+// same-document traversals qualify: push and replace are the app's own
+// navigations (links are guarded on click, a save redirects on purpose), a
+// reload or cross-document traversal is covered by beforeunload, and a
+// fragment-only traversal stays on the form. Browsers allow cancelling a
+// traversal only once per user activation, so this event is not cancelable
+// on a repeated Back press without interaction in between.
+export function historyNavigationLeavesPage(navigation: HistoryNavigation): boolean {
+  return navigation.navigationType === "traverse" && navigation.cancelable && !navigation.hashChange;
+}

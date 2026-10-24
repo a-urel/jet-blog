@@ -158,8 +158,9 @@ publish permissions.
 - `/admin` is a protected layout. The server verifies the session on every
   request with `supabase.auth.getClaims()`, loads the current membership, and
   denies users without an active grant. Missing or invalid sessions are
-  redirected to `/login`. Signing out clears the cookies and returns to the
-  sign-in page.
+  redirected to `/login?next=<admin path>` (Phase 20); after sign-in an active
+  member returns there, anyone else goes to `/account`. Signing out clears the
+  cookies and returns to the sign-in page.
 - `/admin/members` is the admin-only member list. Invite, role-change, and
   activation Server Actions re-check the caller and use database RPCs for the
   write plus its audit entry.
@@ -175,7 +176,8 @@ publish permissions.
   `/admin`, `/account`, `/login`, and `/signup`, so public pages do not pay for
   session checks. It keeps the editorial (`/admin`) and reader (`/account`)
   route groups separate and only redirects signed-out visitors of either to
-  `/login`; editorial access is decided by the admin layout, never by Proxy.
+  `/login?next=` with the requested path and query; editorial access is
+  decided by the admin layout, never by Proxy.
 - Admin and invitation routes send `noindex, nofollow`.
 - The sign-in form uses a Server Action. Error messages stay generic so the form
   does not reveal whether an email exists.
@@ -411,7 +413,9 @@ Migration: `20261024140000_post_cover_image.sql`.
   empty alt because the linked title next to it names the post.
 - **SEO.** With a cover, Open Graph gets `images` (absolute media URL plus alt)
   and Twitter switches to `summary_large_image`; Article JSON-LD gets `image`.
-  Without a cover, or without `NEXT_PUBLIC_SUPABASE_URL`, cards stay text-only.
+  Without a cover the post shares the site-wide generated image (Phase 20,
+  [Polish pack](#polish-pack-phase-20)); only without a cover *and* without
+  `NEXT_PUBLIC_SITE_URL` does the card stay text-only.
   The image URL is on the Supabase media origin, which the CSP `img-src`
   already allows.
 
@@ -600,8 +604,10 @@ until launch; taxonomy and author identity administration follow Phase 8.
   `?status=published|unpublished` or `?error=<key>` (copy in
   `features/posts/admin/publication.ts`).
 - **Admin controls.** The admin post page shows a "Yayın durumu" card with
-  Publish/Unpublish only to editors and admins (`canPublishPosts`). Publishing
-  uses the last saved revision, not unsaved form edits.
+  Publish/Unpublish only to editors and admins (`canPublishPosts`). Since
+  Phase 20 both ask for confirmation in a shadcn `AlertDialog`
+  (`PublicationControl`). Publishing uses the last saved revision, not unsaved
+  form edits.
 - **"Güncellendi".** Publishing sets `updated_at` and `published_at` to the
   same transaction time, so `PostMeta` shows "Güncellendi" only when
   `updated_at > published_at`, that is, after an edit to a live post (D3: edits
@@ -657,9 +663,10 @@ needs a migration: archives reuse the Phase 3 RLS policies and indexes.
 - **Post metadata.** `features/seo/metadata.ts` builds title, description,
   canonical `/posts/<slug>`, Open Graph (`article` with published/modified
   time, authors in credit order, section, tags, the post language's locale,
-  site name, and the cover image when set), and a Twitter card
-  (`summary_large_image` with a cover, otherwise `summary`; see
-  [Post cover image](#post-cover-image)). Paths stay
+  site name, and the cover image or the site-wide default image), and a
+  Twitter card (`summary_large_image` whenever an image is declared, otherwise
+  `summary`; see [Post cover image](#post-cover-image) and
+  [Polish pack](#polish-pack-phase-20)). Paths stay
   relative; the root layout's `metadataBase` makes them absolute.
 - **Article JSON-LD.** `features/seo/json-ld.ts` renders a schema.org
   `BlogPosting` with `headline`, `description`, `datePublished`,
@@ -842,7 +849,8 @@ Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
   a freshly created index on a tiny table can look expensive until then.
 - **Function.** `search_published_posts(p_query, p_language, p_limit,
   p_offset)` is `SECURITY DEFINER` with `status = 'published'` as its
-  visibility rule, granted to `anon` and `authenticated`. Under RLS the planner
+  visibility rule. Since Phase 20 only `service_role` may execute it
+  (`20261024200000_search_server_only.sql`); see Rate limit below. Under RLS the planner
   cannot use the GIN index (the `@@` operator is not leakproof, so it may not
   run before the `posts_select_visible` policy), and every published row would
   be scanned and checked with `can_view_post()`. The explicit filter is also
@@ -875,9 +883,11 @@ Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
   When a post matches only through a mix of stemmed and folded lexemes (the
   Turkish stemmer turns "ekran" into `ekra` but "ekranlarda" into `ekran`),
   neither pass can mark it and the snippet shows the opening words unmarked.
-- **Reads.** The page calls the function with the anonymous client, then reads
-  the result cards (`publicPostSummaryColumns`) through the same client, so RLS
-  filters what is displayed as well. Both reads use `cache: "no-store"`.
+- **Reads.** The server calls the function with the secret key (the only
+  caller allowed to execute it), then reads the result cards
+  (`publicPostSummaryColumns`) through the anonymous client, so RLS filters
+  what is displayed as well. Both reads use `cache: "no-store"`. The key does
+  not widen the result: the function's own published filter decides it.
 - **Rate limit.** Before each real query (not the empty, too-short, too-long,
   or invalid-page states) the server records one `search.query` event in
   `consume_auth_rate_limit` with the secret key: 30 per IP per minute, keyed by
@@ -886,10 +896,11 @@ Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
   kullanılamıyor") without `SUPABASE_SECRET_KEY`. The same caveat as the Auth
   limits applies: behind a proxy that does not overwrite `X-Forwarded-For`,
   a client can send a new address on every request and is effectively
-  unlimited, so confirm the header handling with the host (D5). A client that
-  calls `search_published_posts` through the Data API directly bypasses the
-  application limit, as it can already read every published post through the
-  same API; add a gateway or Postgres-side limit if that becomes abuse.
+  unlimited, so confirm the header handling with the host (D5). Clients cannot
+  bypass the limit through the Data API: `anon` and `authenticated` lost
+  `execute` on the function in Phase 20 (`42501`, HTTP 401/403). Plain table
+  reads of published posts stay public as before; they use the B-tree indexes,
+  not the full-text ranking that made direct search calls the expensive path.
 - **Route and caching.** `/search` is dynamic (`searchParams`, request
   headers): `Cache-Control: private, no-store`, never prerendered or
   ISR-cached, `noindex, nofollow`, and not in the sitemap. The header form is
@@ -903,9 +914,10 @@ Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
 Tests: `query.test.ts` and `results.test.ts` cover query normalization, code
 point length, page and language parsing, URLs, highlight parsing (markup as
 text, nested and stray markers), rank order, missing cards, and the title
-fallback. `search.rls.test.ts` (41 tests, local stack) covers the
-anonymous/reader/author/editor/admin matrix (a draft is never found, not even
-by its author who can read it directly; totals and snippets never include
+fallback. `search.rls.test.ts` (39 tests, local stack) covers the
+anonymous/reader/author/editor/admin matrix (since Phase 20 every client role
+is refused with `42501`; through the server caller a draft is never found, not
+even when its author can read it directly; totals and snippets never include
 draft text; an unpublished post drops out), Turkish, English, and German
 stemming and folding, title-over-body ranking, the language filter,
 highlighting, injection-like input (SQL fragments, markup, tsquery operators,
@@ -916,6 +928,83 @@ The smoke test checks the header form, `/search` states (empty, too short, no
 result), `noindex` and `private` caching, that the newest post is found from
 its slug's first word, that every linked result answers 200, that the seed
 draft is not found, and that the sitemap does not list `/search`.
+
+## Polish pack (Phase 20)
+
+Small follow-ups shipped together. One migration
+(`20261024200000_search_server_only.sql`); no new dependency (the shadcn
+`alert-dialog` component uses the existing `radix-ui` package).
+
+- **Publish/unpublish confirmation.** `PublicationControl`
+  (`features/posts/admin/components/publication-control.tsx`) wraps the
+  existing form in a shadcn `AlertDialog` with Turkish copy from
+  `publicationConfirmation()`. The form still carries the rendered revision,
+  so `publish_post`/`unpublish_post` refuse a change made after the page loaded
+  (`?error=conflict`). The dialog is portaled outside the form, so the confirm
+  button submits it with `requestSubmit()`. Radix traps focus, starts on
+  "Vazgeç", closes on Escape, and returns focus to the trigger.
+- **Moderation feedback and paging.** After hiding, restoring, or deleting a
+  comment, `ModerationActions` replaces the URL with `?status=<new status>`,
+  shown through `QueryStatus` like the other admin pages; the next action
+  drops the old status first. The queue reads 20 rows per page with an exact
+  count (`selectModerationQueue`, ordered by `created_at` then `id`, so pages
+  never overlap) and `?page=` links like `/search` (the route is dynamic, so a
+  query parameter costs no caching). A page past the end (for example after
+  deleting the last row of the last page) redirects to the new last page and
+  keeps the status; PostgREST answers such an offset with 416 and no count, so
+  the data boundary reads page 1 for the total.
+- **Back/Forward guard.** Next.js 16 has no API to block history navigation:
+  `<Link onNavigate>` covers only link clicks, and the App Router restores
+  pages from its own `popstate` listener. `useUnsavedChangesWarning` therefore
+  also listens to the Navigation API's `navigate` event and cancels a
+  same-document `traverse` after a declined `confirm()`; a cancelled traversal
+  never changes the entry, so `popstate` does not fire and the form stays.
+  Limits: browsers without the Navigation API (older Firefox and Safari) keep
+  only the link and `beforeunload` guards; a traversal is cancelable only once
+  per user activation, so a second Back press without interacting in between
+  leaves; cross-document traversals fall back to the browser's `beforeunload`
+  prompt.
+- **Admin return path.** `/admin/*` redirects signed-out visitors to
+  `/login?next=<path and query>` (Proxy, plus the page-level fallbacks of
+  `/admin/comments` and `/admin/members`). `safeReturnPath` accepts admin
+  paths now; `returnPathForMember` drops them for anyone without an active
+  membership, who lands on `/account` instead of the access-denied view.
+  External, protocol-relative, backslash, and control-character values are
+  still refused, so there is no open redirect.
+- **Avatars.** Listing cards (home and archives) pass `withAvatars` to
+  `PostMeta`; search results and the saved list keep a text byline. The admin
+  author list shows each author's avatar. Article JSON-LD adds `image` (the
+  absolute Storage URL) to each `Person` with an avatar.
+- **Default social image.** `src/app/opengraph-image.tsx` renders a
+  1200×630 PNG with `next/og` (site name and host, bundled Geist font, fixed
+  colors) once at build time: it reads no data and no request-time API, so it
+  is a static route. The home page gets it through the file convention.
+  Pages that set their own `openGraph` object replace the inherited one, so
+  `buildPostMetadata` (posts without a cover) and `buildArchiveMetadata`
+  (category, tag, and author archives) declare it explicitly through
+  `defaultSocialImage()`. Twitter uses `summary_large_image` wherever an image
+  is declared. Without `NEXT_PUBLIC_SITE_URL` no default image is declared (no
+  absolute URL), and those cards stay `summary`. A site name change needs a
+  rebuild.
+- **Search RPC lockdown.** See [Full-text search](#full-text-search-phase-19):
+  the function is executable by `service_role` only, and the server calls it
+  after the per-IP limit. An in-database limit was rejected because PostgREST
+  only offers the same spoofable `X-Forwarded-For`, and a global limit would
+  let one client starve every reader.
+
+Tests: unit tests for the dialog copy, moderation URLs, page parsing and
+status messages, `historyNavigationLeavesPage`, admin return paths
+(`returnPathForMember`, normalized `/admin` paths), the default image and
+large card for posts and archives, and the author `image` in JSON-LD. RLS:
+search execution refused for every client role and the server caller's
+visibility rule (`search.rls.test.ts`); moderation queue pages without
+overlap, a stable exact count, the past-the-end answer, the reported filter,
+and an empty queue for non-moderators (`comments.rls.test.ts`). The smoke test
+checks `/admin` and `/admin/comments?filter=hidden` redirect with `?next=`, an
+external `next` is ignored, `/opengraph-image` is a PNG, the home page and
+the first post declare an absolute `og:image` with `summary_large_image`, and
+(with `SMOKE_SUPABASE_URL` and `SMOKE_SUPABASE_PUBLISHABLE_KEY`) that a direct
+`rpc/search_published_posts` call with the publishable key is refused.
 
 ## Structure and sample content
 
@@ -1236,11 +1325,14 @@ or creates hosted resources.
   first post render with JSON-LD, unknown post and tag URLs return `noindex`
   404s, listing pagination behaves (`/page/1` redirects, `/page/2` renders
   with its own canonical URL when it exists, invalid and out-of-range pages
-  are `noindex` 404s), `/admin` redirects to `/login`, `robots.txt` and
+  are `noindex` 404s), `/admin` redirects to `/login?next=/admin`, the
+  site-wide `/opengraph-image` is a PNG declared as `og:image`, `robots.txt` and
   `sitemap.xml` are public-only, the home page links `/feed.xml`, which is a
   public, cacheable Atom feed listing the newest post (or a 404 without a
   discovery link when no site URL is set), and every response has the
-  security headers without eval.
+  security headers without eval. Optional `SMOKE_SUPABASE_URL` and
+  `SMOKE_SUPABASE_PUBLISHABLE_KEY` add a check that clients cannot call
+  `search_published_posts` directly.
 
 Hosting checklist (open until D5 is decided): after the first deploy, create
 the first admin with `npm run admin:bootstrap` (see
@@ -1469,8 +1561,9 @@ Accounts and public author identities have separate avatars. Migration:
   their own picture at `/account` ("Profil fotoğrafı"); it is stored in
   `profiles.avatar_id` and shows next to their comments. Admins set an author
   identity's picture at `/admin/authors/[id]` ("Yazar fotoğrafı"); it is stored
-  in `authors.avatar_id` and shows in the post byline and the author archive
-  header. Guest authors get one the same way. An author never falls back to its
+  in `authors.avatar_id` and shows in the post byline, the listing cards, the
+  admin author list, the author archive header, and as the `Person` `image` in
+  Article JSON-LD (Phase 20). Guest authors get one the same way. An author never falls back to its
   linked account's picture, because equal pictures would reveal the link that
   `authors.user_id` keeps private.
 - **Storage.** One public `avatars` bucket, separate from post media (2 MiB,
@@ -1571,9 +1664,10 @@ Application:
   session) goes to `/login?next=<current path>`.
 - **Return paths.** `/login` accepts `?next=` only through `safeReturnPath`
   (same-origin absolute paths; no protocol-relative, backslash, or
-  control-character input; never `/login`, `/signup`, `/auth`, `/admin`, or
-  `/api`). Sign-in, an already-signed-in visit to `/login`, and the Proxy's
-  signed-out redirect for `/account/*` use it.
+  control-character input; never `/login`, `/signup`, `/auth`, or `/api`).
+  Sign-in, an already-signed-in visit to `/login`, and the Proxy's signed-out
+  redirect for `/account/*` and (since Phase 20) `/admin/*` use it; an `/admin`
+  path counts only for an active editorial member (`returnPathForMember`).
 - **Caching choice.** Public pages stay shared ISR output: the server renders
   every toggle as "not saved", and `BookmarkProvider` reads the signed-in
   user's rows for the posts on screen in the browser after hydration (one
@@ -1693,8 +1787,9 @@ Application (`src/features/comments/`):
   reasons), `Badge`, and `Card`; delete and soft-delete ask for a second
   click; status messages use live regions. `/admin/comments` (dynamic,
   noindex via the admin layout) has `reported`, `visible`, `hidden`, and
-  `deleted` filters (`?filter=`) with the latest 100 rows each; authors and
-  readers get the access-denied view and no navigation link.
+  `deleted` filters (`?filter=`), newest first, 20 per page (`?page=`, Phase
+  20); hide, restore, and delete report success through `?status=`; authors
+  and readers get the access-denied view and no navigation link.
 
 Tests: `comments.rls.test.ts` covers immediate visibility under the profile
 name, anonymous denial, impersonation through `user_id`, `display_name`, or
@@ -1729,10 +1824,13 @@ accounts (Phase 11), taxonomy administration, author identity
 administration, private bookmarks (Phase 12), post-moderated comments
 (Phase 13), per-post language (Phase 14), public listing pagination
 (Phase 15), post cover images (Phase 16), the Atom feed (Phase 17),
-profile pictures (Phase 18), and full-text search (Phase 19). See
+profile pictures (Phase 18), full-text search (Phase 19), and the Phase 20
+polish pack (publication confirmation, moderation feedback and paging, a
+Back/Forward guard, admin return paths, more avatars, a default social image,
+and a server-only search function). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-All planned phases (1–19) are implemented; see ROADMAP.md for the open
+All planned phases (1–20) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

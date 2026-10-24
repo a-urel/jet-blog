@@ -13,9 +13,9 @@ const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
   timeZone: "Europe/Istanbul",
 });
 
-// Listing cards keep a text-only byline; the post header passes withAvatars.
-// Avatars are decorative there: each one sits inside the link with the
-// visible author name.
+// The post header and the listing cards pass withAvatars; search results keep
+// a text-only byline. Avatars are decorative: each one sits inside the link
+// with the visible author name.
 export function PostMeta({
   post,
   withAvatars = false,

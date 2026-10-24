@@ -8,10 +8,19 @@ import {
   isCommentStatus,
   isUuid,
   moderationErrorResult,
+  moderationStatusMessage,
   normalizeCommentBody,
   reportInsertErrorResult,
 } from "./model";
-import { isModerationFilter, mapModerationQueue, mapPublicComments } from "./queries";
+import {
+  isModerationFilter,
+  mapModerationQueue,
+  mapPublicComments,
+  moderationPageCount,
+  moderationPageSize,
+  moderationQueueUrl,
+  parseModerationPage,
+} from "./queries";
 
 describe("normalizeCommentBody", () => {
   it("trims and normalizes line endings", () => {
@@ -131,5 +140,39 @@ describe("cache tags", () => {
   it("separates one post's comments from every post's comments", () => {
     expect(commentsCacheTag("p1")).toBe("post-comments:p1");
     expect(commentsCacheTag("p1")).not.toBe(publicCommentsCacheTag);
+  });
+});
+
+describe("moderation queue pages and feedback", () => {
+  it("parses ?page= and falls back to page 1", () => {
+    expect(parseModerationPage(undefined)).toBe(1);
+    expect(parseModerationPage("3")).toBe(3);
+    expect(parseModerationPage(["2", "5"])).toBe(2);
+    expect(parseModerationPage("0")).toBe(1);
+    expect(parseModerationPage("02")).toBe(1);
+    expect(parseModerationPage("-1")).toBe(1);
+    expect(parseModerationPage("abc")).toBe(1);
+  });
+
+  it("counts pages with at least one", () => {
+    expect(moderationPageCount(0)).toBe(1);
+    expect(moderationPageCount(moderationPageSize)).toBe(1);
+    expect(moderationPageCount(moderationPageSize + 1)).toBe(2);
+  });
+
+  it("builds queue URLs that omit page 1", () => {
+    expect(moderationQueueUrl("reported")).toBe("/admin/comments?filter=reported");
+    expect(moderationQueueUrl("hidden", { page: 1 })).toBe("/admin/comments?filter=hidden");
+    expect(moderationQueueUrl("hidden", { page: 3, status: "visible" })).toBe(
+      "/admin/comments?filter=hidden&page=3&status=visible",
+    );
+  });
+
+  it("maps ?status= to a message only for comment statuses", () => {
+    expect(moderationStatusMessage("hidden")).toContain("gizlendi");
+    expect(moderationStatusMessage("visible")).toContain("yeniden");
+    expect(moderationStatusMessage("deleted")).toBe("Yorum silindi.");
+    expect(moderationStatusMessage("published")).toBeNull();
+    expect(moderationStatusMessage(["hidden"])).toBeNull();
   });
 });

@@ -60,7 +60,7 @@ export function PostList({
                     {post.title}
                   </Link>
                 </Heading>
-                <PostMeta post={post} />
+                <PostMeta post={post} withAvatars />
               </CardHeader>
               <CardContent className="flex-1 space-y-5">
                 {post.excerpt ? (

@@ -17,6 +17,7 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import { EditorialAccessDenied } from "@/features/auth/components/editorial-access-denied";
+import { signInPathFor } from "@/features/auth/return-path";
 import {
   setMemberActiveAction,
   updateMemberRoleAction,
@@ -72,7 +73,7 @@ export default async function AdminMembersPage({
 }: PageProps<"/admin/members">) {
   const { user, membership } = await getEditorialContext();
 
-  if (!user) redirect("/login");
+  if (!user) redirect(signInPathFor("/admin/members"));
 
   if (membership?.role !== "admin") {
     return (

@@ -6,8 +6,12 @@
 // return 404, listing pages paginate (page 1 has one URL, invalid and
 // out-of-range pages return 404), admin and reader routes redirect to sign-in,
 // discovery files and the Atom feed exist, search answers dynamically with
-// noindex and links only public posts, and every response carries the security headers. It needs no credentials and changes
+// noindex and links only public posts, social images are declared, and every response carries the security headers. It needs no credentials and changes
 // no data (a few searches count against this client's search rate limit), so it can also run against a staging deployment.
+//
+// Optional: SMOKE_SUPABASE_URL and SMOKE_SUPABASE_PUBLISHABLE_KEY (the public
+// values the site itself uses) also check that clients cannot call the search
+// function directly through the Data API.
 
 const baseUrl = (process.env.SMOKE_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 const failures = [];
@@ -50,6 +54,15 @@ if (postPath) {
 
   check(post.status === 200, `${postPath}: expected 200, got ${post.status}`);
   check(postHtml.includes('"@type":"BlogPosting"'), `${postPath}: missing Article JSON-LD`);
+  // With a site origin every public post shares an image: its cover or the
+  // site-wide generated one.
+  if (/<link rel="canonical" href="https?:/.test(postHtml)) {
+    check(/<meta property="og:image" content="https?:/.test(postHtml), `${postPath}: missing og:image`);
+    check(
+      postHtml.includes('<meta name="twitter:card" content="summary_large_image"'),
+      `${postPath}: Twitter card is not summary_large_image`,
+    );
+  }
   // Visible comments are server-rendered into the shared page.
   check(postHtml.includes('id="comments-heading"'), `${postPath}: comments are not server-rendered`);
   check(
@@ -114,18 +127,23 @@ for (const path of [
   check(html.includes("noindex"), `${path}: 404 page is indexable`);
 }
 
-const admin = await get("/admin");
-check(
-  [302, 303, 307, 308].includes(admin.status) &&
-    new URL(admin.headers.get("location") ?? "", baseUrl).pathname === "/login",
-  `/admin: anonymous request was not redirected to /login (status ${admin.status})`,
-);
+// Admin routes redirect to sign-in with their path (and query) as ?next=.
+for (const path of ["/admin", "/admin/comments?filter=hidden"]) {
+  const response = await get(path);
+  const location = new URL(response.headers.get("location") ?? "", baseUrl);
+  check(
+    [302, 303, 307, 308].includes(response.status) &&
+      location.pathname === "/login" &&
+      location.searchParams.get("next") === path,
+    `${path}: anonymous request was not redirected to /login?next= (status ${response.status}, ${location.pathname}${location.search})`,
+  );
+}
 
-const moderation = await get("/admin/comments");
+// An external ?next= is ignored: sign-in offers no return path for it.
+const offsite = await get(`/login?next=${encodeURIComponent("//evil.example/admin")}`);
 check(
-  [302, 303, 307, 308].includes(moderation.status) &&
-    new URL(moderation.headers.get("location") ?? "", baseUrl).pathname === "/login",
-  `/admin/comments: anonymous request was not redirected to /login (status ${moderation.status})`,
+  offsite.status === 200 && !(await offsite.text()).includes("kaldığınız sayfaya"),
+  "/login?next=//evil.example: an external return path was accepted",
 );
 
 // Reader routes redirect to sign-in with a return path and are never cached.
@@ -144,6 +162,21 @@ check(
   !(home.headers.get("cache-control") ?? "").includes("private"),
   "/: public page is not publicly cacheable",
 );
+
+// The site-wide social image is generated once at build time.
+const socialImage = await get("/opengraph-image");
+check(socialImage.status === 200, `/opengraph-image: expected 200, got ${socialImage.status}`);
+check(
+  (socialImage.headers.get("content-type") ?? "").startsWith("image/png"),
+  `/opengraph-image: unexpected content type ${socialImage.headers.get("content-type")}`,
+);
+await socialImage.arrayBuffer();
+if (/<link rel="canonical" href="https?:/.test(homeHtml)) {
+  check(
+    /<meta property="og:image" content="https?:\/\/[^"]+\/opengraph-image/.test(homeHtml),
+    "/: missing the site-wide og:image",
+  );
+}
 
 const robots = await get("/robots.txt");
 check(robots.status === 200, `/robots.txt: expected 200, got ${robots.status}`);
@@ -250,6 +283,28 @@ check(
   !draftSearch.html.includes("/posts/taslak-yazi-ornegi"),
   "/search?q=taslak: the seed draft is listed",
 );
+
+// Direct Data API calls to the search function bypass the page's rate limit,
+// so the database refuses them for client keys.
+const supabaseUrl = process.env.SMOKE_SUPABASE_URL?.replace(/\/+$/, "");
+const publishableKey = process.env.SMOKE_SUPABASE_PUBLISHABLE_KEY;
+if (supabaseUrl && publishableKey) {
+  const direct = await fetch(`${supabaseUrl}/rest/v1/rpc/search_published_posts`, {
+    method: "POST",
+    headers: {
+      apikey: publishableKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ p_query: "smoke", p_language: null, p_limit: 1, p_offset: 0 }),
+  });
+  await direct.arrayBuffer();
+  check(
+    [401, 403, 404].includes(direct.status),
+    `rpc/search_published_posts: a client key can call search directly (status ${direct.status})`,
+  );
+} else {
+  console.warn("SMOKE_SUPABASE_URL or SMOKE_SUPABASE_PUBLISHABLE_KEY unset; direct search RPC check skipped.");
+}
 
 if (failures.length > 0) {
   console.error(`Smoke test failed against ${baseUrl}:`);

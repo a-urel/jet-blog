@@ -16,7 +16,7 @@ import {
   SupabaseNotConfigured,
 } from "@/features/auth/components/auth-page-shell";
 import { SignInForm } from "@/features/auth/components/sign-in-form";
-import { safeReturnPath } from "@/features/auth/return-path";
+import { returnPathForMember, safeReturnPath } from "@/features/auth/return-path";
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -67,7 +67,9 @@ export default async function SignInPage({
   }
 
   const { user, membership } = await getEditorialContext();
-  if (user) redirect(returnPath ?? (membership ? "/admin" : "/account"));
+  if (user) {
+    redirect(returnPathForMember(next, Boolean(membership)) ?? (membership ? "/admin" : "/account"));
+  }
 
   return (
     <AuthPageShell

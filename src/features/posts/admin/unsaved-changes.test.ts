@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { linkClickLeavesPage, type LinkClick } from "./unsaved-changes";
+import {
+  historyNavigationLeavesPage,
+  linkClickLeavesPage,
+  type LinkClick,
+} from "./unsaved-changes";
 
 const current = "http://localhost:3000/admin/posts/abc?status=updated";
 
@@ -47,5 +51,30 @@ describe("linkClickLeavesPage", () => {
 
   it("ignores malformed URLs", () => {
     expect(linkClickLeavesPage(click({ href: "http://[" }), current)).toBe(false);
+  });
+});
+
+describe("historyNavigationLeavesPage", () => {
+  it("asks before a cancelable Back/Forward traversal to another page", () => {
+    expect(
+      historyNavigationLeavesPage({ navigationType: "traverse", cancelable: true, hashChange: false }),
+    ).toBe(true);
+  });
+
+  it.each([
+    ["push (guarded on click)", { navigationType: "push" as const }],
+    ["replace (status cleanup, save redirect)", { navigationType: "replace" as const }],
+    ["reload (beforeunload)", { navigationType: "reload" as const }],
+    ["uncancelable traversal", { cancelable: false }],
+    ["fragment-only traversal", { hashChange: true }],
+  ])("ignores %s", (_name, overrides) => {
+    expect(
+      historyNavigationLeavesPage({
+        navigationType: "traverse",
+        cancelable: true,
+        hashChange: false,
+        ...overrides,
+      }),
+    ).toBe(false);
   });
 });

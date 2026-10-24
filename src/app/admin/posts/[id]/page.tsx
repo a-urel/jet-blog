@@ -5,10 +5,8 @@ import {
   CircleAlert,
   ExternalLink,
   Eye,
-  EyeOff,
   FileText,
   LockKeyhole,
-  Send,
 } from "lucide-react";
 
 import { QueryStatus } from "@/components/status/query-status";
@@ -23,14 +21,11 @@ import {
 } from "@/components/ui/card";
 import { listMedia } from "@/features/media/data";
 import { PostForm } from "@/features/posts/admin/components/post-form";
+import { PublicationControl } from "@/features/posts/admin/components/publication-control";
 import {
   getAdminPostDetail,
   listTaxonomyOptions,
 } from "@/features/posts/admin/data";
-import {
-  publishPostAction,
-  unpublishPostAction,
-} from "@/features/posts/admin/actions";
 import {
   canEditPost,
   canPublishPosts,
@@ -175,21 +170,12 @@ export default async function EditPostPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <form action={post.status === "published" ? unpublishPostAction : publishPostAction}>
-              <input type="hidden" name="postId" value={post.id} />
-              <input type="hidden" name="revision" value={post.revision} />
-              {post.status === "published" ? (
-                <Button type="submit" variant="outline">
-                  <EyeOff aria-hidden="true" />
-                  Yayından kaldır
-                </Button>
-              ) : (
-                <Button type="submit">
-                  <Send aria-hidden="true" />
-                  Yayınla
-                </Button>
-              )}
-            </form>
+            <PublicationControl
+              postId={post.id}
+              revision={post.revision}
+              published={post.status === "published"}
+              title={post.title}
+            />
             {post.status === "published" ? (
               <Button asChild variant="ghost">
                 <Link href={publicHref}>

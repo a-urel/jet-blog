@@ -53,6 +53,53 @@ describe("buildArticleJsonLd", () => {
     }
   });
 
+  it("adds an author's avatar as an absolute Person image", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", mediaOrigin);
+    const avatarId = "88888888-8888-4888-8888-888888888888";
+    const [first, second] = publishedPost.authors;
+
+    try {
+      const jsonLd = buildArticleJsonLd(
+        {
+          ...publishedPost,
+          authors: [{ ...first, author: { ...first.author, avatarId } }, second],
+        },
+        { siteUrl, siteName: "S" },
+      );
+
+      expect(jsonLd.author).toEqual([
+        {
+          "@type": "Person",
+          name: "Birinci Yazar",
+          url: "https://example.test/authors/birinci-yazar",
+          image: `${mediaOrigin}/storage/v1/object/public/avatars/authors/${avatarId}`,
+        },
+        { "@type": "Person", name: "İkinci Yazar", url: "https://example.test/authors/ikinci-yazar" },
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("omits an author image without a Storage origin", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    const [first] = publishedPost.authors;
+
+    try {
+      const jsonLd = buildArticleJsonLd(
+        {
+          ...publishedPost,
+          authors: [{ ...first, author: { ...first.author, avatarId: "88888888-8888-4888-8888-888888888888" } }],
+        },
+        { siteUrl, siteName: "S" },
+      );
+
+      expect((jsonLd.author as object[])[0]).not.toHaveProperty("image");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("omits URLs without a site origin", () => {
     const jsonLd = buildArticleJsonLd(publishedPost, { siteUrl: null, siteName: "S" });
 

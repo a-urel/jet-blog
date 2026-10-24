@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 19 full-text search, on `claude/full-text-search`)
+Last updated: 2026-10-24 (Phase 20 polish pack, on `claude/polish-pack-8aba77`)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–19, complete)
+## Current baseline (Phases 1–20, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -171,7 +171,16 @@ does not add requirements on its own.
   `/search?q=` page with a header search form, an optional language filter,
   `?page=` paging, and a per-IP `search.query` rate limit (30 per minute) in
   `consume_auth_rate_limit`.
-- 549 unit tests and 377 local-Supabase RLS tests (including the feed input
+- Phase 20 polish pack: shadcn `AlertDialog` confirmation for publish and
+  unpublish (revision compare-and-swap unchanged), `?status=` feedback and
+  20-row `?page=` paging on `/admin/comments`, a Navigation API Back/Forward
+  guard for unsaved post forms, `/login?next=` for `/admin/*` (honored only
+  for active members), author avatars on listing cards, the admin author list,
+  and in Article JSON-LD, a build-time `opengraph-image` used as the default
+  social image with `summary_large_image`, and `search_published_posts()`
+  executable by `service_role` only (migration
+  `20261024200000_search_server_only.sql`).
+- 607 unit tests and 461 local-Supabase RLS tests as of Phase 20 (including the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
   administration suites, the Phase 11
@@ -197,9 +206,9 @@ does not add requirements on its own.
   change, deactivation, denied access, draft creation/editing, a stale-form
   conflict, preview, draft exclusion from public routes, and author isolation.
 
-Known gaps: a post without a cover still has a text-only social card (there is
-no site-wide default image), and the cover is cropped to 16:9 everywhere with no
-focal point; Open Graph image URLs point at the original upload on the media
+Known gaps: the cover is cropped to 16:9 everywhere with no focal point, and
+the site-wide social image is generic (site name and host only, rebuilt only
+with the build) and is not declared without `NEXT_PUBLIC_SITE_URL`; Open Graph image URLs point at the original upload on the media
 origin (no 1200×630 rendition) and omit width/height, because readers cannot
 read media rows. The site
 name and origin are provisional (D5), so canonical/sitemap URLs point at
@@ -221,19 +230,54 @@ browser read finishes after hydration (a short delay for signed-in users, by
 design to keep public pages cached), and a bookmark of a later-unpublished
 post keeps its row, so its owner can still see that post id through the API
 (never its content). Comment controls (delete, report, the form) likewise
-appear only after the browser read; the moderation queue lists the latest 100
-rows per filter without pagination; a comment's display name is a snapshot and
+appear only after the browser read; a comment's display name is a snapshot and
 does not follow later profile renames; an owner's delete is a hard delete, so
 its reports disappear with it. Avatars are not cropped interactively (the
-center of a non-square upload shows), listing cards and the admin author list
-show no avatars, and an Auth user deleted out of band (without the account
-page) can leave an unlisted orphan object in the `avatars` bucket.
+center of a non-square upload shows), search results and the saved list keep a
+text-only byline, and an Auth user deleted out of band (without the account
+page) can leave an unlisted orphan object in the `avatars` bucket. The unsaved
+form guard covers Back/Forward only where the Navigation API exists and the
+traversal is cancelable (once per user activation; older Firefox and Safari
+fall back to the link and `beforeunload` guards). The search function is
+server-only, but plain Data API reads of published rows stay public by design.
 
 ## Where to resume (session handoff)
 
+Phase 20 (polish pack, `20261024200000_search_server_only.sql`) was developed
+on `claude/polish-pack-8aba77` in its own worktree and is not committed or
+merged yet.
+
+- Last verified (Phase 20, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (607 tests), `npm run test:rls` (461 tests; the
+  search suite now 39, the comment suite gained 4 queue tests), `npm run
+  build` (`/opengraph-image` static, `/` still static), and `npm run
+  test:smoke` against `next start` on port 3247 with the optional direct-RPC
+  check, on the worktree's own local stack (twenty migrations; a final
+  `supabase db reset` of that stack applied them cleanly and RLS passed again
+  afterwards). A browser journey on `next start` with a synthetic admin and
+  reader: `/admin/comments?filter=reported` sent the signed-out visitor to
+  `/login?next=…` and back after sign-in; hiding, restoring, and deleting
+  comments showed "Yorum gizlendi…", "Yorum yeniden gösteriliyor.", and
+  "Yorum silindi."; 23 synthetic comments paged 20 + 3 and `?page=5` landed
+  on page 2 with the status kept; the publish dialog opened from the keyboard,
+  started on "Vazgeç", closed on Escape, and Tab + Enter confirmed (the seed
+  draft was refused with `?error=category`); unpublishing with a revision
+  bumped behind the page's back gave `?error=conflict`, and with the current
+  revision unpublished and republished; a dirty title plus `history.back()`
+  fired one cancelable `traverse` navigate event, the declined prompt kept the
+  page and the edit, an accepted prompt went back to `/admin/posts` (the pane
+  has no Back shortcut on macOS, so the traversal came from `history.back()`
+  after a click); the home cards and the admin author list showed an author
+  avatar and the post JSON-LD carried its `image`; posts without a cover,
+  archives, and the home page declared an absolute `og:image` with
+  `summary_large_image` and `/opengraph-image` rendered "Yazılar" with the
+  dotless ı; a reader signing in with `next=/admin/posts` landed on
+  `/account`. The pane was hidden during the journey, so the dialog was
+  verified through the DOM rather than screenshots. Synthetic accounts,
+  comments, and the avatar object were removed and the stack reset.
+
 Phase 19 (full-text search, `20261024180000_post_search.sql`) was developed on
-`claude/full-text-search` in its own worktree and is not committed or merged
-yet.
+`claude/full-text-search` in its own worktree and is on `main` (`62849a9`).
 
 - Last verified (Phase 19, on its branch): `npm run lint`, `npm run
   typecheck`, `npm test` (582 tests), `npm run test:rls` (459 tests, 41 in the
@@ -523,6 +567,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 17 | Syndication feed | Atom feed of the newest published posts with discovery link | Phases 9, 10, 14, 16 | Done |
 | 18 | Profile pictures | Own account avatars, admin-set author avatars, avatars in bylines, archives, and comments | Phases 6, 11, 13, author administration | Done |
 | 19 | Full-text search | Language-aware, accent-insensitive search over published posts with highlights, paging, and a per-IP rate limit | Phases 5, 10, 11, 14 | Done |
+| 20 | Polish pack | Publication confirmation, moderation feedback and paging, Back/Forward guard, admin return path, more avatars, default social image, server-only search | Phases 8, 13, 18, 19 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1545,7 +1590,7 @@ Decisions:
 - **Rate limit in the existing mechanism.** A `search.query` action (30 per IP
   per minute) in `consume_auth_rate_limit`, with the same X-Forwarded-For
   caveat. Requests without an address share one bucket. Direct Data API calls
-  bypass it, as they bypass every application limit on public reads.
+  bypassed it until Phase 20 made the function server-only.
 - **No cache, no invalidation change.** `/search` is dynamic and `noindex`,
   reads with `no-store`, and is not in the sitemap; the invalidation map is
   unchanged because nothing about search is cached.
@@ -1559,8 +1604,51 @@ the folded branch. Body attributes (image alt text and captions, YouTube
 titles, link targets) are not searched.
 
 Follow-ups, not requested: searching image captions and YouTube titles, a
-typo-tolerant fallback (`pg_trgm` on titles), search analytics, and a
-Postgres-side limit for direct Data API calls if abuse appears.
+typo-tolerant fallback (`pg_trgm` on titles), and search analytics. Direct
+Data API calls were closed in Phase 20.
+
+### Phase 20 — Polish pack
+
+Goal: ship the small follow-ups the user accepted after Phase 19 as one
+increment.
+
+Status: complete on 2026-10-24 (session request), on
+`claude/polish-pack-8aba77`, migration
+`20261024200000_search_server_only.sql`. Verified as recorded in the handoff
+above. Details: README "Polish pack (Phase 20)".
+
+Decisions:
+
+- **Confirmation in a portaled AlertDialog, submit with `requestSubmit()`.**
+  The form and its revision field stay as they were, so the compare-and-swap
+  is unchanged; the dialog only gates the submit.
+- **Moderation feedback by URL.** `?status=<new comment status>` through
+  `QueryStatus`, like every other admin page, instead of a toast. Paging uses
+  `?page=` (the queue is dynamic, like `/search`), 20 per page with an exact
+  count and `id` as tie-breaker.
+- **Back/Forward through the Navigation API.** The bundled Next.js 16 docs
+  offer only `<Link onNavigate>` (link clicks) and nothing for history
+  traversal; the App Router listens to `popstate`. Cancelling the `navigate`
+  event of a same-document traversal is the only approach that does not push
+  sentinel entries into the router's history state. Where it is unavailable
+  or not cancelable, the documented fallback is the existing link and
+  `beforeunload` guard.
+- **Admin return path for members only.** `/admin` paths became valid
+  `?next=` values; sign-in honors them only for active members so a reader
+  never lands on the access-denied view.
+- **Default social image at build time.** `opengraph-image.tsx` reads only
+  `NEXT_PUBLIC_*` values and renders once; builders that set `openGraph`
+  declare it explicitly because a child `openGraph` replaces the inherited
+  file image. No image without a site origin.
+- **Search function server-only.** Revoking `execute` from `anon` and
+  `authenticated` was chosen over an in-database limit: PostgREST offers only
+  the spoofable `X-Forwarded-For`, and a global limit lets one client starve
+  everyone. Visibility stays inside the function; the secret key is used only
+  for that call, cards are read anonymously under RLS.
+
+Left out on purpose: a toast system, cropping or regenerating avatars, a
+per-post generated social image, search on the saved list or a slimmer
+byline there, and a Postgres-side limit for plain Data API table reads.
 
 ## Cross-cutting delivery rules
 
@@ -1605,7 +1693,8 @@ request and its own moderation/permission design.
   administration must use a server-only path for the account link instead of
   widening the public grant.
 - Public sign-up exposes the Auth endpoints to abuse. Application limits
-  (Auth flows and, since Phase 19, search) use the first `X-Forwarded-For`
+  (Auth flows and, since Phase 19, search, which since Phase 20 has no direct
+  Data API path) use the first `X-Forwarded-For`
   entry, which is only trustworthy behind a proxy that overwrites it; without
   one a client can rotate the header and is effectively unlimited. Confirm
   with the host (D5) and add CAPTCHA if abuse appears.
@@ -1616,7 +1705,7 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Every phase in the table (through Phase 19, full-text search), both
+Every phase in the table (through Phase 20, the polish pack), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

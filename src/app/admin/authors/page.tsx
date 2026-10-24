@@ -17,6 +17,7 @@ import { createAuthorAction } from "@/features/authors/actions";
 import { listAdminAuthors, listAuthorAccountOptions } from "@/features/authors/admin-data";
 import { authorAccessDenial } from "@/features/authors/components/author-admin-guard";
 import { AuthorForm } from "@/features/authors/components/author-form";
+import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
 
 export const metadata: Metadata = {
   title: "Yazarlar",
@@ -78,19 +79,26 @@ export default async function AdminAuthorsPage({ searchParams }: PageProps<"/adm
                   key={author.id}
                   className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
                 >
-                  <div className="min-w-0">
-                    <Link
-                      href={`/admin/authors/${author.id}`}
-                      className="font-medium underline-offset-4 hover:underline"
-                    >
-                      {author.name}
-                    </Link>
-                    <p className="truncate text-xs text-muted-foreground">
-                      /authors/{author.slug}
-                      {author.profileId
-                        ? ` · ${accountLabels.get(author.profileId) ?? "Bağlı hesap"}`
-                        : " · Misafir"}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <IdentityAvatar
+                      kind="authors"
+                      avatarId={author.avatarId}
+                      name={author.name}
+                    />
+                    <div className="min-w-0">
+                      <Link
+                        href={`/admin/authors/${author.id}`}
+                        className="font-medium underline-offset-4 hover:underline"
+                      >
+                        {author.name}
+                      </Link>
+                      <p className="truncate text-xs text-muted-foreground">
+                        /authors/{author.slug}
+                        {author.profileId
+                          ? ` · ${accountLabels.get(author.profileId) ?? "Bağlı hesap"}`
+                          : " · Misafir"}
+                      </p>
+                    </div>
                   </div>
                   <Badge variant="secondary">{author.creditCount} yazı</Badge>
                 </li>

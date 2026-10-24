@@ -64,10 +64,9 @@ export async function proxy(request: NextRequest) {
     isUnder(pathname, editorialRoutePrefix) || isUnder(pathname, readerRoutePrefix);
 
   if (protectedRoute && !signedIn) {
-    // Reader routes come back after sign-in; /admin keeps its role-based entry.
-    const signInPath = isUnder(pathname, readerRoutePrefix)
-      ? signInPathFor(`${pathname}${request.nextUrl.search}`)
-      : "/login";
+    // Both route groups come back after sign-in through the validated ?next=
+    // path; sign-in honors an /admin path only for an active member.
+    const signInPath = signInPathFor(`${pathname}${request.nextUrl.search}`);
     const redirect = NextResponse.redirect(new URL(signInPath, request.url));
     // Keep any cookie changes (for example, a cleared invalid session).
     response.cookies.getAll().forEach((cookie) => {

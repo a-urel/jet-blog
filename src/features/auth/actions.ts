@@ -13,7 +13,7 @@ import {
 } from "./password-policy";
 import { authRateLimitMessages, consumeAuthRateLimit } from "./rate-limit";
 import { normalizeEmail } from "./rate-limit-subjects";
-import { safeReturnPath } from "./return-path";
+import { returnPathForMember } from "./return-path";
 import { validateDisplayName } from "./validation";
 
 export type SignInState = {
@@ -101,10 +101,11 @@ export async function signInAction(
     return { error: invalidCredentialsMessage };
   }
 
-  // A validated ?next= path (for example the post a visitor tried to save)
-  // wins over the role-based home path.
-  const returnPath = safeReturnPath(formData.get("next"));
-  const home = returnPath ?? (await homePathFor(supabase, data.user.id));
+  // A validated ?next= path (for example the post a visitor tried to save, or
+  // the admin page an editor opened) wins over the role-based home path; an
+  // /admin path counts only for an active editorial member.
+  const rolePath = await homePathFor(supabase, data.user.id);
+  const home = returnPathForMember(formData.get("next"), rolePath === "/admin") ?? rolePath;
 
   revalidateSignedInRoutes();
   redirect(home);

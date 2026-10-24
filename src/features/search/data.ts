@@ -6,6 +6,7 @@ import {
   publicPostSummaryColumns,
   type RawPublicPost,
 } from "@/features/posts/mapping";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createPublicServerSupabaseClient } from "@/lib/supabase/server";
 import { searchOffset, searchResultsPerPage } from "./query";
 import { mapSearchRows, searchRowIds, type SearchPage } from "./results";
@@ -18,22 +19,28 @@ function searchClient() {
   return createPublicServerSupabaseClient({ noStore: true });
 }
 
-// One page of published posts matching `query`, in rank order. The search
-// function filters status = 'published' itself; the cards are then read
-// through the anonymous client, so RLS (published only) filters again, and a
-// post unpublished between the two reads simply drops out of the page.
+// One page of published posts matching `query`, in rank order. Only the
+// server may execute search_published_posts (service_role; see migration
+// 20261024200000_search_server_only.sql), so a client cannot skip the per-IP
+// limit the page consumes first. The function filters status = 'published'
+// itself, so the secret key does not widen what it returns. The cards are
+// then read through the anonymous client, so RLS (published only) filters
+// again, and a post unpublished between the two reads drops out of the page.
 export async function searchPublishedPosts(
   query: string,
   page: number,
   language: PostLanguage | null,
 ): Promise<SearchPage> {
   const supabase = searchClient();
-  const { data, error } = await supabase.rpc("search_published_posts", {
-    p_query: query,
-    p_language: language,
-    p_limit: searchResultsPerPage,
-    p_offset: searchOffset(page),
-  });
+  const { data, error } = await createAdminSupabaseClient({ noStore: true }).rpc(
+    "search_published_posts",
+    {
+      p_query: query,
+      p_language: language,
+      p_limit: searchResultsPerPage,
+      p_offset: searchOffset(page),
+    },
+  );
 
   if (error) throw new Error(`Search failed: ${error.message}`);
 

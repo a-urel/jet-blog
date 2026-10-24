@@ -1,3 +1,4 @@
+import { avatarPublicUrl } from "@/features/avatars/url";
 import { archivePaths, postPath } from "@/features/posts/archives";
 import type { PostSummary } from "@/features/posts/types";
 import { absoluteSiteUrl } from "@/lib/site-url";
@@ -7,7 +8,8 @@ type JsonLd = Record<string, unknown>;
 
 // schema.org BlogPosting for a published post. Authors keep their credit
 // order. URLs are included only when a site origin is configured, because
-// structured data requires absolute URLs.
+// structured data requires absolute URLs. An author's avatar (on the Storage
+// origin, absolute without metadataBase) becomes the Person image.
 export function buildArticleJsonLd(
   post: PostSummary,
   options: { siteUrl: URL | null; siteName: string },
@@ -25,7 +27,13 @@ export function buildArticleJsonLd(
     dateModified: post.updatedAt,
     author: post.authors.map(({ author }) => {
       const authorUrl = absoluteSiteUrl(archivePaths.author(author.slug), options.siteUrl);
-      return { "@type": "Person", name: author.name, ...(authorUrl ? { url: authorUrl } : {}) };
+      const authorImage = author.avatarId ? avatarPublicUrl("authors", author.avatarId) : null;
+      return {
+        "@type": "Person",
+        name: author.name,
+        ...(authorUrl ? { url: authorUrl } : {}),
+        ...(authorImage ? { image: authorImage } : {}),
+      };
     }),
     articleSection: post.category.name,
     ...(post.tags.length > 0 ? { keywords: post.tags.map((tag) => tag.name) } : {}),
