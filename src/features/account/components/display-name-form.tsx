@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,13 @@ export function DisplayNameForm({ displayName }: { displayName: string | null })
     message: null,
     value: displayName ?? "",
   } satisfies DisplayNameState);
+  const error = state.status === "error" ? state.message : null;
+
+  // Each action returns a new state object, so this runs once per result.
+  // Success is a toast; an error stays inline, tied to the field.
+  useEffect(() => {
+    if (state.status === "success" && state.message) toast.success(state.message);
+  }, [state]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -35,17 +43,14 @@ export function DisplayNameForm({ displayName }: { displayName: string | null })
           defaultValue={state.value}
           maxLength={displayNameMaxLength}
           required
-          aria-invalid={state.status === "error" ? true : undefined}
-          aria-describedby={state.message ? "display-name-status" : undefined}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "display-name-status" : undefined}
         />
       </div>
 
-      {state.message ? (
-        <FormAlert
-          id="display-name-status"
-          tone={state.status === "error" ? "error" : "success"}
-        >
-          {state.message}
+      {error ? (
+        <FormAlert id="display-name-status" tone="error">
+          {error}
         </FormAlert>
       ) : null}
 

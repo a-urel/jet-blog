@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { Trash2, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/features/auth/components/form-alert";
@@ -53,6 +54,14 @@ export function AvatarForm({
     if (state.status === "success") window.dispatchEvent(new Event(avatarChangedEvent));
   }, [state]);
 
+  // Success is a toast, once per result of each action; errors stay inline.
+  useEffect(() => {
+    if (uploadState.status === "success" && uploadState.message) toast.success(uploadState.message);
+  }, [uploadState]);
+  useEffect(() => {
+    if (removeState.status === "success" && removeState.message) toast.success(removeState.message);
+  }, [removeState]);
+
   const hidden = Object.entries(hiddenFields).map(([name, value]) => (
     <input key={name} type="hidden" name={name} value={value} />
   ));
@@ -83,7 +92,9 @@ export function AvatarForm({
               type="button"
               variant="outline"
               disabled={pending}
-              aria-describedby={state.message ? `${hintId} ${statusId}` : hintId}
+              aria-describedby={
+                state.status === "error" && state.message ? `${hintId} ${statusId}` : hintId
+              }
               onClick={() => fileInput.current?.click()}
             >
               <Upload aria-hidden="true" />
@@ -106,8 +117,8 @@ export function AvatarForm({
         {t("hint", { maxMegabytes: avatarLimitValues.maxMegabytes })}
       </p>
 
-      {state.message ? (
-        <FormAlert id={statusId} tone={state.status === "error" ? "error" : "success"}>
+      {state.status === "error" && state.message ? (
+        <FormAlert id={statusId} tone="error">
           {state.message}
         </FormAlert>
       ) : null}

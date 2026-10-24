@@ -31,6 +31,7 @@
     "deletePrompt": "Ihren Kommentar endgültig löschen?",
     "confirmDelete": "Ja, löschen",
     "deleting": "Wird gelöscht…",
+    "deleted": "Ihr Kommentar wurde gelöscht.",
     "cancel": "Abbrechen",
     "delete": "Löschen<sr>: Ihr eigener Kommentar</sr>",
     "reported": "Sie haben diesen Kommentar gemeldet. Die Redaktion prüft ihn.",

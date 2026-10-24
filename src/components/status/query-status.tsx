@@ -1,29 +1,30 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
-// Shows a success message that arrived through a `?status=` redirect. The
-// message describes the previous action, so the next form submission on the
-// page drops the parameter: a rejected submission no longer shows an old
-// success next to its error, and a successful one redirects with a fresh
-// status. Next.js syncs `useSearchParams` with `history.replaceState`.
-export function QueryStatus({ children }: { children: ReactNode }) {
+// Shows a success message that arrived through a `?status=` redirect as a
+// toast, then drops the parameter: the message describes the previous action,
+// so a reload or the next submission must not repeat it. The page resolves the
+// message on the server and renders this only for a known status. Next.js
+// syncs `useSearchParams` with `history.replaceState`, so the same status
+// after the next redirect toasts again.
+export function QueryStatusToast({ message }: { message: string }) {
   const searchParams = useSearchParams();
-  const hasStatus = searchParams.has("status");
+  const status = searchParams.get("status");
 
   useEffect(() => {
-    if (!hasStatus) return;
+    if (!status) return;
 
-    function handleSubmit() {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("status");
-      window.history.replaceState(null, "", url);
-    }
+    // The id makes a repeated run (React Strict Mode in development) update
+    // the same toast instead of adding a second one.
+    toast.success(message, { id: `query-status-${status}` });
 
-    document.addEventListener("submit", handleSubmit, true);
-    return () => document.removeEventListener("submit", handleSubmit, true);
-  }, [hasStatus]);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("status");
+    window.history.replaceState(null, "", url);
+  }, [status, message]);
 
-  return hasStatus ? children : null;
+  return null;
 }

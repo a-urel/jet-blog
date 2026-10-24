@@ -3,6 +3,7 @@
 import { useId, useState, useTransition } from "react";
 import { Flag, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -82,7 +83,12 @@ export function CommentItemActions({ commentId, authorName }: CommentItemActions
               size="sm"
               variant="destructive"
               disabled={pending}
-              onClick={() => run(() => deleteOwnCommentAction(commentId), () => {})}
+              onClick={() =>
+                run(
+                  () => deleteOwnCommentAction(commentId),
+                  () => toast.success(t("itemActions.deleted")),
+                )
+              }
             >
               {pending ? t("itemActions.deleting") : t("itemActions.confirmDelete")}
             </Button>

@@ -3,7 +3,7 @@ import Image from "next/image";
 import { CircleAlert, Trash2 } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 
-import { QueryStatus } from "@/components/status/query-status";
+import { QueryStatusToast } from "@/components/status/query-status";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -78,16 +78,7 @@ export default async function AdminMediaPage({
         <p className="text-muted-foreground">{t("intro")}</p>
       </div>
 
-      {successMessage ? (
-        <QueryStatus>
-          <p
-            role="status"
-            className="rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-300"
-          >
-            {successMessage}
-          </p>
-        </QueryStatus>
-      ) : null}
+      {successMessage ? <QueryStatusToast message={successMessage} /> : null}
 
       {errorMessage || error ? (
         <p

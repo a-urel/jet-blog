@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -20,14 +21,14 @@ type CommentFormProps = {
 };
 
 // Submission refreshes the page through the action's revalidatePath, so the
-// new comment appears in the server-rendered list right away.
+// new comment appears in the server-rendered list right away; a toast confirms
+// it. Errors stay inline, tied to the textarea.
 export function CommentForm({ postId }: CommentFormProps) {
   const t = useTranslations("comments");
   const { status, hasDisplayName, markAnonymous } = useCommentViewer();
   const pathname = usePathname();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const length = [...body].length;
 
@@ -80,7 +81,6 @@ export function CommentForm({ postId }: CommentFormProps) {
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setNotice(null);
 
     const normalized = normalizeCommentBody(body);
     if (!normalized.ok) {
@@ -100,7 +100,7 @@ export function CommentForm({ postId }: CommentFormProps) {
       switch (result.status) {
         case "ok":
           setBody("");
-          setNotice(t("form.published"));
+          toast.success(t("form.published"));
           return;
         case "unauthenticated":
           markAnonymous();
@@ -147,7 +147,6 @@ export function CommentForm({ postId }: CommentFormProps) {
           {error}
         </FormAlert>
       ) : null}
-      {notice ? <FormAlert tone="success">{notice}</FormAlert> : null}
       <Button type="submit" disabled={pending}>
         {pending ? t("form.submitting") : t("form.submit")}
       </Button>

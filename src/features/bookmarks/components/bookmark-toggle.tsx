@@ -4,6 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { signInPathFor } from "@/features/auth/return-path";
@@ -24,6 +25,7 @@ type BookmarkToggleProps = {
 // WAI-ARIA button pattern recommends; the pressed state carries "saved".
 // The optimistic state shows at once and settles on the Server Action's
 // answer: the confirmed state on success, the previous state on failure.
+// Success is a transient toast; a failure stays next to the button.
 export function BookmarkToggle({ postId, postTitle, className }: BookmarkToggleProps) {
   const t = useTranslations("bookmarks");
   const { status, isSaved, setSaved, markAnonymous } = useBookmarks();
@@ -60,7 +62,10 @@ export function BookmarkToggle({ postId, postTitle, className }: BookmarkToggleP
 
       if (result.status === "ok") {
         setSaved(postId, result.saved);
-        setMessage(result.saved ? t("toggle.saved") : t("toggle.removed"));
+        // One toast per post: toggling again replaces it instead of stacking.
+        toast.success(result.saved ? t("toggle.saved") : t("toggle.removed"), {
+          id: `bookmark-${postId}`,
+        });
         return;
       }
 

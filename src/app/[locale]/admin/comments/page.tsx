@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 
-import { QueryStatus } from "@/components/status/query-status";
+import { QueryStatusToast } from "@/components/status/query-status";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { EditorialAccessDenied } from "@/features/auth/components/editorial-access-denied";
 import { signInPathFor } from "@/features/auth/return-path";
-import { FormAlert } from "@/features/auth/components/form-alert";
 import { ModerationActions } from "@/features/comments/components/moderation-actions";
 import { ModerationPagination } from "@/features/comments/components/moderation-pagination";
 import { listModerationQueue } from "@/features/comments/data";
@@ -94,7 +93,7 @@ export default async function AdminCommentsPage({
       .join(", ");
 
   // Moderating the last row of the last page leaves that page empty; move to
-  // the new last page and keep the success message.
+  // the new last page and keep the success toast.
   if (page > pageCount) {
     redirect(
       moderationQueueUrl(filter, {
@@ -111,11 +110,7 @@ export default async function AdminCommentsPage({
         <p className="text-muted-foreground">{t("intro")}</p>
       </div>
 
-      {statusMessage ? (
-        <QueryStatus>
-          <FormAlert tone="success">{t(`statusMessages.${statusMessage}`)}</FormAlert>
-        </QueryStatus>
-      ) : null}
+      {statusMessage ? <QueryStatusToast message={t(`statusMessages.${statusMessage}`)} /> : null}
 
       <nav aria-label={t("filtersLabel")} className="flex flex-wrap gap-2">
         {moderationFilters.map((option) => (

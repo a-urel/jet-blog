@@ -6,6 +6,7 @@ import { BookOpen } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { Toaster } from "@/components/ui/sonner";
 import { AccountNavLink } from "@/features/account/components/account-nav-link";
 import { HeaderSearchSlot } from "@/features/search/components/header-search-slot";
 import { SearchForm } from "@/features/search/components/search-form";
@@ -136,6 +137,10 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
               </p>
             </div>
           </footer>
+          {/* The one toast region for the public site and the nested admin
+              layout; a second Toaster would show every toast twice. It is
+              a client island with no request data, so pages stay static. */}
+          <Toaster containerAriaLabel={t("notifications")} />
         </ClientMessages>
       </body>
     </html>

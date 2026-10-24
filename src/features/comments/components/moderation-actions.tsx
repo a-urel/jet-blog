@@ -17,7 +17,7 @@ type ModerationActionsProps = {
 // Hide and restore are reversible and act at once; the soft delete is final,
 // so it asks for a second click. The action revalidates the queue and the
 // post page; on success the queue reloads with ?status=<new status>, which the
-// page shows through QueryStatus, so the row leaves the list with a message.
+// page confirms with a toast (QueryStatusToast) as the row leaves the list.
 export function ModerationActions({ commentId, status }: ModerationActionsProps) {
   const t = useTranslations("adminComments.actions");
   const tComments = useTranslations("comments.messages");
