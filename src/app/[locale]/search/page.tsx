@@ -133,11 +133,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/[locale]/
     <div className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       <header className="mb-10 max-w-3xl space-y-6">
         <h1 className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">{t("title")}</h1>
-        <SearchForm
-          variant="page"
-          query={input.kind === "empty" ? "" : input.query}
-          language={language}
-        />
+        <SearchForm variant="page" query={input.kind === "empty" ? "" : input.query} />
       </header>
       {input.kind === "empty" ? (
         <Notice>{t("notice.intro")}</Notice>

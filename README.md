@@ -958,10 +958,10 @@ Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
 - **Route and caching.** `/search` is dynamic (`searchParams`, request
   headers): `Cache-Control: private, no-store`, never prerendered or
   ISR-cached, `noindex, nofollow`, and not in the sitemap. The header form is
-  a static `next/form` GET form, so every public page stays prerendered; the
-  search page has its own form with the query and an optional language filter
-  (the common post languages; any valid tag also works as `?language=`, an
-  invalid one means all languages).
+  a static `next/form` GET form, so every public page stays prerendered, and
+  is hidden on `/search`, which has its own form. The language filter has no
+  control for now; any valid tag still works as `?language=`, an invalid one
+  means all languages.
   Nothing in the invalidation map (`features/posts/cache.ts`) changed: the
   generated column updates in the same statement as every post write, and
   search reads are never cached, so the next search after a publish, edit, or

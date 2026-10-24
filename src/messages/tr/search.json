@@ -8,9 +8,7 @@
     "submit": "Ara",
     "pageLabel": "Yazılarda ara",
     "queryLabel": "Aranacak sözcükler",
-    "hint": "Tam ifade için tırnak, hariç tutmak için eksi kullanın: \"küçük adım\" -taslak",
-    "language": "Dil",
-    "allLanguages": "Tüm diller"
+    "hint": "Tam ifade için tırnak, hariç tutmak için eksi kullanın: \"küçük adım\" -taslak"
   },
   "notice": {
     "intro": "Yayımlanmış yazıların başlık, özet ve metinlerinde arama yapın.",

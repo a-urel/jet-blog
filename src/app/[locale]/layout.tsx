@@ -7,6 +7,7 @@ import { getTranslations } from "next-intl/server";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { AccountNavLink } from "@/features/account/components/account-nav-link";
+import { HeaderSearchSlot } from "@/features/search/components/header-search-slot";
 import { SearchForm } from "@/features/search/components/search-form";
 import { feedAlternateTypes, feedPath } from "@/features/seo/feed";
 import { defaultSocialImage, socialImages } from "@/features/seo/metadata";
@@ -90,10 +91,11 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
                 <BookOpen aria-hidden="true" className="size-5" />
                 {siteName}
               </Link>
-              <div className="order-last w-full sm:order-none sm:ml-auto sm:w-auto">
-                {/* Static GET form: public pages stay prerendered. */}
+              {/* Static GET form: public pages stay prerendered. Hidden on
+                  /search, which has its own form. */}
+              <HeaderSearchSlot>
                 <SearchForm variant="header" />
-              </div>
+              </HeaderSearchSlot>
               <div className="flex items-center gap-2">
                 {/* Sets the locale cookie on the client: the page itself
                     stays static per locale. */}

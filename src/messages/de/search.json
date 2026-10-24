@@ -8,9 +8,7 @@
     "submit": "Suchen",
     "pageLabel": "Beiträge durchsuchen",
     "queryLabel": "Suchbegriffe",
-    "hint": "Anführungszeichen für eine genaue Wortfolge, ein Minus zum Ausschließen: \"kleiner Schritt\" -Entwurf",
-    "language": "Sprache",
-    "allLanguages": "Alle Sprachen"
+    "hint": "Anführungszeichen für eine genaue Wortfolge, ein Minus zum Ausschließen: \"kleiner Schritt\" -Entwurf"
   },
   "notice": {
     "intro": "Durchsuchen Sie Titel, Auszüge und Texte veröffentlichter Beiträge.",

@@ -8,9 +8,7 @@
     "submit": "Search",
     "pageLabel": "Search posts",
     "queryLabel": "Search terms",
-    "hint": "Use quotes for an exact phrase and a minus sign to exclude a word: \"small step\" -draft",
-    "language": "Language",
-    "allLanguages": "All languages"
+    "hint": "Use quotes for an exact phrase and a minus sign to exclude a word: \"small step\" -draft"
   },
   "notice": {
     "intro": "Search the titles, excerpts, and text of published posts.",
