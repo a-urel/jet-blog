@@ -14,14 +14,36 @@ export const feedPath = "/feed.xml";
 export const feedContentType = "application/atom+xml";
 export const feedPostLimit = 20;
 
-// Discovery link (<link rel="alternate" type="application/atom+xml">) for
-// Metadata alternates.types. Omitted without a site origin, where the feed
-// answers 404.
+// Category, tag, and author archives each have a feed next to their first
+// page: /categories/[slug]/feed.xml lists the same posts as /categories/[slug].
+export function archiveFeedPath(archivePath: string): string {
+  return `${archivePath}/feed.xml`;
+}
+
+// What a feed covers: its own URL, title, and the HTML page it mirrors. The
+// site feed is the default.
+export type FeedChannel = {
+  path: string;
+  title: string;
+  htmlPath: string;
+};
+
+// Discovery links (<link rel="alternate" type="application/atom+xml">) for
+// Metadata alternates.types: an archive's own feed first, then the site feed.
+// Omitted without a site origin, where every feed answers 404.
 export function feedAlternateTypes(
   siteUrl: URL | null = getConfiguredSiteUrl(),
   siteName: string = getSiteName(),
+  archiveFeed?: Pick<FeedChannel, "path" | "title">,
 ) {
-  return siteUrl ? { [feedContentType]: [{ url: feedPath, title: siteName }] } : undefined;
+  if (!siteUrl) return undefined;
+
+  const siteFeed = { url: feedPath, title: siteName };
+  return {
+    [feedContentType]: archiveFeed
+      ? [{ url: archiveFeed.path, title: archiveFeed.title }, siteFeed]
+      : [siteFeed],
+  };
 }
 
 // Characters XML 1.0 does not allow at all, even escaped: C0 controls other
@@ -111,15 +133,18 @@ function buildEntry(post: PostSummary, siteUrl: URL): string | null {
 
 // Entries keep the input order (newest publication first, see
 // selectLatestPublishedPosts). The feed's updated time is the latest entry
-// update; an empty feed falls back to the generation time.
+// update; an empty feed falls back to the generation time. Without a channel
+// this is the site feed; archive feeds pass their own (archiveFeedPath).
 export function buildAtomFeed(input: {
   siteUrl: URL;
   siteName: string;
   posts: readonly PostSummary[];
+  channel?: FeedChannel;
   now?: Date;
 }): string {
   const { siteUrl, siteName, posts } = input;
-  const selfUrl = new URL(feedPath, siteUrl).href;
+  const channel = input.channel ?? { path: feedPath, title: siteName, htmlPath: "/" };
+  const selfUrl = new URL(channel.path, siteUrl).href;
   const entries = posts.flatMap((post) => {
     const entry = buildEntry(post, siteUrl);
     return entry ? [{ entry, updated: Date.parse(post.updatedAt) }] : [];
@@ -131,10 +156,10 @@ export function buildAtomFeed(input: {
     '<?xml version="1.0" encoding="utf-8"?>',
     `<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/"${attribute("xml:lang", defaultInterfaceLocale)}>`,
     element("id", selfUrl),
-    element("title", siteName, attribute("type", "text")),
+    element("title", channel.title, attribute("type", "text")),
     element("updated", updated.toISOString()),
     `<link rel="self"${attribute("type", feedContentType)}${attribute("href", selfUrl)}/>`,
-    `<link rel="alternate" type="text/html"${attribute("href", new URL("/", siteUrl).href)}/>`,
+    `<link rel="alternate" type="text/html"${attribute("href", new URL(channel.htmlPath, siteUrl).href)}/>`,
     // Entries without credited authors inherit the publication.
     `<author>${element("name", siteName)}</author>`,
     ...entries.map(({ entry }) => entry),

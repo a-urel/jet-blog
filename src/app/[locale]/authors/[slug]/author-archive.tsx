@@ -7,6 +7,7 @@ import { archivePaths } from "@/features/posts/archives";
 import { ArchiveLayout } from "@/features/posts/components/archive-layout";
 import { findAuthorArchive } from "@/features/posts/data";
 import { pagePath } from "@/features/posts/pagination";
+import { archiveFeedChannel } from "@/features/seo/archive-feed";
 import { listingMetadataContext } from "@/features/seo/listing-metadata";
 import { buildArchiveMetadata, noIndexMetadata } from "@/features/seo/metadata";
 import { getSiteName } from "@/lib/site-url";
@@ -29,6 +30,7 @@ export async function authorArchiveMetadata(slug: string, page: number): Promise
     path: archivePaths.author(subject.slug),
     siteName: getSiteName(),
     page,
+    feed: await archiveFeedChannel("author", subject),
     ...(await listingMetadataContext()),
   });
 }

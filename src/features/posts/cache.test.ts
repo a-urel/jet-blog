@@ -20,7 +20,7 @@ const publicChanges: PublicContentChange[] = [
 
 describe("publicContentRoutes", () => {
   it("lists every public URL pattern that renders published content", () => {
-    // Listing, post page, archives, their later pages, sitemap, and feed.
+    // Listing, post page, archives, their later pages, sitemap, and feeds.
     expect(publicContentRoutes.map((route) => route.path)).toEqual([
       "/",
       "/page/[page]",
@@ -33,12 +33,27 @@ describe("publicContentRoutes", () => {
       "/authors/[slug]/page/[page]",
       "/sitemap.xml",
       "/feed.xml",
+      "/categories/[slug]/feed.xml",
+      "/tags/[slug]/feed.xml",
+      "/authors/[slug]/feed.xml",
     ]);
   });
 
-  it("marks dynamic segments as page invalidations", () => {
+  it("marks dynamic pages as page and dynamic Route Handlers as layout invalidations", () => {
     for (const route of publicContentRoutes) {
-      expect(route.type).toBe(route.path.includes("[") ? "page" : undefined);
+      const expected = !route.path.includes("[")
+        ? undefined
+        : route.path.endsWith(".xml")
+          ? "layout"
+          : "page";
+      expect(route.type).toBe(expected);
+    }
+  });
+
+  it("covers the feed of every archive", () => {
+    const paths = publicContentRoutes.map((route) => route.path);
+    for (const archive of ["/categories/[slug]", "/tags/[slug]", "/authors/[slug]"]) {
+      expect(paths).toContain(`${archive}/feed.xml`);
     }
   });
 
@@ -72,6 +87,9 @@ describe("publicCacheInvalidation", () => {
         { path: "/[locale]/authors/[slug]/page/[page]", type: "page" },
         { path: "/sitemap.xml" },
         { path: "/feed.xml" },
+        { path: "/categories/[slug]/feed.xml", type: "layout" },
+        { path: "/tags/[slug]/feed.xml", type: "layout" },
+        { path: "/authors/[slug]/feed.xml", type: "layout" },
       ]);
     },
   );
@@ -91,7 +109,7 @@ describe("publicCacheInvalidation", () => {
 
   it("returns a copy that callers cannot use to change the route list", () => {
     publicCacheInvalidation("post-published").routes.pop();
-    expect(publicContentRoutes).toHaveLength(11);
+    expect(publicContentRoutes).toHaveLength(14);
   });
 });
 
@@ -102,5 +120,9 @@ describe("internalRoute", () => {
 
   it("keeps Route Handlers outside [locale] unchanged", () => {
     expect(internalRoute({ path: "/feed.xml" })).toEqual({ path: "/feed.xml" });
+    expect(internalRoute({ path: "/tags/[slug]/feed.xml", type: "layout" })).toEqual({
+      path: "/tags/[slug]/feed.xml",
+      type: "layout",
+    });
   });
 });

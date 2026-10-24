@@ -528,3 +528,48 @@ describe("feed input", () => {
     },
   );
 });
+
+// Archive feeds (data.ts findArchiveFeed) run the archive queries with the
+// feed limit instead of a page range.
+describe("archive feed input", () => {
+  async function feedRows(who: UserKey | "anon", archive: "category" | "tag" | "author", limit: number) {
+    const client = clients[who];
+    if (archive === "category") {
+      const categories = await selectCategories(client);
+      const nodes = (categories.data ?? []).map((row) => ({
+        id: row.id as string,
+        parentId: row.parent_id as string | null,
+      }));
+      return selectPublishedPostsInCategories(client, collectCategorySubtree(nodes, ids.parent)).limit(limit);
+    }
+    return archive === "tag"
+      ? selectPublishedPostsWithTag(client, ids.tag).limit(limit)
+      : selectPublishedPostsByAuthor(client, ids.author).limit(limit);
+  }
+
+  it.each(["anon", "editor"] as const)(
+    "%s gets only the archive's published posts, newest first, within the limit",
+    async (who) => {
+      for (const [archive, expected] of [
+        ["category", [slugs.inChild, slugs.inGrandchild, slugs.renamedNew]],
+        ["tag", [slugs.inChild, slugs.inGrandchild]],
+        ["author", [slugs.inChild, slugs.inGrandchild, slugs.renamedNew]],
+      ] as const) {
+        const { data, error } = await feedRows(who, archive, feedPostLimit);
+        expect(error).toBeNull();
+        expect(slugsOf(data)).toEqual([...expected].sort());
+
+        const rows = (data ?? []) as unknown as RawPublicPost[];
+        const times = rows.map((row) => Date.parse(row.published_at ?? ""));
+        expect(times.every(Number.isFinite)).toBe(true);
+        expect([...times].sort((left, right) => right - left)).toEqual(times);
+
+        const limited = await feedRows(who, archive, 1);
+        expect(limited.error).toBeNull();
+        expect((limited.data ?? []).map((row) => (row as unknown as RawPublicPost).id)).toEqual([
+          rows[0].id,
+        ]);
+      }
+    },
+  );
+});

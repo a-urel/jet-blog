@@ -360,3 +360,44 @@ export const findAuthorArchive = cache(
       : { kind: "missing" };
   },
 );
+
+export type ArchiveKind = "category" | "tag" | "author";
+
+export type ArchiveFeedLookup =
+  | { kind: "feed"; subject: { name: string; slug: string }; posts: PostSummary[] }
+  | { kind: "redirect"; slug: string }
+  | { kind: "missing" };
+
+// The newest published posts of an archive, for its feed
+// (src/app/<archive>/[slug]/feed.xml). The subject, old-slug redirect, and 404
+// rules are the archive's first page; the posts are the same filtered,
+// ordered query with the feed's limit instead of a page range.
+export async function findArchiveFeed(
+  archive: ArchiveKind,
+  slug: string,
+  limit: number,
+): Promise<ArchiveFeedLookup> {
+  const find =
+    archive === "category"
+      ? findCategoryArchive
+      : archive === "tag"
+        ? findTagArchive
+        : findAuthorArchive;
+  const lookup = await find(slug, 1);
+  if (lookup.kind !== "archive") return lookup;
+
+  const supabase = publicClient();
+  const { id, name, slug: currentSlug } = lookup.subject;
+  const { data, error } = await (archive === "category"
+    ? selectPublishedPostsInCategories(
+        supabase,
+        collectCategorySubtree(await listCategories(), id),
+      ).limit(limit)
+    : archive === "tag"
+      ? selectPublishedPostsWithTag(supabase, id).limit(limit)
+      : selectPublishedPostsByAuthor(supabase, id).limit(limit));
+
+  if (error) throw new Error(`Archive feed could not be loaded: ${error.message}`);
+
+  return { kind: "feed", subject: { name, slug: currentSlug }, posts: mapSummaries(data) };
+}

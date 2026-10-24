@@ -2,8 +2,9 @@
 //
 // Public routes are ISR pages with `revalidate = 300` as a fallback: the home
 // listing, /posts/[slug], /categories/[slug], /tags/[slug], /authors/[slug],
-// the later listing pages under <listing>/page/[page], sitemap.xml, and the
-// Atom feed.xml (robots.txt reads no content). Their anonymous Supabase reads
+// the later listing pages under <listing>/page/[page], sitemap.xml, the Atom
+// feed.xml, and the archive feeds <archive>/[slug]/feed.xml (robots.txt reads
+// no content). Their anonymous Supabase reads
 // sit in the Data Cache under publicPostsCacheTag. Posts embed their category,
 // tags, and credited authors, and archives, the sitemap, and the feed read
 // posts plus taxonomy, so one tag covers all public content; a narrower tag
@@ -22,8 +23,12 @@
 // (src/proxy.ts rewrites /posts/a to /<locale>/posts/a). The routes below are
 // public URL patterns; publicCacheInvalidation returns the internal route
 // pattern of each page (/[locale]/posts/[slug], "page"), so one revalidatePath
-// regenerates every locale's copy. sitemap.xml and feed.xml are Route
-// Handlers outside [locale], with one copy each.
+// regenerates every locale's copy. sitemap.xml and the feeds are Route
+// Handlers outside [locale], with one copy each. A dynamic Route Handler
+// pattern is invalidated as a "layout": Next.js tags a handler's cache entry
+// with <route>/route and one <segment>/layout per segment, never <route>/page,
+// so a "page" invalidation of /tags/[slug]/feed.xml would match nothing. The
+// layout of the feed.xml segment covers that handler only.
 //
 // Listings are paginated by path (./pagination.ts). A page pattern such as
 // /tags/[slug] does not cover the nested /tags/[slug]/page/[page], so the
@@ -83,10 +88,19 @@ export const publicContentRoutes: readonly PublicRoute[] = [
   { path: "/authors/[slug]/page/[page]", type: "page" },
   { path: "/sitemap.xml" },
   { path: "/feed.xml" },
+  { path: "/categories/[slug]/feed.xml", type: "layout" },
+  { path: "/tags/[slug]/feed.xml", type: "layout" },
+  { path: "/authors/[slug]/feed.xml", type: "layout" },
 ];
 
 // Route Handlers outside src/app/[locale]: one copy, no locale.
-const unlocalizedRoutes = new Set(["/sitemap.xml", "/feed.xml"]);
+const unlocalizedRoutes = new Set([
+  "/sitemap.xml",
+  "/feed.xml",
+  "/categories/[slug]/feed.xml",
+  "/tags/[slug]/feed.xml",
+  "/authors/[slug]/feed.xml",
+]);
 
 // The revalidatePath target of a public route: every page is the
 // [locale]-prefixed pattern, invalidated as a page for all locales.

@@ -1,5 +1,6 @@
 {
   "posts": "Posts",
+  "feed": "Atom feed of this archive",
   "category": {
     "eyebrow": "Category",
     "title": "Category: {name}",

@@ -1,5 +1,6 @@
 {
   "posts": "Yazılar",
+  "feed": "Bu arşivin Atom akışı",
   "category": {
     "eyebrow": "Kategori",
     "title": "{name} kategorisi",

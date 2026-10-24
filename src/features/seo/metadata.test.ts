@@ -260,6 +260,15 @@ describe("noIndexMetadata", () => {
 // Metadata merges shallowly: a page's alternates replace the root layout's, so
 // each canonical URL repeats the feed discovery link.
 describe("canonicalAlternates", () => {
+  const archiveInput = {
+    title: "Şema etiketi",
+    description: "Açıklama",
+    path: "/tags/sema",
+    siteName: "Örnek Site",
+    ...turkishListing,
+    feed: { path: "/tags/sema/feed.xml", title: "Şema etiketi | Örnek Site" },
+  };
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -280,5 +289,22 @@ describe("canonicalAlternates", () => {
   it("has no feed link without a site origin", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
     expect(canonicalAlternates("/")).toEqual({ canonical: "/" });
+    expect(
+      buildArchiveMetadata({ ...archiveInput, page: 2 }).alternates,
+    ).toEqual({ canonical: "/tags/sema/page/2" });
+  });
+
+  it("links an archive's own feed from every page of the archive", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
+    vi.stubEnv("NEXT_PUBLIC_SITE_NAME", "Örnek Site");
+
+    for (const page of [1, 2]) {
+      expect(buildArchiveMetadata({ ...archiveInput, page }).alternates?.types).toEqual({
+        "application/atom+xml": [
+          { url: "/tags/sema/feed.xml", title: "Şema etiketi | Örnek Site" },
+          { url: "/feed.xml", title: "Örnek Site" },
+        ],
+      });
+    }
   });
 });

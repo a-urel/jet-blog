@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 22 interface localization, on `claude/ui-localization-6a5870`)
+Last updated: 2026-10-24 (Phase 23 archive feeds; Phase 22 interface localization on `claude/ui-localization-6a5870`)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -200,6 +200,14 @@ does not add requirements on its own.
   locale-free and each public page is prerendered once per locale. Pages read
   the locale through `next/root-params`; Server Actions through a proxy-set
   header. Cache invalidation targets `[locale]` route patterns. No migration.
+- Phase 23 archive feeds: `/categories/[slug]/feed.xml` (including descendant
+  categories), `/tags/[slug]/feed.xml`, and `/authors/[slug]/feed.xml`, built
+  by the Phase 17 builder with a per-archive channel (id, self link, title,
+  HTML link), from the archive queries with the feed limit. Unknown and empty
+  archives 404, old slugs redirect to the current feed. Each archive page
+  links its own feed before the site feed in `alternates.types` and in the
+  archive header. The invalidation map revalidates the three handler patterns
+  as `layout`. No migration.
 - 681 unit tests and 531 local-Supabase RLS tests as of Phase 21 (including the language parity suite, the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
@@ -641,6 +649,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 20 | Polish pack | Publication confirmation, moderation feedback and paging, Back/Forward guard, admin return path, more avatars, default social image, server-only search | Phases 8, 13, 18, 19 | Done |
 | 21 | Open post languages | Any canonical BCP 47 post language, searchable combobox, language-aware search for every language, derived `og:locale` | Phases 14, 19 | Done |
 | 22 | Interface localization | tr/en/de interface with a cookie, proxy rewrite, and next-intl | Phase 21 | Done |
+| 23 | Archive feeds | Atom feeds per category (with descendants), tag, and author, with discovery links | Phases 17, 22 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1588,9 +1597,8 @@ Decisions:
 - Discovery uses `alternates.types`. Metadata merges shallowly, so every page
   that sets a canonical URL repeats the feed link (`canonicalAlternates`).
 
-Follow-ups, not requested: per-category, per-tag, and per-author feeds (the
-archive queries exist; each needs a route, a discovery link on its archive,
-and invalidation entries), full-content entries through a dedicated safe HTML
+Follow-ups, not requested: per-category, per-tag, and per-author feeds (done
+in Phase 23), full-content entries through a dedicated safe HTML
 serializer, and WebSub pings on publish (an external side effect that would
 need a durable job).
 
@@ -1836,6 +1844,41 @@ Follow-ups, not requested: localized Auth email templates per reader
 language (needs a stored preference); a no-JavaScript switcher; edge cache
 configuration once hosting (D5) is chosen.
 
+### Phase 23 — Archive feeds
+
+Goal: readers can subscribe to one category, tag, or author instead of the
+whole publication.
+
+Status: complete on 2026-10-24. Details: README "Syndication feed".
+
+Decisions:
+
+- **Feeds next to the archive's first page.** `/categories/[slug]/feed.xml`,
+  `/tags/[slug]/feed.xml`, `/authors/[slug]/feed.xml` (`archiveFeedPath`).
+  Route Handlers outside `[locale]` like `/feed.xml`; the proxy already skips
+  paths with an extension.
+- **Same contents as the archive.** `findArchiveFeed` resolves the subject
+  with the archive's own lookup (same 404 for unknown slugs and archives
+  without a published post, same old-slug redirect, here to the current
+  feed) and reads the archive query (category subtree, tag, or credit) with
+  `feedPostLimit` instead of a page range. Published posts only.
+- **One builder.** `buildAtomFeed` takes an optional channel (path, title,
+  HTML link); entries are built exactly as in the site feed. The feed author
+  stays the site.
+- **Titles in the default interface language.** Like `/feed.xml`, each feed
+  has one locale-free copy with `xml:lang="tr"`, so its title is the Turkish
+  archive title plus the site name ("Yazılım kategorisi | Yazılar"); author
+  feeds use the author's name. The discovery link uses the same title on
+  every interface locale.
+- **Discovery.** Archive pages (every page of the archive) list their own
+  feed first and the site feed second in `alternates.types`, and the archive
+  header links the feed ("Bu arşivin Atom akışı") when a site URL is set.
+- **Invalidation as `layout`.** Next.js tags a Route Handler's cache entry
+  with `<route>/route` and per-segment `<segment>/layout` tags, never
+  `<route>/page`, so the dynamic feed patterns are revalidated with type
+  `layout`; the same changes as the archives trigger it.
+- Feeds stay out of the sitemap.
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1903,7 +1946,7 @@ index type (HNSW or IVFFlat).
 
 ## Next step
 
-Every phase in the table (through Phase 22, interface localization), both
+Every phase in the table (through Phase 23, archive feeds), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

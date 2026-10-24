@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PostLanguage } from "@/features/posts/language";
 import type { PostSummary } from "@/features/posts/types";
-import { buildAtomFeed, escapeXml, feedAlternateTypes } from "./feed";
+import { archiveFeedPath, buildAtomFeed, escapeXml, feedAlternateTypes } from "./feed";
 import { coverMediaId, mediaOrigin, postWithCover, publishedPost } from "./fixtures";
 
 const atom = "http://www.w3.org/2005/Atom";
@@ -182,6 +182,46 @@ describe("buildAtomFeed", () => {
   });
 });
 
+describe("buildAtomFeed archive channel", () => {
+  const channel = {
+    path: archiveFeedPath("/tags/sema"),
+    title: 'Şema "&" <etiketi> | Örnek Site',
+    htmlPath: "/tags/sema",
+  };
+  const xml = buildAtomFeed({ siteUrl, siteName: "Örnek Site", posts: [publishedPost], channel });
+  const root = parseXml(xml).documentElement!;
+
+  it("identifies the archive feed by its own absolute URL and title", () => {
+    expect(child(root, "id")?.textContent).toBe("https://example.test/tags/sema/feed.xml");
+    expect(child(root, "title")?.textContent).toBe(channel.title);
+    expect(
+      children(root, "link").map((link) => [link.getAttribute("rel"), link.getAttribute("href")]),
+    ).toEqual([
+      ["self", "https://example.test/tags/sema/feed.xml"],
+      ["alternate", "https://example.test/tags/sema"],
+    ]);
+  });
+
+  it("keeps the site as feed author and the default xml:lang", () => {
+    expect(child(child(root, "author")!, "name")?.textContent).toBe("Örnek Site");
+    expect(root.getAttributeNS(xmlNamespace, "lang")).toBe("tr");
+  });
+
+  it("builds entries exactly like the site feed", () => {
+    const site = parseXml(feedOf([publishedPost]));
+    const [archiveEntry] = entries(root.ownerDocument!);
+    const [siteEntry] = entries(site);
+    expect(archiveEntry.toString()).toBe(siteEntry.toString());
+  });
+});
+
+describe("archiveFeedPath", () => {
+  it("puts each archive's feed next to its first page", () => {
+    expect(archiveFeedPath("/categories/yazilim")).toBe("/categories/yazilim/feed.xml");
+    expect(archiveFeedPath("/authors/birinci-yazar")).toBe("/authors/birinci-yazar/feed.xml");
+  });
+});
+
 describe("buildAtomFeed cover image", () => {
   beforeEach(() => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", mediaOrigin);
@@ -224,5 +264,16 @@ describe("feedAlternateTypes", () => {
       "application/atom+xml": [{ url: "/feed.xml", title: "S" }],
     });
     expect(feedAlternateTypes(null, "S")).toBeUndefined();
+  });
+
+  it("lists an archive's own feed before the site feed", () => {
+    const archiveFeed = { path: "/tags/sema/feed.xml", title: "Şema etiketi | S" };
+    expect(feedAlternateTypes(siteUrl, "S", archiveFeed)).toEqual({
+      "application/atom+xml": [
+        { url: "/tags/sema/feed.xml", title: "Şema etiketi | S" },
+        { url: "/feed.xml", title: "S" },
+      ],
+    });
+    expect(feedAlternateTypes(null, "S", archiveFeed)).toBeUndefined();
   });
 });

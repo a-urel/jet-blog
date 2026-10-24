@@ -113,7 +113,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | Project API URL from Supabase's Connect dialog, or the local CLI output. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public publishable API key for that project. |
 | `SUPABASE_SECRET_KEY` | Server-only secret key used by the invitation action and admin client. Required for `/admin/members`. |
-| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical, Open Graph, JSON-LD, share-link, sitemap, robots, and feed URLs. It must match the Supabase Auth site URL and redirect allowlist. Without it the site is `noindex`, `robots.txt` disallows everything, the sitemap is empty, `/feed.xml` answers 404 with no discovery link, and share controls are hidden. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
+| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical, Open Graph, JSON-LD, share-link, sitemap, robots, and feed URLs. It must match the Supabase Auth site URL and redirect allowlist. Without it the site is `noindex`, `robots.txt` disallows everything, the sitemap is empty, `/feed.xml` and the archive feeds answer 404 with no discovery link, and share controls are hidden. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
 | `NEXT_PUBLIC_SITE_NAME` | Optional publication name for titles, `og:site_name`, and the JSON-LD publisher. Defaults to the provisional `Yazılar`; the brand (D5) is still open. |
 
 Restart the development server after changing these values. `NEXT_PUBLIC_*`
@@ -732,7 +732,7 @@ needs a migration: archives reuse the Phase 3 RLS policies and indexes.
   `updateTag("public-posts")` and revalidates `/`, `/posts/[slug]`,
   `/categories/[slug]`, `/tags/[slug]`, `/authors/[slug]`, their later pages
   (see [Public listing pagination](#public-listing-pagination)),
-  `/sitemap.xml`, and `/feed.xml`. Taxonomy and author administration apply the same invalidation; only
+  `/sitemap.xml`, `/feed.xml`, and the archive feeds. Taxonomy and author administration apply the same invalidation; only
   out-of-band database changes wait for the 5-minute fallback. Phase 10 moved this list into
   `features/posts/cache.ts` (see [Launch readiness](#launch-readiness-phase-10)).
 
@@ -792,6 +792,46 @@ order, categories and tags, absolute-only URLs, the cover, and the empty feed.
 reads and checks that drafts and unpublished posts never appear (drafts would
 sort first for an editor without the status filter). The smoke test checks
 the discovery link, status, content type, and public cacheability.
+
+### Archive feeds (Phase 23)
+
+Each category, tag, and author archive has its own Atom feed next to its
+first page: `/categories/<slug>/feed.xml` (posts of the category and all of
+its descendants, like the archive page), `/tags/<slug>/feed.xml`, and
+`/authors/<slug>/feed.xml`. The Route Handlers live in
+`app/{categories,tags,authors}/[slug]/feed.xml/route.ts`, outside the
+`[locale]` segment like `/feed.xml` (the proxy skips paths with an
+extension), and share `features/seo/archive-feed.ts`.
+
+- **Input.** `findArchiveFeed` (`features/posts/data.ts`) resolves the
+  subject with the archive's own lookup and reads the same archive query with
+  `feedPostLimit` (20) instead of a page range: published posts only, newest
+  first, anonymous `public-posts` tagged client.
+- **Status.** An unknown slug, or an archive without a published post,
+  answers 404; an old category, tag, or author slug redirects (308) to the
+  current feed; no site URL answers 404 like the site feed.
+- **Output.** `buildAtomFeed` with a channel: the feed `id` and self link are
+  the feed URL, the HTML alternate is the archive page, entries are identical
+  to the site feed's. The title is the archive title in the default interface
+  language plus the site name ("Yazılım kategorisi | Yazılar"; author feeds
+  use the author's name), matching the feed's `xml:lang="tr"`.
+- **Discovery.** Every page of an archive lists its own feed first and the
+  site feed second in `alternates.types` (`buildArchiveMetadata` with
+  `feed`), and the archive header links "Bu arşivin Atom akışı" when a site
+  URL is set. Feeds are not in the sitemap.
+- **Caching.** `revalidate = 300` with `generateStaticParams` over non-empty
+  archives (unknown slugs render on demand). The invalidation map lists
+  `/categories/[slug]/feed.xml`, `/tags/[slug]/feed.xml`, and
+  `/authors/[slug]/feed.xml` with type `layout`: Next.js tags a Route
+  Handler's entry with `<route>/route` and per-segment `layout` tags, never
+  `<route>/page`, so a `page` invalidation would miss it.
+
+Tests: `feed.test.ts` covers the archive channel (id, self and HTML links,
+title escaping, entries identical to the site feed) and discovery order;
+`metadata.test.ts` the archive discovery links on later pages and without a
+site URL; `cache.test.ts` the feed patterns; `archives.rls.test.ts` runs the
+limited archive queries as anonymous and editor clients (published only,
+newest first, limit honored).
 
 ## Public listing pagination
 
@@ -1105,7 +1145,8 @@ configuration here, message extraction is not used). The shadcn
   internal route. `publicCacheInvalidation` (`src/features/posts/cache.ts`)
   returns `[locale]` route patterns (`/[locale]/posts/[slug]`, `"page"`; the
   home listing is `/[locale]`, `"page"`), so one call regenerates the tr, en,
-  and de copies; `sitemap.xml` and `feed.xml` stay literal. Concrete paths
+  and de copies; `sitemap.xml` and `feed.xml` stay literal, and the archive
+  feed patterns (`/tags/[slug]/feed.xml`) are revalidated as `layout`. Concrete paths
   (one post's comments, admin pages) go through `revalidateLocalizedPath`
   (`src/lib/revalidate.ts`), which revalidates each locale's path or, with a
   type, the `[locale]` pattern.
@@ -1196,6 +1237,7 @@ src/
     authors/[slug]/       # Author archive (+ page/[page])
     sitemap.ts, robots.ts # Published-content sitemap and crawler rules
     feed.xml/route.ts     # Atom feed of the newest published posts (ISR)
+    {categories,tags,authors}/[slug]/feed.xml/route.ts # Archive Atom feeds (ISR)
     search/               # Dynamic, noindex full-text search page
   components/ui/          # Generated shadcn/ui controls
   features/
@@ -1423,7 +1465,7 @@ or creates hosted resources.
   images and YouTube nodes, category, tags, credits) expire the `public-posts`
   Data Cache tag and revalidate `/`, `/posts/[slug]`, `/categories/[slug]`,
   `/tags/[slug]`, `/authors/[slug]`, the later listing pages under
-  `.../page/[page]`, `/sitemap.xml`, and `/feed.xml`. Saving a draft no
+  `.../page/[page]`, `/sitemap.xml`, `/feed.xml`, and the archive feeds. Saving a draft no
   longer touches public caches (the action reads the saved status; if it
   cannot, it invalidates). Media upload and deletion change nothing public:
   deletion is refused while a body references the image. Future taxonomy and
@@ -1993,7 +2035,8 @@ states, security headers, backup runbook, smoke test), self-service reader
 accounts (Phase 11), taxonomy administration, author identity
 administration, private bookmarks (Phase 12), post-moderated comments
 (Phase 13), per-post language (Phase 14), public listing pagination
-(Phase 15), post cover images (Phase 16), the Atom feed (Phase 17),
+(Phase 15), post cover images (Phase 16), the Atom feed (Phase 17) and its
+per-archive feeds (Phase 23),
 profile pictures (Phase 18), full-text search (Phase 19), and the Phase 20
 polish pack (publication confirmation, moderation feedback and paging, a
 Back/Forward guard, admin return paths, more avatars, a default social image,
@@ -2002,7 +2045,7 @@ and a server-only search function). See
 
 Phase 21 opened post languages to any BCP 47 tag, and Phase 22 added the
 Turkish, English, and German interface (cookie-selected, locale-free URLs).
-All planned phases (1–22) are implemented; see ROADMAP.md for the open
+All planned phases (1–23) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

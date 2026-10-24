@@ -6,6 +6,7 @@ import { archivePaths } from "@/features/posts/archives";
 import { ArchiveLayout } from "@/features/posts/components/archive-layout";
 import { findTagArchive } from "@/features/posts/data";
 import { pagePath } from "@/features/posts/pagination";
+import { archiveFeedChannel } from "@/features/seo/archive-feed";
 import { listingMetadataContext } from "@/features/seo/listing-metadata";
 import { buildArchiveMetadata, noIndexMetadata } from "@/features/seo/metadata";
 import { getSiteName } from "@/lib/site-url";
@@ -26,6 +27,7 @@ export async function tagArchiveMetadata(slug: string, page: number): Promise<Me
     path: archivePaths.tag(subject.slug),
     siteName: getSiteName(),
     page,
+    feed: await archiveFeedChannel("tag", subject),
     ...(await listingMetadataContext()),
   });
 }

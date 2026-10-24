@@ -6,7 +6,7 @@ import { openGraphLocale } from "@/features/posts/language";
 import { pagePath } from "@/features/posts/pagination";
 import type { PostSummary } from "@/features/posts/types";
 import { getConfiguredSiteUrl } from "@/lib/site-url";
-import { feedAlternateTypes } from "./feed";
+import { feedAlternateTypes, type FeedChannel } from "./feed";
 
 // Pure metadata builders. Paths stay relative; the root layout's metadataBase
 // (NEXT_PUBLIC_SITE_URL) turns canonical and Open Graph URLs into absolute
@@ -19,11 +19,15 @@ export const noIndexMetadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Canonical URL plus the feed discovery link. Metadata merges segments
+// Canonical URL plus the feed discovery links. Metadata merges segments
 // shallowly, so a page that sets alternates replaces the root layout's and
-// must repeat the feed link, or the link disappears from that page.
-export function canonicalAlternates(path: string): Metadata["alternates"] {
-  const types = feedAlternateTypes();
+// must repeat the site feed link, or the link disappears from that page.
+// Archives add their own feed in front of it.
+export function canonicalAlternates(
+  path: string,
+  archiveFeed?: Pick<FeedChannel, "path" | "title">,
+): Metadata["alternates"] {
+  const types = feedAlternateTypes(undefined, undefined, archiveFeed);
   return { canonical: path, ...(types ? { types } : {}) };
 }
 
@@ -127,6 +131,9 @@ export function buildArchiveMetadata(input: {
   // (interfaceOpenGraphLocales). Post pages use the post's own language.
   pageTitle: PageTitleFormatter;
   locale: string;
+  // The archive's own feed (src/features/seo/archive-feed.ts), linked from
+  // every page of the archive.
+  feed?: Pick<FeedChannel, "path" | "title">;
 }): Metadata {
   const page = input.page ?? 1;
   const path = pagePath(input.path, page);
@@ -139,7 +146,7 @@ export function buildArchiveMetadata(input: {
   return {
     title,
     description: input.description,
-    alternates: canonicalAlternates(path),
+    alternates: canonicalAlternates(path, input.feed),
     openGraph: {
       type: "website",
       url: path,

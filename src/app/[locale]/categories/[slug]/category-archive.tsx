@@ -7,6 +7,7 @@ import { archivePaths } from "@/features/posts/archives";
 import { ArchiveLayout } from "@/features/posts/components/archive-layout";
 import { findCategoryArchive } from "@/features/posts/data";
 import { pagePath } from "@/features/posts/pagination";
+import { archiveFeedChannel } from "@/features/seo/archive-feed";
 import { listingMetadataContext } from "@/features/seo/listing-metadata";
 import { buildArchiveMetadata, noIndexMetadata } from "@/features/seo/metadata";
 import { getSiteName } from "@/lib/site-url";
@@ -28,6 +29,7 @@ export async function categoryArchiveMetadata(slug: string, page: number): Promi
     path: archivePaths.category(subject.slug),
     siteName: getSiteName(),
     page,
+    feed: await archiveFeedChannel("category", subject),
     ...(await listingMetadataContext()),
   });
 }
