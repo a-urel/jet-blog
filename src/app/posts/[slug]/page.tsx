@@ -91,7 +91,7 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
             {post.excerpt}
           </p>
         ) : null}
-        <PostMeta post={post} />
+        <PostMeta post={post} withAvatars />
         <BookmarkProvider postIds={[post.id]}>
           <BookmarkToggle postId={post.id} />
         </BookmarkProvider>

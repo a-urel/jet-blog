@@ -69,8 +69,8 @@ describe("buildAtomFeed", () => {
     publishedAt: "2026-10-22T09:00:00.123456+00:00",
     updatedAt: "2026-10-23T08:00:00+00:00",
     authors: [
-      { author: { id: "a3", name: "Z <Yazar> & Co", slug: "z-yazar" }, sortOrder: 0 },
-      { author: { id: "a1", name: "Birinci Yazar", slug: "birinci-yazar" }, sortOrder: 1 },
+      { author: { id: "a3", name: "Z <Yazar> & Co", slug: "z-yazar", avatarId: null }, sortOrder: 0 },
+      { author: { id: "a1", name: "Birinci Yazar", slug: "birinci-yazar", avatarId: null }, sortOrder: 1 },
     ],
     category: { ...publishedPost.category, name: "Kategori \"&\" <x>" },
   };

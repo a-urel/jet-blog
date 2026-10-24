@@ -93,12 +93,18 @@ describe("error mapping", () => {
 
 describe("mapping", () => {
   it("maps public comments", () => {
+    const avatarId = "33333333-3333-4333-8333-333333333333";
+
     expect(
       mapPublicComments([
-        { id: "c1", display_name: "Ayşe", body: "Merhaba", created_at: "2026-10-23T10:00:00Z" },
+        { id: "c1", display_name: "Ayşe", avatar_id: avatarId, body: "Merhaba", created_at: "2026-10-23T10:00:00Z" },
+        { id: "c2", display_name: "Silinmiş kullanıcı", avatar_id: null, body: "Selam", created_at: "2026-10-23T10:01:00Z" },
+        { id: "c3", display_name: "Can", avatar_id: "../secret", body: "Hey", created_at: "2026-10-23T10:02:00Z" },
       ]),
     ).toEqual([
-      { id: "c1", displayName: "Ayşe", body: "Merhaba", createdAt: "2026-10-23T10:00:00Z" },
+      { id: "c1", displayName: "Ayşe", avatarId, body: "Merhaba", createdAt: "2026-10-23T10:00:00Z" },
+      { id: "c2", displayName: "Silinmiş kullanıcı", avatarId: null, body: "Selam", createdAt: "2026-10-23T10:01:00Z" },
+      { id: "c3", displayName: "Can", avatarId: null, body: "Hey", createdAt: "2026-10-23T10:02:00Z" },
     ]);
     expect(mapPublicComments(null)).toEqual([]);
   });

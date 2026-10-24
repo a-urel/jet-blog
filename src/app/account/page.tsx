@@ -11,10 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { removeOwnAvatarAction, updateOwnAvatarAction } from "@/features/account/actions";
 import { DeleteAccountForm } from "@/features/account/components/delete-account-form";
 import { DisplayNameForm } from "@/features/account/components/display-name-form";
 import { getOwnProfile } from "@/features/account/data";
 import { signOutAction } from "@/features/auth/actions";
+import { AvatarForm } from "@/features/avatars/components/avatar-form";
+import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
 import {
   AuthPageShell,
   StatusNotice,
@@ -54,6 +57,7 @@ export default async function AccountPage({
         : null;
 
   const displayName = profile?.display_name ?? null;
+  const avatarId = profile?.avatar_id ?? null;
   const isActiveAdmin = membership?.role === "admin";
 
   return (
@@ -115,6 +119,33 @@ export default async function AccountPage({
         </CardHeader>
         <CardContent>
           <DisplayNameForm displayName={displayName} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Profil fotoğrafı</CardTitle>
+          <CardDescription>
+            Yorumlarınızın yanında görünür. Değiştirdiğinizde veya kaldırdığınızda
+            eski fotoğraf silinir ve yorumlarınızda yenisi gösterilir.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AvatarForm
+            idPrefix="account"
+            hasAvatar={avatarId !== null}
+            uploadAction={updateOwnAvatarAction}
+            removeAction={removeOwnAvatarAction}
+            preview={
+              <IdentityAvatar
+                kind="profiles"
+                avatarId={avatarId}
+                name={displayName ?? user.email ?? "?"}
+                size="xl"
+                alt={avatarId ? "Profil fotoğrafınız" : "Profil fotoğrafı yok"}
+              />
+            }
+          />
         </CardContent>
       </Card>
 

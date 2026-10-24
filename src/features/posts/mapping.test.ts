@@ -35,8 +35,8 @@ describe("mapPublicPostSummary", () => {
     const post = mapPublicPostSummary(row);
 
     expect(post?.authors).toEqual([
-      { author: { id: "a1", name: "Birinci", slug: "birinci" }, sortOrder: 0 },
-      { author: { id: "a2", name: "İkinci", slug: "ikinci" }, sortOrder: 1 },
+      { author: { id: "a1", name: "Birinci", slug: "birinci", avatarId: null }, sortOrder: 0 },
+      { author: { id: "a2", name: "İkinci", slug: "ikinci", avatarId: null }, sortOrder: 1 },
     ]);
     expect(post?.tags.map((tag) => tag.name)).toEqual(["Başlangıç", "Şema"]);
     expect(post?.category).toEqual({
@@ -48,6 +48,19 @@ describe("mapPublicPostSummary", () => {
     expect(post?.publishedAt).toBe(row.published_at);
     expect(post?.language).toBe("en");
     expect(post?.cover).toBeNull();
+  });
+
+  it("maps author avatars and ignores malformed ones", () => {
+    const avatarId = "44444444-4444-4444-8444-444444444444";
+    const post = mapPublicPostSummary({
+      ...row,
+      post_authors: [
+        { sort_order: 0, author: { id: "a1", name: "Birinci", slug: "birinci", avatar_id: avatarId } },
+        { sort_order: 1, author: { id: "a2", name: "İkinci", slug: "ikinci", avatar_id: "x/../y" } },
+      ],
+    });
+
+    expect(post?.authors.map(({ author }) => author.avatarId)).toEqual([avatarId, null]);
   });
 
   it("maps the cover reference with its alt text", () => {

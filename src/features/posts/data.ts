@@ -338,6 +338,7 @@ export type AuthorArchive = {
   name: string;
   slug: string;
   bio: string | null;
+  avatar_id: string | null;
 };
 
 export const findAuthorArchive = cache(

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { CommentStatus } from "./model";
+import { isUuid, type CommentStatus } from "./model";
 
 // Shared by the server data boundaries and the RLS tests. Column lists are
 // explicit: user_id is not granted to clients, so "*" would fail.
@@ -8,11 +8,14 @@ import type { CommentStatus } from "./model";
 export type PublicComment = {
   id: string;
   displayName: string;
+  // The commenter's current profile avatar, copied by set_own_avatar(); null
+  // without one and after anonymization.
+  avatarId: string | null;
   body: string;
   createdAt: string;
 };
 
-export const publicCommentColumns = "id, display_name, body, created_at";
+export const publicCommentColumns = "id, display_name, avatar_id, body, created_at";
 
 // RLS returns only visible comments of published posts to anonymous readers;
 // the status filter keeps the same result for signed-in editors, who can read
@@ -30,6 +33,7 @@ export function selectVisibleComments(client: SupabaseClient, postId: string) {
 type RawPublicComment = {
   id: string;
   display_name: string;
+  avatar_id: string | null;
   body: string;
   created_at: string;
 };
@@ -38,6 +42,7 @@ export function mapPublicComments(rows: unknown[] | null): PublicComment[] {
   return ((rows ?? []) as RawPublicComment[]).map((row) => ({
     id: row.id,
     displayName: row.display_name,
+    avatarId: isUuid(row.avatar_id) ? row.avatar_id : null,
     body: row.body,
     createdAt: row.created_at,
   }));

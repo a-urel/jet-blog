@@ -11,10 +11,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { authorAccountChoices } from "@/features/authors/account-choices";
-import { deleteAuthorAction, updateAuthorAction } from "@/features/authors/actions";
+import {
+  deleteAuthorAction,
+  removeAuthorAvatarAction,
+  updateAuthorAction,
+  updateAuthorAvatarAction,
+} from "@/features/authors/actions";
 import { listAdminAuthors, listAuthorAccountOptions } from "@/features/authors/admin-data";
 import { authorAccessDenial } from "@/features/authors/components/author-admin-guard";
 import { AuthorForm } from "@/features/authors/components/author-form";
+import { StatusNotice } from "@/features/auth/components/auth-page-shell";
+import { AvatarForm } from "@/features/avatars/components/avatar-form";
+import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
 import { isUuid } from "@/features/posts/admin/validation";
 import { DeleteTaxonomyForm } from "@/features/taxonomy/components/delete-taxonomy-form";
 
@@ -22,11 +30,20 @@ export const metadata: Metadata = {
   title: "Yazar düzenle",
 };
 
-export default async function AdminAuthorPage({ params }: PageProps<"/admin/authors/[id]">) {
+const avatarNotices: Record<string, string> = {
+  "avatar-updated": "Yazar fotoğrafı kaydedildi.",
+  "avatar-removed": "Yazar fotoğrafı kaldırıldı.",
+};
+
+export default async function AdminAuthorPage({
+  params,
+  searchParams,
+}: PageProps<"/admin/authors/[id]">) {
   const denial = await authorAccessDenial();
   if (denial) return denial;
 
-  const { id } = await params;
+  const [{ id }, { status }] = await Promise.all([params, searchParams]);
+  const notice = typeof status === "string" ? avatarNotices[status] : undefined;
   if (!isUuid(id)) notFound();
 
   const [authors, accounts] = await Promise.all([listAdminAuthors(), listAuthorAccountOptions()]);
@@ -48,6 +65,37 @@ export default async function AdminAuthorPage({ params }: PageProps<"/admin/auth
         <h1 className="text-3xl font-semibold tracking-tight">{author.name}</h1>
         <p className="text-muted-foreground">{author.creditCount} yazıda kredisi var</p>
       </div>
+
+      {notice ? <StatusNotice>{notice}</StatusNotice> : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Yazar fotoğrafı</CardTitle>
+          <CardDescription>
+            Künyelerde ve yazar arşivinde görünür. Bağlı hesabın profil
+            fotoğrafından bağımsızdır; değiştirildiğinde veya kaldırıldığında eski
+            fotoğraf silinir.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AvatarForm
+            idPrefix={`author-${author.id}`}
+            hasAvatar={author.avatarId !== null}
+            uploadAction={updateAuthorAvatarAction}
+            removeAction={removeAuthorAvatarAction}
+            hiddenFields={record}
+            preview={
+              <IdentityAvatar
+                kind="authors"
+                avatarId={author.avatarId}
+                name={author.name}
+                size="xl"
+                alt={author.avatarId ? `${author.name} fotoğrafı` : "Yazar fotoğrafı yok"}
+              />
+            }
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

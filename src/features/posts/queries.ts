@@ -92,7 +92,7 @@ export function selectTagBySlug(client: SupabaseClient, slug: string) {
 export function selectAuthorBySlug(client: SupabaseClient, slug: string) {
   return client
     .from("authors")
-    .select("id, name, slug, bio")
+    .select("id, name, slug, bio, avatar_id")
     .eq("slug", slug)
     .maybeSingle();
 }

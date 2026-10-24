@@ -7,11 +7,15 @@ export async function getOwnProfile(userId: string) {
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("display_name, created_at")
+    .select("display_name, avatar_id, created_at")
     .eq("id", userId)
     .maybeSingle();
 
   if (error) throw error;
 
-  return data as { display_name: string | null; created_at: string } | null;
+  return data as {
+    display_name: string | null;
+    avatar_id: string | null;
+    created_at: string;
+  } | null;
 }

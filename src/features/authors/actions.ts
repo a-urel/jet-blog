@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import type { AvatarFormState } from "@/features/avatars/form-state";
+import { removeAvatarObjects, uploadAvatarObject } from "@/features/avatars/storage";
 import { isUuid } from "@/features/posts/admin/validation";
 import { invalidatePublicContent } from "@/features/posts/invalidate";
 import { canManageAuthors, getEditorialContext } from "@/lib/auth/editorial";
@@ -28,6 +30,7 @@ export type AuthorFormState = {
 export type AuthorDeleteState = {
   error: string | null;
 };
+
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -195,6 +198,12 @@ export async function deleteAuthorAction(
   }
 
   const supabase = await createServerSupabaseClient();
+  // Read before deleting: the avatar object is removed once its row is gone.
+  const { data: avatar } = await supabase
+    .from("authors")
+    .select("avatar_id")
+    .eq("id", authorId)
+    .maybeSingle();
   const { error } = await supabase.rpc("delete_author", {
     p_author_id: authorId,
     p_expected_updated_at: updatedAt,
@@ -202,6 +211,75 @@ export async function deleteAuthorAction(
 
   if (error) return { error: mapRpcError(error).message };
 
+  await removeAvatarObjects(supabase, "authors", [avatar?.avatar_id]);
   afterChange(authorId);
   redirect("/admin/authors?status=deleted");
+}
+
+// Attaches (or, with null, removes) an author avatar through
+// set_author_avatar(), which re-checks admin access, the rate limit, and the
+// loaded updated_at, then deletes the detached object. The avatar shows in
+// bylines and the author archive, so this is an author change for the public
+// cache (src/features/posts/cache.ts).
+async function setAuthorAvatar(
+  formData: FormData,
+  avatarId: string | null,
+): Promise<AvatarFormState | null> {
+  const authorId = getString(formData, "id");
+  const updatedAt = getString(formData, "updatedAt");
+  if (!isUuid(authorId) || !updatedAt) return { status: "error", message: "Geçersiz istek." };
+
+  const supabase = await createServerSupabaseClient();
+  const { data: previous, error } = await supabase.rpc("set_author_avatar", {
+    p_author_id: authorId,
+    p_expected_updated_at: updatedAt,
+    p_avatar_id: avatarId,
+  });
+
+  if (error) {
+    // P0002 with an avatar id can also mean the upload is missing; 22023 is
+    // a type or size the database refused.
+    const rejectedUpload = error.code === "22023" || (error.code === "P0002" && avatarId);
+    const message = rejectedUpload
+      ? "Yüklenen görsel kabul edilmedi. Başka bir görselle tekrar deneyin."
+      : mapRpcError(error).message;
+    return { status: "error", message };
+  }
+
+  await removeAvatarObjects(supabase, "authors", [previous as string | null]);
+  afterChange(authorId);
+  return null;
+}
+
+export async function updateAuthorAvatarAction(
+  _previousState: AvatarFormState,
+  formData: FormData,
+): Promise<AvatarFormState> {
+  const denied = await requireAuthorAdmin();
+  if (denied) return { status: "error", message: denied };
+
+  const supabase = await createServerSupabaseClient();
+  const upload = await uploadAvatarObject(supabase, "authors", formData.get("avatar"));
+  if (!upload.ok) return { status: "error", message: upload.error };
+
+  const failure = await setAuthorAvatar(formData, upload.avatarId);
+  if (failure) {
+    await removeAvatarObjects(supabase, "authors", [upload.avatarId]);
+    return failure;
+  }
+
+  redirect(`/admin/authors/${getString(formData, "id")}?status=avatar-updated`);
+}
+
+export async function removeAuthorAvatarAction(
+  _previousState: AvatarFormState,
+  formData: FormData,
+): Promise<AvatarFormState> {
+  const denied = await requireAuthorAdmin();
+  if (denied) return { status: "error", message: denied };
+
+  const failure = await setAuthorAvatar(formData, null);
+  if (failure) return failure;
+
+  redirect(`/admin/authors/${getString(formData, "id")}?status=avatar-removed`);
 }

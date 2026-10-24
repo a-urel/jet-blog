@@ -26,7 +26,7 @@ export type RawPublicPost = {
   }>;
   post_authors: RelatedRecord<{
     sort_order: number;
-    author: RelatedRecord<{ id: string; name: string; slug: string }>;
+    author: RelatedRecord<{ id: string; name: string; slug: string; avatar_id?: string | null }>;
   }>;
   post_tags: RelatedRecord<{
     tag: RelatedRecord<{ id: string; name: string; slug: string }>;
@@ -35,7 +35,7 @@ export type RawPublicPost = {
 
 // Columns the public listing needs. The post page adds the body.
 export const publicPostSummaryColumns =
-  "id, slug, title, excerpt, language, cover_media_id, cover_alt, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors(sort_order, author:authors(id, name, slug)), post_tags(tag:tags(id, name, slug))";
+  "id, slug, title, excerpt, language, cover_media_id, cover_alt, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors(sort_order, author:authors(id, name, slug, avatar_id)), post_tags(tag:tags(id, name, slug))";
 
 export const publicPostColumns = `${publicPostSummaryColumns}, body, content_version`;
 
@@ -46,6 +46,10 @@ function firstRelated<T>(value: RelatedRecord<T>): T | null {
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validUuid(value: string | null | undefined): string | null {
+  return typeof value === "string" && uuidPattern.test(value) ? value : null;
+}
 
 // The database requires alt text on a published cover; an empty string is the
 // controlled fallback for a row that somehow lacks it.
@@ -72,7 +76,17 @@ export function mapPublicPostSummary(row: RawPublicPost): PostSummary | null {
     .flatMap((credit) => {
       const author = firstRelated(credit.author);
       return author
-        ? [{ author: { id: author.id, name: author.name, slug: author.slug } satisfies Author, sortOrder: credit.sort_order }]
+        ? [
+            {
+              author: {
+                id: author.id,
+                name: author.name,
+                slug: author.slug,
+                avatarId: validUuid(author.avatar_id),
+              } satisfies Author,
+              sortOrder: credit.sort_order,
+            },
+          ]
         : [];
     })
     .sort((left, right) => left.sortOrder - right.sortOrder);

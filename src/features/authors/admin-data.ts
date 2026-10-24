@@ -18,6 +18,7 @@ export type AdminAuthor = {
   updatedAt: string;
   creditCount: number;
   profileId: string | null;
+  avatarId: string | null;
 };
 
 export type AuthorAccountOption = {
@@ -34,7 +35,7 @@ export async function listAdminAuthors(): Promise<AdminAuthor[]> {
   const [authors, links] = await Promise.all([
     supabase
       .from("authors")
-      .select("id, name, slug, bio, updated_at, post_authors(count)")
+      .select("id, name, slug, bio, avatar_id, updated_at, post_authors(count)")
       .order("name"),
     supabase.rpc("list_author_account_links"),
   ]);
@@ -57,6 +58,7 @@ export async function listAdminAuthors(): Promise<AdminAuthor[]> {
     updatedAt: row.updated_at,
     creditCount: (row.post_authors as CountEmbed)?.[0]?.count ?? 0,
     profileId: profileByAuthor.get(row.id) ?? null,
+    avatarId: row.avatar_id,
   }));
 }
 

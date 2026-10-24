@@ -6,7 +6,13 @@ import { createClient } from "@supabase/supabase-js";
 
 import { authRateLimitMessages, consumeAuthRateLimit } from "@/features/auth/rate-limit";
 import { validateDisplayName } from "@/features/auth/validation";
-import { publicCommentsCacheTag } from "@/features/comments/cache";
+import type { AvatarFormState } from "@/features/avatars/form-state";
+import {
+  listOwnProfileAvatarIds,
+  removeAvatarObjects,
+  uploadAvatarObject,
+} from "@/features/avatars/storage";
+import { commentsCacheTag, publicCommentsCacheTag } from "@/features/comments/cache";
 import { getSessionUser } from "@/lib/auth/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
@@ -24,6 +30,7 @@ export type DisplayNameState = {
 export type DeleteAccountState = {
   error: string | null;
 };
+
 
 const missingSessionMessage = "Oturum bulunamadı. Yeniden giriş yapın.";
 
@@ -71,6 +78,78 @@ export async function updateDisplayNameAction(
     message: "Görünen ad kaydedildi.",
     value: result.value,
   };
+}
+
+type OwnAvatarChange = {
+  previous_avatar_id: string | null;
+  post_ids: string[] | null;
+  post_slugs: string[] | null;
+};
+
+function ownAvatarErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case "PT429":
+      return "Profil fotoğrafını kısa sürede çok sık değiştirdiniz. Bir süre sonra tekrar deneyin.";
+    case "P0002":
+    case "22023":
+      return "Yüklenen görsel kabul edilmedi. Başka bir görselle tekrar deneyin.";
+    default:
+      return "Profil fotoğrafı kaydedilemedi. Tekrar deneyin.";
+  }
+}
+
+// Attaches (or, with null, removes) the caller's avatar through
+// set_own_avatar(), deletes the detached object, and refreshes the public
+// pages whose comments show the caller's picture: one tag and one literal
+// path per post (src/features/comments/cache.ts). Returns an error message or
+// null on success.
+async function setOwnAvatar(avatarId: string | null): Promise<string | null> {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .rpc("set_own_avatar", { p_avatar_id: avatarId })
+    .single<OwnAvatarChange>();
+
+  if (error || !data) return ownAvatarErrorMessage(error?.code);
+
+  await removeAvatarObjects(supabase, "profiles", [data.previous_avatar_id]);
+
+  (data.post_ids ?? []).forEach((postId) => updateTag(commentsCacheTag(postId)));
+  (data.post_slugs ?? []).forEach((slug) => revalidatePath(`/posts/${slug}`));
+  revalidatePath("/account");
+
+  return null;
+}
+
+export async function updateOwnAvatarAction(
+  _previousState: AvatarFormState,
+  formData: FormData,
+): Promise<AvatarFormState> {
+  const user = await getSessionUser();
+  if (!user) return { status: "error", message: missingSessionMessage };
+
+  const supabase = await createServerSupabaseClient();
+  const upload = await uploadAvatarObject(supabase, "profiles", formData.get("avatar"));
+  if (!upload.ok) return { status: "error", message: upload.error };
+
+  const failure = await setOwnAvatar(upload.avatarId);
+  if (failure) {
+    await removeAvatarObjects(supabase, "profiles", [upload.avatarId]);
+    return { status: "error", message: failure };
+  }
+
+  return { status: "success", message: "Profil fotoğrafı kaydedildi." };
+}
+
+// Used as a form action through useActionState; it needs neither the previous
+// state nor form data.
+export async function removeOwnAvatarAction(): Promise<AvatarFormState> {
+  const user = await getSessionUser();
+  if (!user) return { status: "error", message: missingSessionMessage };
+
+  const failure = await setOwnAvatar(null);
+  if (failure) return { status: "error", message: failure };
+
+  return { status: "success", message: "Profil fotoğrafı kaldırıldı." };
 }
 
 export async function deleteAccountAction(
@@ -137,6 +216,12 @@ export async function deleteAccountAction(
     return { error: "Hesap silinemedi. Tekrar deneyin." };
   }
 
+  // The preflight detached the profile avatar. Remove it and any upload that
+  // was never attached with the caller's session; the Storage policies admit
+  // exactly these objects. The comment pages refreshed below drop the picture.
+  const avatarIds = await listOwnProfileAvatarIds(supabase);
+  await removeAvatarObjects(supabase, "profiles", avatarIds);
+
   // The secret-key client is used only for this one Auth admin call, with the
   // id taken from the verified session above.
   const admin = createAdminSupabaseClient();
@@ -151,7 +236,7 @@ export async function deleteAccountAction(
 
   // The preflight anonymized the caller's comments, possibly on many posts:
   // drop every cached comment read and regenerate post pages so the old
-  // display name leaves public output (src/features/comments/cache.ts).
+  // display name and avatar leave public output (src/features/comments/cache.ts).
   updateTag(publicCommentsCacheTag);
   revalidatePath("/posts/[slug]", "page");
   revalidatePath("/account", "layout");
