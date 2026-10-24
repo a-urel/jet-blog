@@ -2,10 +2,9 @@
   "form": {
     "remove": "Remove picture",
     "removing": "Removing…",
-    "newPhoto": "New picture",
-    "photo": "Picture",
     "hint": "JPEG, PNG, or WebP; up to {maxMegabytes} MB. Non-square images are cropped to the center.",
-    "upload": "Upload",
+    "choose": "Upload picture",
+    "change": "Change picture",
     "uploading": "Uploading…"
   },
   "rejection": {

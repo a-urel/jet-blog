@@ -16,9 +16,12 @@
     "description": "Your saved posts are visible only to you.",
     "link": "Saved posts"
   },
+  "profile": {
+    "title": "Profile",
+    "description": "Your name and picture appear next to your comments."
+  },
   "displayName": {
     "title": "Display name",
-    "description": "The name shown in reader features such as comments.",
     "missingDescription": "You have not set a display name yet. Enter a name before using reader features.",
     "submit": "Save",
     "pending": "Saving…",
@@ -26,8 +29,6 @@
     "saveFailed": "The display name could not be saved. Try again."
   },
   "avatar": {
-    "title": "Profile picture",
-    "description": "Shown next to your comments. When you change or remove it, the old picture is deleted and your comments show the new one.",
     "alt": "Your profile picture",
     "missingAlt": "No profile picture",
     "saved": "Profile picture saved.",

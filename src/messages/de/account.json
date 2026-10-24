@@ -16,9 +16,12 @@
     "description": "Ihre gespeicherten Beiträge sind nur für Sie sichtbar.",
     "link": "Gespeicherte Beiträge"
   },
+  "profile": {
+    "title": "Profil",
+    "description": "Ihr Name und Ihr Bild erscheinen neben Ihren Kommentaren."
+  },
   "displayName": {
     "title": "Anzeigename",
-    "description": "Der Name, der bei Leserfunktionen wie Kommentaren erscheint.",
     "missingDescription": "Sie haben noch keinen Anzeigenamen festgelegt. Geben Sie einen Namen ein, bevor Sie Leserfunktionen nutzen.",
     "submit": "Speichern",
     "pending": "Wird gespeichert…",
@@ -26,8 +29,6 @@
     "saveFailed": "Der Anzeigename konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
   },
   "avatar": {
-    "title": "Profilbild",
-    "description": "Erscheint neben Ihren Kommentaren. Wenn Sie es ändern oder entfernen, wird das alte Bild gelöscht und Ihre Kommentare zeigen das neue.",
     "alt": "Ihr Profilbild",
     "missingAlt": "Kein Profilbild",
     "saved": "Profilbild gespeichert.",

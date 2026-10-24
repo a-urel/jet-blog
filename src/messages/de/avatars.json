@@ -2,10 +2,9 @@
   "form": {
     "remove": "Bild entfernen",
     "removing": "Wird entfernt…",
-    "newPhoto": "Neues Bild",
-    "photo": "Bild",
     "hint": "JPEG, PNG oder WebP; höchstens {maxMegabytes} MB. Nicht quadratische Bilder werden mittig zugeschnitten.",
-    "upload": "Hochladen",
+    "choose": "Bild hochladen",
+    "change": "Bild ändern",
     "uploading": "Wird hochgeladen…"
   },
   "rejection": {

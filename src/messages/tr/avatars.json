@@ -2,10 +2,9 @@
   "form": {
     "remove": "Fotoğrafı kaldır",
     "removing": "Kaldırılıyor…",
-    "newPhoto": "Yeni fotoğraf",
-    "photo": "Fotoğraf",
     "hint": "JPEG, PNG veya WebP; en fazla {maxMegabytes} MB. Kare olmayan görseller ortadan kırpılarak gösterilir.",
-    "upload": "Yükle",
+    "choose": "Fotoğraf yükle",
+    "change": "Fotoğrafı değiştir",
     "uploading": "Yükleniyor…"
   },
   "rejection": {

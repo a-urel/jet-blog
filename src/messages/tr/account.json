@@ -16,9 +16,12 @@
     "description": "Kaydettiğiniz yazılar yalnızca size görünür.",
     "link": "Kaydedilen yazılar"
   },
+  "profile": {
+    "title": "Profil",
+    "description": "Adınız ve fotoğrafınız yorumlarınızın yanında görünür."
+  },
   "displayName": {
     "title": "Görünen ad",
-    "description": "Yorum gibi okur özelliklerinde görünecek ad.",
     "missingDescription": "Henüz bir görünen ad belirlemediniz. Okur özelliklerini kullanmadan önce bir ad girin.",
     "submit": "Kaydet",
     "pending": "Kaydediliyor…",
@@ -26,8 +29,6 @@
     "saveFailed": "Görünen ad kaydedilemedi. Tekrar deneyin."
   },
   "avatar": {
-    "title": "Profil fotoğrafı",
-    "description": "Yorumlarınızın yanında görünür. Değiştirdiğinizde veya kaldırdığınızda eski fotoğraf silinir ve yorumlarınızda yenisi gösterilir.",
     "alt": "Profil fotoğrafınız",
     "missingAlt": "Profil fotoğrafı yok",
     "saved": "Profil fotoğrafı kaydedildi.",

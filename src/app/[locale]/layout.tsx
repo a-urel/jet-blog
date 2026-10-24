@@ -6,6 +6,7 @@ import { BookOpen } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { AccountNavLink } from "@/features/account/components/account-nav-link";
 import { SearchForm } from "@/features/search/components/search-form";
 import { feedAlternateTypes, feedPath } from "@/features/seo/feed";
 import { defaultSocialImage, socialImages } from "@/features/seo/metadata";
@@ -97,14 +98,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
                 {/* Sets the locale cookie on the client: the page itself
                     stays static per locale. */}
                 <LanguageSwitcher />
-                {/* A static link keeps public pages prerendered; /account reads
-                    the session itself and sends signed-out visitors to /login. */}
-                <Link
-                  href="/account"
-                  className="rounded-sm text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
-                >
-                  {t("account")}
-                </Link>
+                {/* Prerendered as a generic icon; the visitor's avatar loads in
+                    the browser, so public pages stay static. */}
+                <AccountNavLink label={t("account")} />
               </div>
             </div>
           </header>

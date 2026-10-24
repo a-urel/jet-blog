@@ -1544,10 +1544,15 @@ is the identity later reader features (bookmarks, comments) will attach to.
   `/admin/members` explains the refusal.
 - **Routes.** `/signup` (display name, email, password), `/login` (readers and
   members), `/login/reset` (reset request), `/auth/callback` (sign-up
-  confirmation), `/auth/recovery` (reset link), `/account` (display name,
-  password change, sign-out, deletion), and `/account/password`. All are
-  dynamic and `noindex`; the public header links to `/account` statically so
-  public pages stay prerendered.
+  confirmation), `/auth/recovery` (reset link), `/account` (a profile card
+  with the picture and display name first, then password change, sign-out,
+  deletion), and `/account/password`. All are dynamic and `noindex`. The
+  public header links to `/account` with a generic icon in the prerendered
+  HTML; after hydration `AccountNavLink` reads the visitor's own profile in
+  the browser (RLS: own row) and shows their avatar or initials, so public
+  pages stay prerendered. It reloads on navigation and on the
+  `avatarChangedEvent` the avatar form dispatches after a successful upload
+  or removal.
 - **Email links.** `/auth/callback` and `/auth/recovery` accept two link
   shapes and always redirect to fixed paths (no open redirect).
   `?token_hash=…&type=…` is Supabase's documented SSR pattern: the route calls

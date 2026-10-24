@@ -77,6 +77,35 @@ export default async function AccountPage({
     >
       {notice ? <StatusNotice>{notice}</StatusNotice> : null}
 
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("profile.title")}</CardTitle>
+          <CardDescription>
+            {displayName
+              ? t("profile.description")
+              : t("displayName.missingDescription")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <AvatarForm
+            idPrefix="account"
+            hasAvatar={avatarId !== null}
+            uploadAction={updateOwnAvatarAction}
+            removeAction={removeOwnAvatarAction}
+            preview={
+              <IdentityAvatar
+                kind="profiles"
+                avatarId={avatarId}
+                name={displayName ?? user.email ?? "?"}
+                size="xl"
+                alt={avatarId ? t("avatar.alt") : t("avatar.missingAlt")}
+              />
+            }
+          />
+          <DisplayNameForm displayName={displayName} />
+        </CardContent>
+      </Card>
+
       {membership ? (
         <Card>
           <CardHeader>
@@ -106,44 +135,6 @@ export default async function AccountPage({
               {t("saved.link")}
             </Link>
           </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("displayName.title")}</CardTitle>
-          <CardDescription>
-            {displayName
-              ? t("displayName.description")
-              : t("displayName.missingDescription")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DisplayNameForm displayName={displayName} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("avatar.title")}</CardTitle>
-          <CardDescription>{t("avatar.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AvatarForm
-            idPrefix="account"
-            hasAvatar={avatarId !== null}
-            uploadAction={updateOwnAvatarAction}
-            removeAction={removeOwnAvatarAction}
-            preview={
-              <IdentityAvatar
-                kind="profiles"
-                avatarId={avatarId}
-                name={displayName ?? user.email ?? "?"}
-                size="xl"
-                alt={avatarId ? t("avatar.alt") : t("avatar.missingAlt")}
-              />
-            }
-          />
         </CardContent>
       </Card>
 
