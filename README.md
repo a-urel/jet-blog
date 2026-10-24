@@ -1747,8 +1747,9 @@ Accounts and public author identities have separate avatars. Migration:
 - **Validation.** `uploadAvatarObject` identifies the format from the file
   signature (the declared type and name are ignored), and requires 16–4096
   pixel edges. The RPCs re-read type and size from Storage metadata and require
-  the caller to own the object. No server-side resizing: `next/image` delivers
-  a square, cropped (`object-cover`) rendition at the displayed size.
+  the caller to own the object. No server-side resizing: the crop dialog
+  already uploads a square, and `next/image` still delivers a square, cropped
+  (`object-cover`) rendition of any non-square object at the displayed size.
 - **Writes.** `set_own_avatar(p_avatar_id)` (any signed-in user, own profile
   only, `avatar.update` limit of 10 per hour; `null` removes) and
   `set_author_avatar(p_author_id, p_expected_updated_at, p_avatar_id)` (active
@@ -1771,6 +1772,18 @@ Accounts and public author identities have separate avatars. Migration:
   were never attached, before deleting the Auth user. An Auth user deleted out
   of band (without the preflight) can leave an orphan object; it is unlisted and
   can be removed through the Storage API.
+- **Cropping (Phase 23).** Choosing a file opens a shadcn/ui dialog with a
+  square crop area and a circular preview: drag or arrow keys (Shift for
+  larger steps) move the picture; the slider, its buttons, the mouse wheel,
+  or `+`/`-` zoom (1–4×). The browser decodes the file through `<img>` (EXIF
+  orientation applied; GIFs keep their first frame), downscales the working
+  copy to a 2048 px longest edge, and exports the crop at 512×512 (smaller
+  crops at their own size) as WebP, or JPEG where WebP encoding is not
+  supported. The result goes through the same upload Server Action, so the
+  server checks above stay authoritative. Files over 25 MB or that cannot be
+  decoded show a localized error before anything is uploaded. Code:
+  `crop.ts` (pure math), `crop-image.ts` (decode/export),
+  `components/avatar-crop-dialog.tsx`.
 - **UI.** The shadcn/ui `avatar` component with an initials fallback (Turkish
   case mapping) and the muted/border tokens of both system themes. Avatars next
   to a visible name are decorative (`alt=""`, initials `aria-hidden`); the
@@ -1783,9 +1796,11 @@ Accounts and public author identities have separate avatars. Migration:
   change (`features/posts/cache.ts`). Own avatar changes invalidate only the
   affected post pages (`features/comments/cache.ts`).
 
-Tests: `features/avatars/avatars.test.ts` and
+Tests: `features/avatars/avatars.test.ts`,
+`features/avatars/crop.test.ts`, and
 `features/avatars/components/identity-avatar.test.tsx` cover signature, type,
-size, and dimension validation, initials, URLs, and fallback markup;
+size, and dimension validation, initials, URLs, fallback markup, and the crop
+math (zoom limits, clamping, panning, downscaling, output size);
 `src/lib/supabase/avatars.rls.test.ts` covers the bucket config, uploads by
 role and path (anonymous/reader/author/editor/admin, admin-only author
 avatars, malformed paths, SVG/GIF/HTML, oversize, overwrite), the upload and

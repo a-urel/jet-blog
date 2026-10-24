@@ -37,6 +37,7 @@ export const accountClientMessages = [
   "account.displayName",
   "account.delete",
   "avatars.form",
+  "avatars.crop",
 ] as const;
 
 // Admin layout: every namespace (admin pages are dynamic and members-only).

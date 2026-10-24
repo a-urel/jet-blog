@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 22 interface localization, on `claude/ui-localization-6a5870`)
+Last updated: 2026-10-25 (Phase 23 avatar cropping, on `claude/avatar-crop`)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–22, complete)
+## Current baseline (Phases 1–23, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -200,6 +200,13 @@ does not add requirements on its own.
   locale-free and each public page is prerendered once per locale. Pages read
   the locale through `next/root-params`; Server Actions through a proxy-set
   header. Cache invalidation targets `[locale]` route patterns. No migration.
+- Phase 23 avatar cropping: choosing a profile or author picture opens a
+  shadcn/ui crop dialog (square crop, circular preview, drag, arrow keys,
+  wheel, +/- and a zoom slider). The browser decodes the file (EXIF
+  orientation applied, longest edge downscaled to 2048 px, GIFs reduced to
+  their first frame), exports a 512×512 WebP (JPEG where WebP encoding is
+  unavailable), and sends it through the unchanged upload Server Action and
+  server validation. No migration, no new dependency (shadcn `slider` added).
 - 681 unit tests and 531 local-Supabase RLS tests as of Phase 21 (including the language parity suite, the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
@@ -262,6 +269,28 @@ fall back to the link and `beforeunload` guards). The search function is
 server-only, but plain Data API reads of published rows stay public by design.
 
 ## Where to resume (session handoff)
+
+Phase 23 (avatar cropping, no migration) was developed on
+`claude/avatar-crop` in its own worktree and is not committed or merged yet.
+No new dependency; shadcn `slider` added (its thumb uses `bg-background`
+instead of the generated `bg-white` and forwards `aria-label`/`aria-valuetext`).
+
+- Last verified (Phase 23, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (739 tests, including the new crop math and output
+  sizing suite), and `npm run build`, on the worktree's own local stack.
+  Browser journey on `next start` as a synthetic reader on `/account`: a
+  1600×900 PNG opened the dialog with focus on the crop area; Escape and
+  Cancel closed it with no upload, no message, and focus back on the upload
+  button; +/=/- zoomed, arrows and dragging panned within the image edges;
+  Save stored a 512×512 WebP and the header avatar changed without a reload.
+  A JPEG with EXIF orientation 6 was shown upright; a 6000×4000 image opened
+  in about 0.3 s and also stored 512×512; a non-image file showed the
+  localized "could not be opened" error; a 1×1 GIF opened and the server
+  still rejected the 1 px export ("Image edges must be between 16 and 4096
+  pixels."). The dialog was checked in both system themes. As a synthetic
+  admin, `/admin/authors/[id]` cropped and saved an author photo (512×512
+  WebP, "Author photo saved."). `npm run test:rls` was not rerun (no
+  database change). Synthetic data was removed.
 
 Phase 22 (interface localization, no migration) was developed on
 `claude/ui-localization-6a5870` in its own worktree and is not committed or
@@ -641,6 +670,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 20 | Polish pack | Publication confirmation, moderation feedback and paging, Back/Forward guard, admin return path, more avatars, default social image, server-only search | Phases 8, 13, 18, 19 | Done |
 | 21 | Open post languages | Any canonical BCP 47 post language, searchable combobox, language-aware search for every language, derived `og:locale` | Phases 14, 19 | Done |
 | 22 | Interface localization | tr/en/de interface with a cookie, proxy rewrite, and next-intl | Phase 21 | Done |
+| 23 | Avatar cropping | Client-side square crop dialog before avatar uploads, fixed 512×512 output | Phases 18, 22 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1836,6 +1866,39 @@ Follow-ups, not requested: localized Auth email templates per reader
 language (needs a stored preference); a no-JavaScript switcher; edge cache
 configuration once hosting (D5) is chosen.
 
+### Phase 23 — Avatar cropping
+
+Goal: people choose which part of a picture becomes their (or an author's)
+avatar instead of always getting the center crop.
+
+Status: complete on 2026-10-25, on `claude/avatar-crop`. Verified as recorded
+in the handoff above. Details: README "Profile pictures (avatars)".
+
+Decisions:
+
+- **Bespoke crop component, no crop library.** Pan, zoom, keyboard, and a
+  circular mask need about 250 lines on top of shadcn `Dialog` and `Slider`;
+  a library would add a dependency without removing the dialog, i18n, or
+  focus work. The math lives in `features/avatars/crop.ts` (pure, unit
+  tested); browser decoding and export in `crop-image.ts`.
+- **Crop state in source pixels.** Center and zoom are stored against the
+  decoded image, so the on-screen size of the crop area never changes the
+  result; zoom 1 is the largest centered square (the previous behavior).
+- **Decode through `<img>`, downscale once.** Browsers apply EXIF
+  orientation to `<img>` and `drawImage`, unlike some `createImageBitmap`
+  option combinations on Safari. The working copy's longest edge is at most
+  2048 px; files above 25 MB are not decoded.
+- **Fixed 512×512 export, WebP first.** Smaller crops are not upscaled. When
+  `toBlob` cannot encode WebP it falls back to JPEG on a white background.
+- **Server validation unchanged.** The export goes through the existing
+  Server Action, file-signature check, type, size, and 16–4096 px limits;
+  the picker additionally accepts GIF only because the browser re-encodes it.
+
+Known limits: the upload button is disabled while uploading, so focus moves
+to the page after a save (unchanged from Phase 18); no pinch-to-zoom gesture
+(the slider and buttons work on touch); a crop of an image smaller than
+16 px is still rejected by the server.
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1903,7 +1966,7 @@ index type (HNSW or IVFFlat).
 
 ## Next step
 
-Every phase in the table (through Phase 22, interface localization), both
+Every phase in the table (through Phase 23, avatar cropping), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

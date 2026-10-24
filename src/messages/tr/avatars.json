@@ -2,10 +2,26 @@
   "form": {
     "remove": "Fotoğrafı kaldır",
     "removing": "Kaldırılıyor…",
-    "hint": "JPEG, PNG veya WebP; en fazla {maxMegabytes} MB. Kare olmayan görseller ortadan kırpılarak gösterilir.",
+    "hint": "JPEG, PNG, WebP veya GIF. Seçtiğiniz görseli kare olarak kırpabilirsiniz; GIF'ler sabit görsele dönüşür.",
     "choose": "Fotoğraf yükle",
     "change": "Fotoğrafı değiştir",
-    "uploading": "Yükleniyor…"
+    "uploading": "Yükleniyor…",
+    "preparing": "Hazırlanıyor…"
+  },
+  "crop": {
+    "title": "Fotoğrafı kırp",
+    "instructions": "Konumlandırmak için görseli sürükleyin veya ok tuşlarını kullanın; kaydırıcıyla ya da + ve − tuşlarıyla yakınlaştırın. Daire, fotoğrafın nasıl görüneceğini gösterir.",
+    "area": "Kırpma alanı",
+    "zoom": "Yakınlaştırma",
+    "zoomValue": "%{percent}",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır",
+    "cancel": "Vazgeç",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor…",
+    "sourceTooLarge": "Bu dosya tarayıcıda düzenlemek için çok büyük (en fazla 25 MB).",
+    "decodeFailed": "Bu görsel açılamadı. JPEG, PNG, WebP veya GIF dosyası seçin.",
+    "exportFailed": "Kırpılmış görsel oluşturulamadı. Tekrar deneyin veya başka bir görsel seçin."
   },
   "rejection": {
     "noFile": "Bir görsel dosyası seçin.",

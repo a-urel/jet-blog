@@ -2,10 +2,26 @@
   "form": {
     "remove": "Remove picture",
     "removing": "Removing…",
-    "hint": "JPEG, PNG, or WebP; up to {maxMegabytes} MB. Non-square images are cropped to the center.",
+    "hint": "JPEG, PNG, WebP, or GIF. After choosing a picture you can crop it to a square; GIFs become still images.",
     "choose": "Upload picture",
     "change": "Change picture",
-    "uploading": "Uploading…"
+    "uploading": "Uploading…",
+    "preparing": "Preparing…"
+  },
+  "crop": {
+    "title": "Crop picture",
+    "instructions": "Drag the picture or use the arrow keys to position it, and zoom with the slider or the + and − keys. The circle shows how the avatar will appear.",
+    "area": "Crop area",
+    "zoom": "Zoom",
+    "zoomValue": "{percent}%",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "sourceTooLarge": "This file is too large to edit in the browser (at most 25 MB).",
+    "decodeFailed": "This image could not be opened. Choose a JPEG, PNG, WebP, or GIF file.",
+    "exportFailed": "The cropped picture could not be created. Try again or choose another image."
   },
   "rejection": {
     "noFile": "Choose an image file.",
