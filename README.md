@@ -1207,6 +1207,44 @@ translated string, the unchanged canonical URL, public cacheability, an ISR
 cache hit per locale, and that internal `/en/...` paths are 404s while
 the anonymous default stays Turkish.
 
+## Toast notifications (Phase 24)
+
+Short confirmations after a user action appear as toasts from shadcn/ui's
+Sonner component (`src/components/ui/sonner.tsx`, `sonner` 2.0.8, added with
+`npx shadcn@4.22.1 add sonner`).
+
+- **One Toaster.** The root layout `src/app/[locale]/layout.tsx` mounts the
+  only `<Toaster />`; the admin layout is nested inside it, and a second
+  Toaster would render every toast twice. The Toaster is a client island
+  without request data, so public pages stay SSG/ISR.
+- **System theme only.** The shadcn template reads the theme from
+  `next-themes`; this project has no theme selector, so the component passes
+  `theme="system"` and `next-themes` is not installed. Sonner follows
+  `prefers-color-scheme`, including changes while the page is open, and the
+  toast colors come from the `--popover`, `--popover-foreground`, and
+  `--border` tokens.
+- **Policy.** A toast confirms a transient success. Errors stay inline: a
+  `FormAlert` (`role="alert"`) tied to its form or field, or the small
+  status line next to a bookmark or comment action. Persistent outcomes that
+  replace a form (sign-up and password-reset "check your email") stay inline
+  too.
+- **Where.** Bookmark saved/removed (one toast per post; toggling again
+  replaces it), comment published and deleted, avatar uploaded and removed,
+  display name saved, member invited, and every admin save that redirects
+  with `?status=` (posts, media, comments moderation, categories, tags,
+  authors, members). `QueryStatusToast`
+  (`src/components/status/query-status.tsx`) shows the server-resolved
+  message once and removes `?status=` from the URL, so a reload does not
+  repeat it.
+- **Accessibility.** Toasts render inside Sonner's `<section
+  aria-live="polite" aria-relevant="additions text">`, which is prerendered
+  before any toast exists and labelled with `common.layout.notifications`
+  (Sonner appends its `alt+T` shortcut). Toasts never take focus; `alt+T`
+  moves focus to them on demand. `src/components/ui/sonner.test.tsx` checks
+  the prerendered live region.
+- **Strings.** Toast text comes from the existing next-intl catalogs; Phase
+  23 adds `common.layout.notifications` and `comments.itemActions.deleted`.
+
 ## Structure and sample content
 
 ```text
@@ -2045,7 +2083,8 @@ and a server-only search function). See
 
 Phase 21 opened post languages to any BCP 47 tag, and Phase 22 added the
 Turkish, English, and German interface (cookie-selected, locale-free URLs).
-All planned phases (1–23) are implemented; see ROADMAP.md for the open
+Phase 24 replaced inline success messages with Sonner toasts.
+All planned phases (1–24) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

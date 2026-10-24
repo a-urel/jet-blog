@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 23 archive feeds; Phase 22 interface localization on `claude/ui-localization-6a5870`)
+Last updated: 2026-10-25 (Phase 23 toast notifications, on `claude/toast-notifications`)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–22, complete)
+## Current baseline (Phases 1–23, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -208,6 +208,11 @@ does not add requirements on its own.
   links its own feed before the site feed in `alternates.types` and in the
   archive header. The invalidation map revalidates the three handler patterns
   as `layout`. No migration.
+- Phase 24 toast notifications: shadcn/ui Sonner (`sonner` 2.0.8, system
+  theme without `next-themes`) mounted once in the root layout. Transient
+  successes (bookmarks, comments, avatars, display name, invitations, and
+  every admin `?status=` redirect) are toasts; errors stay inline. No
+  migration.
 - 681 unit tests and 531 local-Supabase RLS tests as of Phase 21 (including the language parity suite, the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
@@ -270,6 +275,29 @@ fall back to the link and `beforeunload` guards). The search function is
 server-only, but plain Data API reads of published rows stay public by design.
 
 ## Where to resume (session handoff)
+
+Phase 24 (toast notifications, no migration) was developed on
+`claude/toast-notifications` in its own worktree
+(`.claude/worktrees/toast-notifications`, from main a3c6f78) and is not
+committed or merged yet. New dependency: `sonner` 2.0.8 (shadcn `sonner`;
+the template's `next-themes` dependency was removed again).
+
+- Last verified (Phase 24, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (729 tests, including the catalog parity suite and
+  the new prerendered live-region test), and `npm run build` (public routes
+  keep their SSG/ISR markers per locale). Browser journey on `next start`
+  against the worktree's own local stack, as a synthetic reader: saving the
+  display name, saving and removing a bookmark with the keyboard, and
+  publishing and deleting a comment each put one toast into the polite
+  `Bildirimler` live region while focus stayed where it was (the bookmark
+  button kept focus); an empty comment showed only the inline `role="alert"`
+  error. The toast used the dark popover tokens under a dark system theme and
+  switched to light without a reload. As a temporary admin, creating a tag
+  toasted "Etiket oluşturuldu.", removed `?status=` at once, and a reload
+  showed no toast. A post page stayed an ISR cache HIT with the live region
+  in its prerendered HTML. Synthetic data was removed and the stack stopped.
+  `npm run test:rls` and `npm run test:smoke` were not rerun (no database or
+  route change).
 
 Phase 22 (interface localization, no migration) was developed on
 `claude/ui-localization-6a5870` in its own worktree and is not committed or
@@ -650,6 +678,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 21 | Open post languages | Any canonical BCP 47 post language, searchable combobox, language-aware search for every language, derived `og:locale` | Phases 14, 19 | Done |
 | 22 | Interface localization | tr/en/de interface with a cookie, proxy rewrite, and next-intl | Phase 21 | Done |
 | 23 | Archive feeds | Atom feeds per category (with descendants), tag, and author, with discovery links | Phases 17, 22 | Done |
+| 24 | Toast notifications | Sonner toasts for transient successes, inline errors, one live region | Phases 12, 13, 18, 22 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1879,6 +1908,37 @@ Decisions:
   `layout`; the same changes as the archives trigger it.
 - Feeds stay out of the sitemap.
 
+### Phase 24 — Toast notifications
+
+Goal: short, accessible confirmations after user actions without changing
+how errors are reported or how public pages are cached.
+
+Status: complete on 2026-10-25, on `claude/toast-notifications`. Verified as
+recorded in the handoff above. Details: README "Toast notifications
+(Phase 24)".
+
+Decisions:
+
+- **shadcn/ui Sonner, one Toaster.** Mounted in the `[locale]` root layout
+  only; the admin layout is nested inside it. A client island with no request
+  data keeps public pages static.
+- **No `next-themes`.** The shadcn template's theme hook is replaced by
+  `theme="system"`, as AGENTS.md allows only `prefers-color-scheme`.
+- **Success toasts, inline errors.** Validation and action errors stay next
+  to their form or control; outcomes that replace a form (sign-up, password
+  reset) stay inline because they are instructions, not confirmations.
+- **`?status=` becomes a toast.** `QueryStatusToast` shows the
+  server-resolved message once and drops the parameter immediately (before:
+  on the next submission), so reloads and shared URLs do not repeat it.
+- **Live region kept.** Sonner's prerendered polite live region, labelled by
+  the catalog, replaces the removed inline `role="status"` success messages.
+
+Known limits: a toast disappears after Sonner's default four seconds (it
+pauses while hovered or while the tab is hidden); the `alt+T` shortcut in
+the region label is Sonner's and is not translated; the comment submit
+button is disabled while pending, so keyboard focus falls back to the page
+after posting (unchanged from Phase 13).
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1946,7 +2006,7 @@ index type (HNSW or IVFFlat).
 
 ## Next step
 
-Every phase in the table (through Phase 23, archive feeds), both
+Every phase in the table (through Phase 24, toast notifications), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

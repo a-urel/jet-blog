@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PenLine } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { QueryStatus } from "@/components/status/query-status";
+import { QueryStatusToast } from "@/components/status/query-status";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormAlert } from "@/features/auth/components/form-alert";
 import { authorAccountChoices } from "@/features/authors/account-choices";
 import { createAuthorAction } from "@/features/authors/actions";
 import { listAdminAuthors, listAuthorAccountOptions } from "@/features/authors/admin-data";
@@ -52,11 +51,7 @@ export default async function AdminAuthorsPage({ searchParams }: PageProps<"/[lo
         <p className="text-muted-foreground">{t("intro")}</p>
       </div>
 
-      {statusMessage ? (
-        <QueryStatus>
-          <FormAlert tone="success">{statusMessage}</FormAlert>
-        </QueryStatus>
-      ) : null}
+      {statusMessage ? <QueryStatusToast message={statusMessage} /> : null}
 
       <Card>
         <CardHeader>

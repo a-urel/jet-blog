@@ -3,7 +3,7 @@ import Link from "next/link";
 import { FolderTree } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { QueryStatus } from "@/components/status/query-status";
+import { QueryStatusToast } from "@/components/status/query-status";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormAlert } from "@/features/auth/components/form-alert";
 import { createCategoryAction } from "@/features/taxonomy/actions";
 import { listAdminCategories } from "@/features/taxonomy/admin-data";
 import { taxonomyAccessDenial } from "@/features/taxonomy/components/taxonomy-admin-guard";
@@ -51,11 +50,7 @@ export default async function AdminCategoriesPage({
         <p className="text-muted-foreground">{t("categories.intro")}</p>
       </div>
 
-      {statusMessage ? (
-        <QueryStatus>
-          <FormAlert tone="success">{statusMessage}</FormAlert>
-        </QueryStatus>
-      ) : null}
+      {statusMessage ? <QueryStatusToast message={statusMessage} /> : null}
 
       <Card>
         <CardHeader>

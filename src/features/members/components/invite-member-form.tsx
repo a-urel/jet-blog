@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { CircleAlert, CircleCheck } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { CircleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,12 @@ export function InviteMemberForm() {
     inviteMemberAction,
     initialState,
   );
+
+  // Each action returns a new state object, so this runs once per result.
+  // Success is a toast; an error stays inline above the submit button.
+  useEffect(() => {
+    if (state.status === "success" && state.message) toast.success(state.message);
+  }, [state]);
 
   return (
     <form action={formAction} className="max-w-xl space-y-5">
@@ -102,16 +109,6 @@ export function InviteMemberForm() {
           className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >
           <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          {state.message}
-        </p>
-      ) : null}
-
-      {state.status === "success" && state.message ? (
-        <p
-          role="status"
-          className="flex items-start gap-2 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-300"
-        >
-          <CircleCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           {state.message}
         </p>
       ) : null}
