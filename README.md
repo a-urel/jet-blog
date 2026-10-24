@@ -383,6 +383,44 @@ and a CHECK constraint (`23514`) reject anything else. The allowed set lives in
 Translations are not linked to each other, and the interface is not
 localized; both are separate increments.
 
+## Post cover image
+
+A post may have one optional cover image. The reference and its alt text live
+on the post (`posts.cover_media_id`, `posts.cover_alt`), outside the editor
+document, because a description belongs to this occurrence of the file.
+Migration: `20261024140000_post_cover_image.sql`.
+
+- **Authoring.** The post form's "Kapak görseli" field chooses an image from
+  the media library or uploads a new one through the Phase 6 upload action, and
+  has a 16:9 preview, alt text, and a remove control. `create_draft_post` and
+  `update_post_metadata` take required `p_cover_media_id` and `p_cover_alt`
+  parameters (pass `null` for no cover). They lock the media row and refuse
+  unknown or non-image media (`22023`); alt text without a cover, over 300
+  characters, or with control characters is refused too.
+- **Publishing.** Drafts may keep a cover without alt text. `publish_post`
+  refuses a cover without alt text (`23514`), and a published post keeps that
+  rule on later saves; the CHECK constraint `posts_published_cover_requires_alt`
+  backs it up.
+- **Deletion.** `posts.cover_media_id` references `public.media` with
+  `on delete restrict`, and `delete_media` treats a cover like a body image
+  reference (`23503`), so `/admin/media` refuses to delete a cover in use.
+- **Rendering.** The post page header, listing cards, and the member preview
+  render the cover with `next/image` in a fixed 16:9 box (`object-cover`), so
+  no layout shift occurs and readers never need the media row, which stays
+  members-only. The post page preloads it as the likely LCP image. Cards use an
+  empty alt because the linked title next to it names the post.
+- **SEO.** With a cover, Open Graph gets `images` (absolute media URL plus alt)
+  and Twitter switches to `summary_large_image`; Article JSON-LD gets `image`.
+  Without a cover, or without `NEXT_PUBLIC_SUPABASE_URL`, cards stay text-only.
+  The image URL is on the Supabase media origin, which the CSP `img-src`
+  already allows.
+
+Tests: `features/posts/admin/validation.test.ts`, `features/seo/metadata.test.ts`,
+`features/seo/json-ld.test.ts`, and `features/posts/mapping.test.ts` cover input
+validation and output; `src/lib/supabase/post-cover.rls.test.ts` covers the
+anonymous/reader/author/editor/admin matrix, unknown, unregistered, and
+non-image media, alt rules, publishing, public reads, and deletion protection.
+
 ## Post body editor and renderer
 
 Phase 5 stores the post body as a Tiptap/ProseMirror JSON document in
@@ -479,7 +517,7 @@ Storage bucket with UUID object paths and server-side validation.
   on a loopback address, so `images.dangerouslyAllowLocalIP` is enabled only
   when `NEXT_PUBLIC_SUPABASE_URL` is loopback.
 - **Deletion.** `/admin/media` lists uploads. `delete_media` refuses media that
-  any post body references (`23503`), then the Storage object is removed with
+  any post body or post cover references (`23503`), then the Storage object is removed with
   the user's session. Authors delete only their own uploads; editors and admins
   delete any unused upload. The reference scan reads every post body; add an
   index only if the media library grows enough to need one.
@@ -618,8 +656,10 @@ needs a migration: archives reuse the Phase 3 RLS policies and indexes.
 
 - **Post metadata.** `features/seo/metadata.ts` builds title, description,
   canonical `/posts/<slug>`, Open Graph (`article` with published/modified
-  time, authors in credit order, section, tags, `tr_TR`, site name), and a
-  text-only Twitter `summary` card (posts have no cover image yet). Paths stay
+  time, authors in credit order, section, tags, the post language's locale,
+  site name, and the cover image when set), and a Twitter card
+  (`summary_large_image` with a cover, otherwise `summary`; see
+  [Post cover image](#post-cover-image)). Paths stay
   relative; the root layout's `metadataBase` makes them absolute.
 - **Article JSON-LD.** `features/seo/json-ld.ts` renders a schema.org
   `BlogPosting` with `headline`, `description`, `datePublished`,
@@ -1447,7 +1487,7 @@ redirects anonymous visitors to sign-in.
 
 ## Next increment
 
-Phases 1–14 are implemented: authentication, editorial membership with
+Phases 1–16 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
@@ -1459,10 +1499,11 @@ invalidation map, conflict handling, write rate limits, error and loading
 states, security headers, backup runbook, smoke test), self-service reader
 accounts (Phase 11), taxonomy administration, author identity
 administration, private bookmarks (Phase 12), post-moderated comments
-(Phase 13), and per-post language (Phase 14). See
+(Phase 13), per-post language (Phase 14), public listing pagination
+(Phase 15), and post cover images (Phase 16). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-All planned phases (1–14) are implemented; see ROADMAP.md for the open
+All planned phases (1–16) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

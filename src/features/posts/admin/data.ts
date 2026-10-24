@@ -34,6 +34,8 @@ type RawPost = {
   body?: unknown;
   content_version?: number;
   language?: string;
+  cover_media_id?: string | null;
+  cover_alt?: string | null;
   category: RelatedRecord<{ name: string }>;
 };
 
@@ -203,7 +205,7 @@ export async function getAdminPostDetail(
   const postResult = await supabase
     .from("posts")
     .select(
-      "id, title, slug, excerpt, category_id, status, revision, updated_at, published_at, created_by, body, content_version, language, category:categories(name)",
+      "id, title, slug, excerpt, category_id, status, revision, updated_at, published_at, created_by, body, content_version, language, cover_media_id, cover_alt, category:categories(name)",
     )
     .eq("id", postId)
     .maybeSingle();
@@ -265,6 +267,8 @@ export async function getAdminPostDetail(
       body: raw.body ?? null,
       contentVersion: raw.content_version ?? 0,
       language: isPostLanguage(raw.language) ? raw.language : defaultPostLanguage,
+      coverMediaId: raw.cover_media_id ?? null,
+      coverAlt: raw.cover_alt ?? null,
       status: raw.status,
       revision: raw.revision,
       updatedAt: raw.updated_at,

@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-23 (Phase 13 comments complete)
+Last updated: 2026-10-24 (Phase 15 listing pagination and Phase 16 post cover image merged)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–15, complete)
+## Current baseline (Phases 1–16, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -127,6 +127,22 @@ does not add requirements on its own.
   matching locale (`tr_TR`, `en_US`, `de_DE`), and JSON-LD `inLanguage` the
   language code. Translations are not linked; interface localization is a
   separate concern.
+- Phase 15 listing pagination: the home listing and the category, tag, and
+  author archives render one page at a time at path-based ISR routes
+  (`<listing>/page/<n>`, page 1 at the listing URL, `/page/1` redirects),
+  ordered by `published_at desc, id desc`, with self-canonical pages,
+  `noindex` 404s for invalid or out-of-range pages, accessible shadcn/ui
+  controls, and invalidation of every listing page on public changes. No
+  migration.
+- Phase 16 post cover image: optional `posts.cover_media_id` (FK to
+  `public.media`, `on delete restrict`) and occurrence alt text
+  `posts.cover_alt`, required `p_cover_media_id`/`p_cover_alt` parameters on
+  both authoring RPCs (registered image media only, row lock like body images),
+  alt text required by `publish_post` and a CHECK constraint once published,
+  and cover-aware `delete_media`. The post form chooses or uploads a cover with
+  preview, alt text, and remove. The post header, listing cards, and member
+  preview render it in a 16:9 `next/image` box; Open Graph `images`, Twitter
+  `summary_large_image`, and JSON-LD `image` use its absolute media URL.
 - 443 unit tests and 339 local-Supabase RLS tests (including the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
   administration suites, the Phase 11
@@ -152,7 +168,11 @@ does not add requirements on its own.
   change, deactivation, denied access, draft creation/editing, a stale-form
   conflict, preview, draft exclusion from public routes, and author isolation.
 
-Known gaps: posts have no cover or Open Graph image (text-only cards); the site
+Known gaps: a post without a cover still has a text-only social card (there is
+no site-wide default image), and the cover is cropped to 16:9 everywhere with no
+focal point; Open Graph image URLs point at the original upload on the media
+origin (no 1200×630 rendition) and omit width/height, because readers cannot
+read media rows. The site
 name and origin are provisional (D5), so canonical/sitemap URLs point at
 whatever `NEXT_PUBLIC_SITE_URL` holds. Public listings are paginated (Phase
 15), but the sitemap and archive discovery for `generateStaticParams` still
@@ -179,16 +199,18 @@ its reports disappear with it.
 
 ## Where to resume (session handoff)
 
-Phase 15 (public listing pagination, no migration) was implemented on
-2026-10-24 on the `claude/public-pagination-2ed447` branch (not yet merged
-into `main`). Phases 1–13, taxonomy and author identity administration, and the fixes from
-the all-roles browser test (`59771bc`) are on `origin/main`. The first-admin
-bootstrap command (`npm run admin:bootstrap`, migration
-`20261024100000_admin_bootstrap.sql`) followed on 2026-10-24, and Phase 14
-(post language, migration `20261024120000_post_language.sql`) the same day;
-commit only on request. Do not push without an explicit request.
+Phases 1–13, taxonomy and author identity administration, and the fixes from
+the all-roles browser test (`59771bc`) are on `origin/main`. On 2026-10-24
+followed, on `main` only: the first-admin bootstrap command (`npm run
+admin:bootstrap`, migration `20261024100000_admin_bootstrap.sql`), Phase 14
+(post language, `20261024120000_post_language.sql`), Phase 15 (public listing
+pagination, no migration; developed on `claude/public-pagination-2ed447`), and
+Phase 16 (post cover image, `20261024140000_post_cover_image.sql`; developed
+on `claude/post-cover-image-5be40a`). Phases 15 and 16 were built in parallel
+and merged into `main` together. Commit only on request. Do not push without
+an explicit request.
 
-- Last verified (Phase 15): `npm run lint`, `npm run typecheck`, `npm test`
+- Last verified (Phase 15, before the merge): `npm run lint`, `npm run typecheck`, `npm test`
   (512 tests), `npm run test:rls` (353 tests), `npm run build`, and
   `npm run test:smoke` (against `next start` on a free port) pass. No
   `supabase db reset` was run (it would remove the local admin account); the
@@ -201,6 +223,22 @@ commit only on request. Do not push without an explicit request.
   kept its child-category links. After the editor unpublished one synthetic
   post, the next anonymous requests for the already cached `/page/3` and the
   tag, author, and category later pages showed the shifted posts and totals.
+
+- Last verified (Phase 16, before the merge): `npm run lint`, `npm run typecheck`, `npm test`
+  (502 tests), `npm run test:rls` (368 tests), `npm run build`, and
+  `npm run test:smoke` (against `next start` on port 3217) pass on a fresh
+  local stack with all seventeen migrations. A browser journey as an admin
+  chose a 1200×630 library image as the cover of the seed draft and saved it
+  without alt text; Publish was refused ("Kapak görseli için alternatif
+  metin…", `?error=cover`); after adding alt text it published. The anonymous
+  post page (`x-nextjs-cache: HIT`) served the cover with its alt text,
+  `og:image` and `og:image:alt`, `twitter:card` `summary_large_image`, and
+  JSON-LD `image`; the home card showed it in a reserved 16:9 box (light and
+  dark, mobile width); the member preview showed it; deleting the media at
+  `/admin/media` was refused (`?error=in-use`). The unsaved-changes prompt
+  fired after choosing a cover and typing alt text. The upload button in the
+  cover field reuses `uploadMediaAction` and was not clicked in the browser
+  (the pane cannot pick files); RLS tests cover the upload path.
 
 - Last verified (Phase 14): `npm run lint`, `npm run typecheck`, `npm test`
   (484 tests), `npm run test:rls` (347 tests), `npm run build`, and
@@ -382,6 +420,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | Done |
 | 14 | Post language | Per-post language (tr, en, de) in form, markup, OG, JSON-LD | Phase 9 | Done |
 | 15 | Listing pagination | Path-based ISR pages for home and archives, stable order | Phase 9, 10 | Done |
+| 16 | Post cover image | Optional cover with alt text in header, cards, OG/Twitter, JSON-LD | Phases 6, 9 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1277,6 +1316,29 @@ Implementation notes:
 Follow-up, not requested: pagination for the admin comment moderation queue
 (still the latest 100 rows per filter).
 
+### Phase 16 — Post cover image
+
+Goal: an optional cover image per post for the article header, listing cards,
+Open Graph/Twitter cards, and Article JSON-LD.
+
+Status: complete on 2026-10-24. Verified as recorded in the handoff above.
+
+Implementation notes:
+
+- The reference and alt text stay on `posts`, outside the editor document
+  (AGENTS.md). Alt text is per occurrence, so the same media can be a cover in
+  one post and a differently described body image in another.
+- The cover parameters are required on the authoring RPCs, like
+  `p_language`, so an old client cannot clear a cover by omitting them.
+- Drafts may save a cover without alt text; publishing requires it
+  (`publish_post`, `assert_post_cover`, and the CHECK constraint).
+- Readers still cannot read `public.media`. Renderers derive the URL from the
+  id and use a fixed 16:9 box, so no dimensions are exposed or copied.
+
+Follow-ups, not requested: a site-wide default social image, a focal point or
+per-cover aspect choice, and a 1200×630 Open Graph rendition (for example
+through the image optimizer on the site origin) with width/height.
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1330,7 +1392,7 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Every phase in the table (through Phase 15, listing pagination), both
+Every phase in the table (through Phase 16, post cover image), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

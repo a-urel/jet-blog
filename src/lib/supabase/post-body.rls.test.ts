@@ -71,6 +71,8 @@ function updatePayload(body: unknown, contentVersion = 1) {
     p_body: body,
     p_content_version: contentVersion,
     p_language: "tr",
+    p_cover_media_id: null,
+    p_cover_alt: null,
   };
 }
 
@@ -133,6 +135,8 @@ beforeAll(async () => {
     p_body: formattedBody,
     p_content_version: 1,
     p_language: "tr",
+    p_cover_media_id: null,
+    p_cover_alt: null,
   });
 
   if (error) throw error;
@@ -221,6 +225,8 @@ describe("post body storage", () => {
       p_body: { type: "doc", content: [{ type: "script" }] },
       p_content_version: 1,
       p_language: "tr",
+      p_cover_media_id: null,
+      p_cover_alt: null,
     });
 
     expect(error?.code).toBe("22023");

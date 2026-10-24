@@ -103,6 +103,8 @@ function createDraft(client: SupabaseClient, slug: string) {
     p_body: body,
     p_content_version: 1,
     p_language: "tr",
+    p_cover_media_id: null,
+    p_cover_alt: null,
   });
 }
 
@@ -143,6 +145,8 @@ function saveTitle(
     p_body: body,
     p_content_version: 1,
     p_language: "tr",
+    p_cover_media_id: null,
+    p_cover_alt: null,
   });
 }
 

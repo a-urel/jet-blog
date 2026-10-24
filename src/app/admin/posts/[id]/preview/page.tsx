@@ -14,6 +14,7 @@ import {
 import { getAdminPostDetail } from "@/features/posts/admin/data";
 import { canEditPost } from "@/features/posts/admin/permissions";
 import { PostBody } from "@/features/posts/components/post-body";
+import { PostCover } from "@/features/posts/components/post-cover";
 import { postLanguageLabels } from "@/features/posts/language";
 import { getEditorialContext } from "@/lib/auth/editorial";
 
@@ -134,6 +135,22 @@ export default async function PostPreviewPage({
           <p className="text-sm text-muted-foreground">
             Sürüm {post.revision} · /{post.slug}
           </p>
+          {post.coverMediaId ? (
+            <div className="space-y-2">
+              <PostCover
+                mediaId={post.coverMediaId}
+                alt={post.coverAlt ?? ""}
+                sizes="(min-width: 768px) 45rem, 100vw"
+                className="rounded-xl"
+              />
+              {post.coverAlt ? null : (
+                <p className="text-sm text-amber-900 dark:text-amber-200">
+                  Kapak görselinin alternatif metni yok; yayınlamadan önce
+                  ekleyin.
+                </p>
+              )}
+            </div>
+          ) : null}
         </header>
 
         <div lang={post.language}>

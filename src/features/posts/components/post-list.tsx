@@ -8,6 +8,7 @@ import { BookmarkProvider } from "@/features/bookmarks/components/bookmark-provi
 import { BookmarkToggle } from "@/features/bookmarks/components/bookmark-toggle";
 import { archivePaths, postPath } from "../archives";
 import type { PostSummary } from "../types";
+import { PostCover } from "./post-cover";
 import { PostMeta } from "./post-meta";
 
 // Card grid shared by the home listing and the category, tag, and author
@@ -29,6 +30,20 @@ export function PostList({
         {posts.map((post, index) => (
           <article key={post.id} className={index === 0 ? "md:col-span-2" : ""}>
             <Card className="h-full gap-5 p-2">
+              {post.cover ? (
+                // Decorative here: the linked title right below names the
+                // post, and the alt text is read on the post page itself.
+                <PostCover
+                  mediaId={post.cover.mediaId}
+                  alt=""
+                  sizes={
+                    index === 0
+                      ? "(min-width: 1024px) 60rem, 100vw"
+                      : "(min-width: 1024px) 30rem, (min-width: 768px) 50vw, 100vw"
+                  }
+                  className="rounded-lg"
+                />
+              ) : null}
               <CardHeader className="gap-4 pt-4">
                 <Link
                   href={archivePaths.category(post.category.slug)}

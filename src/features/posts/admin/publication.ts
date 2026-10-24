@@ -4,6 +4,7 @@ export type PublicationErrorKey =
   | "forbidden"
   | "conflict"
   | "category"
+  | "cover"
   | "body"
   | "state"
   | "missing"
@@ -20,8 +21,9 @@ export function publicationErrorKey(error: {
     case "40001":
       return "conflict";
     case "23514":
-      return "category";
+      return error.message?.includes("Cover") ? "cover" : "category";
     case "22023":
+      if (error.message?.includes("cover")) return "cover";
       return error.message?.includes("post body") ||
         error.message?.includes("content version")
         ? "body"
@@ -42,6 +44,8 @@ export const publicationErrorMessages: Record<PublicationErrorKey, string> = {
   conflict:
     "Bu yazı sayfa açıldıktan sonra değişti. Sayfayı yenileyip güncel sürümle tekrar deneyin.",
   category: "Yayınlamak için önce bir kategori seçip kaydedin.",
+  cover:
+    "Kapak görseli için alternatif metin girip kaydedin veya kapağı kaldırın; yayınlanan kapak, ekran okuyucular için bir açıklama gerektirir.",
   body: "Yazı gövdesi geçersiz olduğu için yayınlanamadı.",
   state: "Yazının durumu bu işlem için uygun değil. Sayfayı yenileyin.",
   missing: "Yazı bulunamadı veya erişim yetkiniz yok.",

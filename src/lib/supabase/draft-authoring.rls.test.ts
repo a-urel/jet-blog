@@ -81,6 +81,8 @@ const bodyFields = {
   p_body: { type: "doc", content: [{ type: "paragraph" }] },
   p_content_version: 1,
   p_language: "tr",
+  p_cover_media_id: null,
+  p_cover_alt: null,
 };
 
 function draftPayload(overrides: Record<string, unknown> = {}) {

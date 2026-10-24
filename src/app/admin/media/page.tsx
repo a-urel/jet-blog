@@ -37,7 +37,7 @@ const errorMessages: Record<string, string> = {
   invalid: "Geçersiz istek.",
   forbidden: "Bu görseli silme yetkiniz yok.",
   "not-found": "Görsel bulunamadı.",
-  "in-use": "Bu görsel bir yazıda kullanıldığı için silinemez. Önce yazılardan kaldırın.",
+  "in-use": "Bu görsel bir yazının gövdesinde veya kapağında kullanıldığı için silinemez. Önce yazılardan kaldırın.",
   "object-remains":
     "Görsel kaydı silindi ancak dosya Storage'dan kaldırılamadı. Tekrar deneyin veya bir yöneticiye bildirin.",
   "rate-limited":
@@ -71,8 +71,8 @@ export default async function AdminMediaPage({
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Medya</h1>
         <p className="text-muted-foreground">
-          Yazı editöründen yüklenen görseller. Bir yazıda kullanılan görsel
-          silinemez.
+          Yazı editöründen veya kapak alanından yüklenen görseller. Bir yazının
+          gövdesinde ya da kapağında kullanılan görsel silinemez.
         </p>
       </div>
 

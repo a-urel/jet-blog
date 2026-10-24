@@ -28,6 +28,16 @@ describe("publicationErrorKey", () => {
     ).toBe("failed");
   });
 
+  it("separates the cover alt rule from the category rule", () => {
+    expect(
+      publicationErrorKey({ code: "23514", message: "Cover alt text is required to publish" }),
+    ).toBe("cover");
+    expect(
+      publicationErrorKey({ code: "23514", message: "Published post requires a category" }),
+    ).toBe("category");
+    expect(publicationErrorKey({ code: "22023", message: "Unknown cover media" })).toBe("cover");
+  });
+
   it("falls back for unknown errors", () => {
     expect(publicationErrorKey(null)).toBe("failed");
     expect(publicationErrorKey({ code: "XX000" })).toBe("failed");

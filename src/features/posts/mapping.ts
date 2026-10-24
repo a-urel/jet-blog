@@ -1,5 +1,5 @@
 import { isPostLanguage } from "./language";
-import type { Author, Category, Post, PostSummary, Tag } from "./types";
+import type { Author, Category, Post, PostCoverImage, PostSummary, Tag } from "./types";
 
 // Pure mapping from PostgREST rows to the public read model. Kept free of
 // server-only imports so unit tests can exercise it directly.
@@ -12,6 +12,8 @@ export type RawPublicPost = {
   title: string;
   excerpt: string | null;
   language: string;
+  cover_media_id?: string | null;
+  cover_alt?: string | null;
   published_at: string | null;
   updated_at: string;
   body?: unknown;
@@ -33,13 +35,25 @@ export type RawPublicPost = {
 
 // Columns the public listing needs. The post page adds the body.
 export const publicPostSummaryColumns =
-  "id, slug, title, excerpt, language, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors(sort_order, author:authors(id, name, slug)), post_tags(tag:tags(id, name, slug))";
+  "id, slug, title, excerpt, language, cover_media_id, cover_alt, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors(sort_order, author:authors(id, name, slug)), post_tags(tag:tags(id, name, slug))";
 
 export const publicPostColumns = `${publicPostSummaryColumns}, body, content_version`;
 
 function firstRelated<T>(value: RelatedRecord<T>): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// The database requires alt text on a published cover; an empty string is the
+// controlled fallback for a row that somehow lacks it.
+function mapCover(row: RawPublicPost): PostCoverImage | null {
+  const mediaId = row.cover_media_id;
+  if (typeof mediaId !== "string" || !uuidPattern.test(mediaId)) return null;
+
+  return { mediaId, alt: row.cover_alt ?? "" };
 }
 
 function manyRelated<T>(value: RelatedRecord<T>): T[] {
@@ -76,6 +90,7 @@ export function mapPublicPostSummary(row: RawPublicPost): PostSummary | null {
     title: row.title,
     excerpt: row.excerpt,
     language: row.language,
+    cover: mapCover(row),
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
     authors,

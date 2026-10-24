@@ -6,6 +6,7 @@ const authorA = "11111111-1111-4111-8111-111111111111";
 const authorB = "22222222-2222-4222-8222-222222222222";
 const tagA = "33333333-3333-4333-8333-333333333333";
 const category = "55555555-5555-4555-8555-555555555555";
+const cover = "66666666-6666-4666-8666-666666666666";
 
 function raw(overrides: Partial<RawPostMetadata> = {}): RawPostMetadata {
   return {
@@ -14,6 +15,8 @@ function raw(overrides: Partial<RawPostMetadata> = {}): RawPostMetadata {
     excerpt: "  Kısa bir özet. ",
     categoryId: category,
     language: "en",
+    coverMediaId: "",
+    coverAlt: "",
     tagIds: [tagA],
     creditAuthorIds: [authorA, authorB],
     creditSortOrders: ["0", "1"],
@@ -157,5 +160,64 @@ describe("validatePostMetadata", () => {
       authorB,
       authorA,
     ]);
+  });
+
+  it("has no cover by default", () => {
+    const result = validatePostMetadata(raw());
+
+    expect(result.ok && result.data.coverMediaId).toBeNull();
+    expect(result.ok && result.data.coverAlt).toBeNull();
+  });
+
+  it("keeps a cover with trimmed alt text", () => {
+    const result = validatePostMetadata(
+      raw({ coverMediaId: ` ${cover.toUpperCase()} `, coverAlt: "  Sisli bir vadi " }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.data.coverMediaId).toBe(cover);
+    expect(result.data.coverAlt).toBe("Sisli bir vadi");
+  });
+
+  it("allows a draft cover without alt text", () => {
+    const result = validatePostMetadata(raw({ coverMediaId: cover, coverAlt: "   " }));
+
+    expect(result.ok && result.data.coverAlt).toBeNull();
+  });
+
+  it("drops alt text when no cover is selected", () => {
+    const result = validatePostMetadata(raw({ coverAlt: "Kapak yok" }));
+
+    expect(result.ok && result.data.coverAlt).toBeNull();
+  });
+
+  it.each(["not-a-uuid", "javascript:alert(1)", "../media/x"])(
+    "rejects the cover reference %s",
+    (coverMediaId) => {
+      const result = validatePostMetadata(raw({ coverMediaId }));
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.fieldErrors.coverMediaId).toBeDefined();
+    },
+  );
+
+  it.each([
+    ["too long", "a".repeat(301)],
+    ["with a control character", "Satır\nsonu"],
+  ])("rejects cover alt text %s", (_label, coverAlt) => {
+    const result = validatePostMetadata(raw({ coverMediaId: cover, coverAlt: `x${coverAlt}x` }));
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.fieldErrors.coverAlt).toBeDefined();
+  });
+
+  it("counts cover alt length in code points like the database", () => {
+    const result = validatePostMetadata(raw({ coverMediaId: cover, coverAlt: "😀".repeat(300) }));
+
+    expect(result.ok).toBe(true);
   });
 });
