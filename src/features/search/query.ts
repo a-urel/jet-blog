@@ -39,7 +39,7 @@ export function parseSearchQuery(value: SearchParamValue): SearchInput {
   return { kind: "query", query };
 }
 
-// Optional filter; anything but a supported post language means "all".
+// Optional filter; anything but a canonical post language tag means "all".
 export function parseSearchLanguage(value: SearchParamValue): PostLanguage | null {
   const language = firstValue(value);
   return isPostLanguage(language) ? language : null;

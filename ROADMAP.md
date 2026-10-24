@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 20 polish pack, on `claude/polish-pack-8aba77`)
+Last updated: 2026-10-24 (Phase 21 open post languages, on `claude/open-post-languages-e547c6`)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–20, complete)
+## Current baseline (Phases 1–21, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -180,7 +180,19 @@ does not add requirements on its own.
   social image with `summary_large_image`, and `search_published_posts()`
   executable by `service_role` only (migration
   `20261024200000_search_server_only.sql`).
-- 607 unit tests and 461 local-Supabase RLS tests as of Phase 20 (including the feed input
+- Phase 21 open post languages: `posts.language` accepts any canonical BCP 47
+  tag in a documented subset (language, optional script and region), checked
+  by `is_post_language_tag()` in the CHECK constraint and
+  `assert_post_language()` and by `canonicalizePostLanguage()`
+  (`Intl.getCanonicalLocales`) in the application, with shared parity
+  fixtures. Search maps the primary subtag to one of 28 built-in Snowball
+  configurations or falls back to `search_folded`, matches through one
+  GIN-served prefilter, and regenerated the stored vectors. The admin
+  language field is a shadcn combobox with `Intl.DisplayNames` names and free
+  entry; `og:locale` comes from `Intl.Locale().maximize()`. A separate
+  interface-locale list (`tr`, `en`, `de`) waits for Phase 22. Migration
+  `20261024220000_open_post_languages.sql`.
+- 681 unit tests and 531 local-Supabase RLS tests as of Phase 21 (including the language parity suite, the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
   administration suites, the Phase 11
@@ -242,6 +254,32 @@ fall back to the link and `beforeunload` guards). The search function is
 server-only, but plain Data API reads of published rows stay public by design.
 
 ## Where to resume (session handoff)
+
+Phase 21 (open post languages, `20261024220000_open_post_languages.sql`) was
+developed on `claude/open-post-languages-e547c6` in its own worktree and is
+not committed or merged yet. New dependency: `cmdk` 1.1.1 (shadcn `command`;
+`popover`, `dialog`, and `input-group` were added by the shadcn CLI with it).
+
+- Last verified (Phase 21, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (681 tests), `npm run test:rls` (531
+  tests, including the new language parity suite and the extended search
+  suite), `npm run build`, and `npm run test:smoke` against `next start` on
+  port 3261 with the optional direct-RPC check, on the worktree's own local
+  stack. Upgrade path: the stack was reset to Phase 20, a published row got a
+  typographic apostrophe ("l’entrée", not found), and `supabase migration up`
+  regenerated it (found); untouched rows kept identical vectors. `EXPLAIN
+  ANALYZE` with 20,000 synthetic rows (rolled back) showed the GIN bitmap
+  index scan. Browser journey on `next start` with a synthetic editor: the
+  combobox opened with Enter, "fransız" filtered to "Fransızca fr", Enter
+  chose it and set `lang="fr"` on title, excerpt, and editor, focus returned
+  to the trigger; `en_US` showed the hint with no option, `GSW` offered `gsw`;
+  a hidden input tampered to `fr_FR` was refused by the server with the field
+  error and `aria-invalid`; the draft (404 publicly, not in search) showed
+  "Fransızca (fr)" in the preview; after publishing, the post page carried
+  `lang="fr"`, `og:locale` `fr_FR`, JSON-LD `inLanguage` `fr`, the feed entry
+  `xml:lang="fr"` (feed element `tr`), and `/search` found it for `maison`,
+  `élégance`, and `facades` and with `?language=fr`. Light and dark both
+  checked; no console errors. Synthetic data was removed and the stack reset.
 
 Phase 20 (polish pack, `20261024200000_search_server_only.sql`) was developed
 on `claude/polish-pack-8aba77` in its own worktree and is not committed or
@@ -568,6 +606,8 @@ account-attribute decision, not a widening of the editorial role enum.
 | 18 | Profile pictures | Own account avatars, admin-set author avatars, avatars in bylines, archives, and comments | Phases 6, 11, 13, author administration | Done |
 | 19 | Full-text search | Language-aware, accent-insensitive search over published posts with highlights, paging, and a per-IP rate limit | Phases 5, 10, 11, 14 | Done |
 | 20 | Polish pack | Publication confirmation, moderation feedback and paging, Back/Forward guard, admin return path, more avatars, default social image, server-only search | Phases 8, 13, 18, 19 | Done |
+| 21 | Open post languages | Any canonical BCP 47 post language, searchable combobox, language-aware search for every language, derived `og:locale` | Phases 14, 19 | Done |
+| 22 | Interface localization | tr/en/de interface with a cookie, proxy rewrite, and next-intl | Phase 21 | Planned |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1423,8 +1463,9 @@ Implementation notes:
   translation group plus `hreflang` alternates) can be added later without
   changing `posts.language`. Interface localization (D5) is independent; the
   admin interface stays Turkish for every post language.
-- The allowed set lives in `src/features/posts/language.ts` and is mirrored by
-  the CHECK constraint and `assert_post_language`; change all three together.
+- The allowed set lived in `src/features/posts/language.ts` and was mirrored
+  by the CHECK constraint and `assert_post_language`. Superseded by Phase 21:
+  any canonical BCP 47 tag.
 - `<html lang>` stays `tr` for the interface. Only post-authored text carries
   the post language, so Turkish labels, tags, and comments around an English
   post are still announced in Turkish.
@@ -1649,6 +1690,62 @@ Decisions:
 Left out on purpose: a toast system, cropping or regenerating avatars, a
 per-post generated social image, search on the saved list or a slimmer
 byline there, and a Postgres-side limit for plain Data API table reads.
+
+### Phase 21 — Open post languages
+
+Goal: a post can be written in any language, independent of the small set of
+interface languages.
+
+Status: complete on 2026-10-24 (user decision: posts in any language,
+interface languages tr/en/de separately in Phase 22, all posts shown
+regardless of language), on `claude/open-post-languages-e547c6`, migration
+`20261024220000_open_post_languages.sql`. Verified as recorded in the handoff
+above. Details: README "Post language" and "Full-text search (Phase 19)".
+
+Decisions:
+
+- **A pragmatic BCP 47 subset.** Language, optional script, optional region,
+  canonical casing, at most 12 characters; no variants, extensions, private
+  use, or `und`/`mis`/`mul`/`zxx`. Enough for every real post language and
+  regional variant, small enough to check with one regular expression on both
+  sides.
+- **Canonicalization in the application, grammar in the database.**
+  `Intl.getCanonicalLocales` knows CLDR aliases, Postgres does not; the
+  database enforces shape and casing for every writer, the application stores
+  only canonical tags. Shared fixtures run in both test suites.
+- **RPC signatures unchanged.** `create_draft_post` and
+  `update_post_metadata` already call `assert_post_language()`, which was
+  replaced in place.
+- **Search: configuration by primary subtag, one prefilter.** A
+  row-independent OR of every configuration's query keeps the GIN index usable
+  (a per-row query alone cannot be an index condition); each row is then
+  matched against its own configuration only. Languages without a stemmer use
+  `search_folded` alone, indexed once so their ranks are comparable.
+  Typographic apostrophes are mapped to ASCII for indexing and parsing,
+  because the default parser otherwise keeps French elisions as one word.
+- **Combobox from shadcn/ui.** `Popover` + `Command` (new dependency `cmdk`),
+  names from `Intl.DisplayNames` in Turkish (the current interface language),
+  codes always visible, free entry of valid tags.
+- **`og:locale` derived, not tabulated.** `Intl.Locale().maximize()` gives
+  the likely territory; numeric regions retry with the language alone; no
+  territory means no `og:locale`.
+- **Interface locales kept apart.** `src/lib/interface-locales.ts` (`tr`,
+  `en`, `de`) is not used for post validation; the feed element's `xml:lang`
+  and the default display locale read it.
+
+Known limits: no word segmentation for Chinese, Japanese, or Thai (a run of
+letters is one word, so search needs the whole run or spaced text);
+diacritic-free input is not stemmed ("etroit" does not find "étroites";
+"étroit" and "etroites" do); Snowball stemmers are uneven ("marchions" does
+not stem to "march"); highlighting reads the original text, so a word joined
+by a typographic apostrophe can match without a marker. Language names come
+from the runtime's ICU data, which may differ between Node and a browser for
+rare languages (the label then falls back to the code). The search filter
+offers the common languages only; other valid tags work through the URL.
+
+Follow-ups, not requested: Phase 22 interface localization; a filter built
+from the languages that actually have published posts; CJK segmentation
+(for example `pg_bigm` or an n-gram configuration) if such posts appear.
 
 ## Cross-cutting delivery rules
 

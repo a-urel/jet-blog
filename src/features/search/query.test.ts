@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { PostLanguage } from "@/features/posts/language";
 import {
   maxSearchPage,
   parseHighlight,
@@ -44,9 +45,12 @@ describe("parseSearchQuery", () => {
 });
 
 describe("parseSearchLanguage", () => {
-  it("accepts supported post languages only", () => {
+  it("accepts canonical post language tags only", () => {
     expect(parseSearchLanguage("de")).toBe("de");
-    expect(parseSearchLanguage("fr")).toBeNull();
+    expect(parseSearchLanguage("fr")).toBe("fr");
+    expect(parseSearchLanguage("pt-BR")).toBe("pt-BR");
+    expect(parseSearchLanguage("pt-br")).toBeNull();
+    expect(parseSearchLanguage("en_US")).toBeNull();
     expect(parseSearchLanguage("")).toBeNull();
     expect(parseSearchLanguage(undefined)).toBeNull();
   });
@@ -78,7 +82,7 @@ describe("searchUrl", () => {
   it("encodes the query and omits defaults", () => {
     expect(searchUrl("küçük adım")).toBe("/search?q=k%C3%BC%C3%A7%C3%BCk+ad%C4%B1m");
     expect(searchUrl("a&b", { page: 1, language: null })).toBe("/search?q=a%26b");
-    expect(searchUrl("x", { page: 3, language: "en" })).toBe("/search?q=x&language=en&page=3");
+    expect(searchUrl("x", { page: 3, language: "en" as PostLanguage })).toBe("/search?q=x&language=en&page=3");
   });
 });
 

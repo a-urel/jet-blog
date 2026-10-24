@@ -1,6 +1,6 @@
 import {
+  canonicalizePostLanguage,
   defaultPostLanguage,
-  isPostLanguage,
   type PostLanguage,
 } from "@/features/posts/language";
 import { maxImageAltLength } from "@/features/posts/content/schema";
@@ -10,6 +10,9 @@ import { isValidSlug, normalizeName, slugify } from "@/lib/slug";
 // control characters. The database mirror is `public.assert_post_cover`.
 export const maxCoverAltLength = maxImageAltLength;
 const controlCharacterPattern = /[\u0000-\u001f\u007f]/;
+
+export const invalidLanguageMessage =
+  "Geçerli bir dil kodu seçin ya da yazın (ör. fr, pt-BR, zh-Hant).";
 
 export type PostMetadataInput = Readonly<{
   title: string;
@@ -103,13 +106,14 @@ export function validatePostMetadata(
     }
   }
 
-  const languageValue = raw.language.trim();
+  // Any well-formed tag, stored in canonical form (pt-br becomes pt-BR).
+  const canonicalLanguage = canonicalizePostLanguage(raw.language);
   let language: PostLanguage = defaultPostLanguage;
 
-  if (isPostLanguage(languageValue)) {
-    language = languageValue;
+  if (canonicalLanguage) {
+    language = canonicalLanguage;
   } else {
-    fieldErrors.language = "Desteklenen bir dil seçin.";
+    fieldErrors.language = invalidLanguageMessage;
   }
 
   // Drafts may keep a cover without alt text; publishing requires it, which

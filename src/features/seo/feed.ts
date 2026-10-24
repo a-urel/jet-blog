@@ -1,6 +1,6 @@
 import { mediaPublicUrl } from "@/features/media/url";
 import { archivePaths, postPath } from "@/features/posts/archives";
-import { defaultPostLanguage } from "@/features/posts/language";
+import { defaultInterfaceLocale } from "@/lib/interface-locales";
 import type { PostSummary } from "@/features/posts/types";
 import { getConfiguredSiteUrl, getSiteName } from "@/lib/site-url";
 
@@ -129,7 +129,7 @@ export function buildAtomFeed(input: {
 
   return [
     '<?xml version="1.0" encoding="utf-8"?>',
-    `<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/"${attribute("xml:lang", defaultPostLanguage)}>`,
+    `<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/"${attribute("xml:lang", defaultInterfaceLocale)}>`,
     element("id", selfUrl),
     element("title", siteName, attribute("type", "text")),
     element("updated", updated.toISOString()),

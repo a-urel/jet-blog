@@ -532,7 +532,7 @@ describe("draft authoring RPC and RLS", () => {
     expect(accountLink.error).not.toBeNull();
   });
 
-  it("stores the post language and rejects unsupported values", async () => {
+  it("stores the post language and rejects invalid tags", async () => {
     const authorA = await signInAs("authorA");
     const created = await authorA.rpc(
       "create_draft_post",
@@ -554,7 +554,7 @@ describe("draft authoring RPC and RLS", () => {
 
     expect(updated.error).toBeNull();
 
-    for (const language of ["fr", "EN", "tr-TR", "", null]) {
+    for (const language of ["en_US", "EN", "tr-tr", "", null]) {
       const rejectedCreate = await authorA.rpc(
         "create_draft_post",
         draftPayload({
@@ -584,7 +584,7 @@ describe("draft authoring RPC and RLS", () => {
     // The CHECK constraint also covers writes that bypass the RPCs.
     const direct = await service
       .from("posts")
-      .update({ language: "fr" })
+      .update({ language: "fr_FR" })
       .eq("id", postId);
 
     expect(direct.error?.code).toBe("23514");

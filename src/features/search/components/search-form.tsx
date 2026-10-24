@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { postLanguageLabels, postLanguages, type PostLanguage } from "@/features/posts/language";
+import { commonPostLanguages, postLanguageLabel, type PostLanguage } from "@/features/posts/language";
 import { maxSearchQueryLength, searchPath } from "../query";
 
 // GET form to /search. next/form navigates on the client when JavaScript is
@@ -21,6 +21,11 @@ export function SearchForm({
   language?: PostLanguage | null;
 }) {
   const inputId = `search-${variant}-q`;
+  // A filter from the URL that is not in the common list stays selectable.
+  const languageOptions =
+    language && !commonPostLanguages.includes(language)
+      ? [language, ...commonPostLanguages]
+      : commonPostLanguages;
 
   if (variant === "header") {
     return (
@@ -74,12 +79,12 @@ export function SearchForm({
           id={`${inputId}-language`}
           name="language"
           defaultValue={language ?? ""}
-          className="w-full sm:w-40"
+          className="w-full sm:w-56"
         >
           <NativeSelectOption value="">Tüm diller</NativeSelectOption>
-          {postLanguages.map((code) => (
+          {languageOptions.map((code) => (
             <NativeSelectOption key={code} value={code}>
-              {postLanguageLabels[code]}
+              {postLanguageLabel(code)}
             </NativeSelectOption>
           ))}
         </NativeSelect>

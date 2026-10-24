@@ -367,20 +367,47 @@ anonymous/reader/author/editor/admin matrix, conflicts, and invalid relations.
 
 ## Post language
 
-Each post is written in one language: `tr` (default), `en`, or `de`. The
-value is stored in `posts.language` (BCP 47 primary subtag) and is required by
-`create_draft_post` and `update_post_metadata`; validation, the RPCs (`22023`),
-and a CHECK constraint (`23514`) reject anything else. The allowed set lives in
-`src/features/posts/language.ts` and must change together with the migration
-`20261024120000_post_language.sql`.
+Each post is written in one language, stored in `posts.language` as a
+canonical BCP 47 tag (Phase 21; Phases 14–20 allowed only `tr`, `en`, `de`).
+The default is `tr`. Post languages are independent of the interface
+languages: `src/lib/interface-locales.ts` holds the separate, fixed interface
+set (`tr`, `en`, `de`) that Phase 22 will use for UI localization; until then
+the whole interface stays Turkish.
 
-- The post form's "Yazının dili" select also sets `lang` on the title, excerpt,
-  and editor, so spell checking follows the post.
-- Public post pages, listing cards, and the member preview set `lang` on the
-  title, excerpt, and body only. `<html lang="tr">` and the rest of the
-  interface stay Turkish.
-- Open Graph uses `tr_TR`, `en_US`, or `de_DE`; Article JSON-LD sets
-  `inLanguage` to the code.
+- **Accepted grammar.** A pragmatic subset of BCP 47 in canonical casing:
+  language (2–3 lowercase letters), an optional script (4 letters, first
+  uppercase), and an optional region (2 uppercase letters or 3 digits), at
+  most 12 characters: `fr`, `fil`, `pt-BR`, `zh-Hant`, `zh-Hant-TW`,
+  `es-419`. Variants, extensions, private use, grandfathered tags, and the
+  special codes `und`, `mis`, `mul`, `zxx` are rejected.
+- **Canonical values.** `canonicalizePostLanguage()`
+  (`src/features/posts/language.ts`) trims the input, applies
+  `Intl.getCanonicalLocales` (case and CLDR aliases: `pt-br` → `pt-BR`,
+  `iw` → `he`, `fra` → `fr`), then checks the shape. The database checks the
+  same grammar with `public.is_post_language_tag()` in the `posts_language_check`
+  CHECK constraint (`23514`) and in `assert_post_language()`, which
+  `create_draft_post` and `update_post_metadata` call (`22023`, "Invalid
+  language"); their signatures did not change. The database does not know CLDR
+  aliases, so it accepts a well-formed alias such as `iw` written directly;
+  the application never sends one. `src/features/posts/language-fixtures.ts`
+  is shared by the unit tests and the RLS suite, so the two grammars cannot
+  drift silently.
+- **Admin picker.** "Yazının dili" is a shadcn/ui combobox (`Popover` +
+  `Command`, `cmdk`): a searchable list of common languages with Turkish names
+  from `Intl.DisplayNames` and the code beside each name, plus free entry of
+  any valid tag ("Dil kodu" group; an invalid tag shows a hint and cannot be
+  chosen). The value is submitted through a hidden input and validated again
+  on the server. It also sets `lang` on the title, excerpt, cover alt text,
+  and editor.
+- **Public output.** Public post pages, listing cards, search results, and the
+  member preview set `lang` to the tag on the title, excerpt, and body only;
+  `<html lang="tr">` and the interface stay Turkish. Article JSON-LD
+  `inLanguage` and the Atom entry `xml:lang` use the tag; the feed element's
+  `xml:lang` is the interface default. Open Graph `og:locale` is derived with
+  `Intl.Locale(tag).maximize()` as `language_REGION` (`fr` → `fr_FR`,
+  `zh-Hant` → `zh_TW`, `es-419` → `es_ES` by retrying without the numeric
+  region) and omitted when no territory is known. The member preview badge
+  shows "Fransızca (fr)".
 
 Translations are not linked to each other, and the interface is not
 localized; both are separate increments.
@@ -834,15 +861,40 @@ Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
   text of every Tiptap text node (C, `post_body_search_text()`; link targets,
   image alt text and captions, and YouTube titles are attributes and are not
   searched). Each part is indexed twice: with the post language's stemming
-  configuration (`turkish`, `english`, `german`, from `posts.language`) and
-  with `search_folded`, a `simple` copy behind the `unaccent` dictionary
-  (no stemming, no stop words). Folding makes "kucuk" find "küçük", "isik"
+  configuration (from `posts.language`, see Languages below) and with
+  `search_folded`, a `simple` copy behind the `unaccent` dictionary (no
+  stemming, no stop words). A language without a stemmer is indexed once,
+  with `search_folded` only. Typographic apostrophes (U+2019) are indexed and
+  parsed as ASCII ones, so "élégance" finds "l’élégance" (Phase 21). Folding makes "kucuk" find "küçük", "isik"
   find "IŞIK", and "Strasse" find "Straße"; it also fixes Turkish dotted and
   dotless i, which the database locale lowercases to `i` in both cases.
   Stemming makes "kitap" find "kitapları", "runs" find "running", and "Haus"
   find "Häuser".
+- **Languages (Phase 21).** `post_search_config()` maps a tag's primary
+  subtag through `post_search_config_map()` to a built-in Snowball
+  configuration of PostgreSQL 17 (`select cfgname from pg_ts_config where
+  cfgnamespace = 'pg_catalog'::regnamespace`): `ar` arabic, `hy` armenian,
+  `eu` basque, `ca` catalan, `da` danish, `nl` dutch, `en` english, `fi`
+  finnish, `fr` french, `de` german, `el` greek, `hi` hindi, `hu` hungarian,
+  `id` indonesian, `ga` irish, `it` italian, `lt` lithuanian, `ne` nepali,
+  `no`/`nb`/`nn` norwegian, `pt` portuguese, `ro` romanian, `ru` russian, `sr`
+  serbian, `es` spanish, `sv` swedish, `ta` tamil, `tr` turkish, `yi` yiddish
+  (`simple` is not listed). Script and region do not change stemming
+  (`pt-BR` → portuguese). Any other language (`ja`, `zh-Hant`, `ko`, `uk`,
+  `pl`, …) uses `search_folded` alone: accent-folded words, no stemming and no
+  word segmentation, so Chinese and Japanese text without spaces is indexed as
+  one word per run. The migration regenerated every stored vector with `ALTER
+  COLUMN … SET EXPRESSION` (PostgreSQL 17 table rewrite, no row triggers).
 - **Index.** A partial GIN index on `search_vector` where `status =
-  'published'`. With 5,000 synthetic posts, a selective query used a
+  'published'`. Since Phase 21 every query is matched with one row-independent
+  prefilter, `search_vector @@ v_any` (the folded query ORed with the query of
+  every mapped configuration), which the index serves; each row is then
+  checked against its own configuration's query. With 20,000 synthetic
+  published posts (fr, en, tr, ja) and the plpgsql-style generic plan
+  (`plan_cache_mode = force_generic_plan`), `EXPLAIN ANALYZE` showed a
+  `Bitmap Index Scan on posts_search_vector_idx` (`Index Cond: search_vector
+  @@ $2`) under a hash join with the 29 configurations, for `maison` and for
+  `日本` with the `ja` filter. Phase 19 measurement: with 5,000 synthetic posts, a selective query used a
   `BitmapOr` of three bitmap index scans on `posts_search_vector_idx`
   (0.08 ms); a term in a third of the rows used a sequential scan, as it
   should. GIN cost estimates come from statistics that `VACUUM` refreshes, so
@@ -858,14 +910,14 @@ Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
   editor never finds any draft. Ranking (`ts_rank`, length-normalized), the
   total (`count(*) over ()`), and highlighting run only over rows that passed
   the filter, so no draft text reaches a rank, a count, or a snippet. A post
-  matches through the branch of its own language only (stemmed query OR
-  folded query), so a German stem cannot match a Turkish post. Order: rank,
+  matches through its own language's query only (stemmed query OR folded
+  query), so a German stem cannot match a Turkish post. Order: rank,
   then `published_at` and `id` descending.
 - **Input.** User text goes to `websearch_to_tsquery`, which never raises a
   syntax error: quoted phrases, `or`, and `-exclusion` work, and anything else
   is words. The application trims it, collapses whitespace and control
   characters, and requires 2–200 characters; the function refuses more than
-  200 characters, an unsupported language, a page size outside 1–50, and an
+  200 characters, a language that is not a valid tag, a page size outside 1–50, and an
   offset outside 0–1000 (`22023`). Results come 10 per page (`?page=`, at most
   page 101); punctuation-only input returns nothing. An excluded term
   (`-word`) is excluded per branch, so a word excluded in its stemmed form can
@@ -905,7 +957,9 @@ Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
   headers): `Cache-Control: private, no-store`, never prerendered or
   ISR-cached, `noindex, nofollow`, and not in the sitemap. The header form is
   a static `next/form` GET form, so every public page stays prerendered; the
-  search page has its own form with the query and an optional language filter.
+  search page has its own form with the query and an optional language filter
+  (the common post languages; any valid tag also works as `?language=`, an
+  invalid one means all languages).
   Nothing in the invalidation map (`features/posts/cache.ts`) changed: the
   generated column updates in the same statement as every post write, and
   search reads are never cached, so the next search after a publish, edit, or
@@ -918,8 +972,9 @@ fallback. `search.rls.test.ts` (39 tests, local stack) covers the
 anonymous/reader/author/editor/admin matrix (since Phase 20 every client role
 is refused with `42501`; through the server caller a draft is never found, not
 even when its author can read it directly; totals and snippets never include
-draft text; an unpublished post drops out), Turkish, English, and German
-stemming and folding, title-over-body ranking, the language filter,
+draft text; an unpublished post drops out), Turkish, English, German, and
+French stemming and folding, the Japanese fallback (indexed once), an author's
+French draft that stays hidden, title-over-body ranking, the language filter,
 highlighting, injection-like input (SQL fragments, markup, tsquery operators,
 unbalanced quotes, marker characters), the input and paging limits, stable
 paging with a constant total, and the rate limit (client calls refused, 31st

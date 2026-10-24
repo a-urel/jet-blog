@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { PostLanguage } from "@/features/posts/language";
 import { coverMediaId, mediaOrigin, postWithCover, publishedPost } from "./fixtures";
 import { buildArticleJsonLd, serializeJsonLd } from "./json-ld";
 
@@ -31,11 +32,20 @@ describe("buildArticleJsonLd", () => {
 
   it("declares the post's own language", () => {
     const jsonLd = buildArticleJsonLd(
-      { ...publishedPost, language: "de" },
+      { ...publishedPost, language: "de" as PostLanguage },
       { siteUrl, siteName: "S" },
     );
 
     expect(jsonLd.inLanguage).toBe("de");
+  });
+
+  it("declares a regional language tag unchanged", () => {
+    const jsonLd = buildArticleJsonLd(
+      { ...publishedPost, language: "pt-BR" as PostLanguage },
+      { siteUrl, siteName: "S" },
+    );
+
+    expect(jsonLd.inLanguage).toBe("pt-BR");
   });
 
   it("lists the cover as an absolute image URL", () => {

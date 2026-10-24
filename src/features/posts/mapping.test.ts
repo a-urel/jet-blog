@@ -81,8 +81,14 @@ describe("mapPublicPostSummary", () => {
     ).toBeNull();
   });
 
-  it("hides rows with an unsupported or missing language", () => {
-    expect(mapPublicPostSummary({ ...row, language: "fr" })).toBeNull();
+  it("keeps any canonical language tag", () => {
+    expect(mapPublicPostSummary({ ...row, language: "fr" })?.language).toBe("fr");
+    expect(mapPublicPostSummary({ ...row, language: "zh-Hant" })?.language).toBe("zh-Hant");
+  });
+
+  it("hides rows with an invalid, non-canonical, or missing language", () => {
+    expect(mapPublicPostSummary({ ...row, language: "en_US" })).toBeNull();
+    expect(mapPublicPostSummary({ ...row, language: "pt-br" })).toBeNull();
     expect(
       mapPublicPostSummary({ ...row, language: undefined as unknown as string }),
     ).toBeNull();

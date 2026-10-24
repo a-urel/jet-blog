@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PostSummary } from "@/features/posts/types";
+import type { PostLanguage } from "@/features/posts/language";
 import { mapSearchRows, searchRowIds } from "./results";
 
 function summary(id: string, title: string): PostSummary {
@@ -9,7 +10,7 @@ function summary(id: string, title: string): PostSummary {
     slug: id,
     title,
     excerpt: null,
-    language: "tr",
+    language: "tr" as PostLanguage,
     cover: null,
     publishedAt: "2026-10-20T09:00:00+00:00",
     updatedAt: "2026-10-20T09:00:00+00:00",

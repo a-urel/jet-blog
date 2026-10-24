@@ -88,7 +88,8 @@ export function buildPostMetadata(post: PostSummary, siteName: string): Metadata
       type: "article",
       url: path,
       siteName,
-      locale: openGraphLocale(post.language),
+      // Omitted when no territory is known for the language.
+      locale: openGraphLocale(post.language) ?? undefined,
       title: post.title,
       description,
       publishedTime: post.publishedAt,

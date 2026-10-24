@@ -16,6 +16,7 @@ import {
   getCreditFieldValues,
   getStringField,
   getTagFieldValues,
+  invalidLanguageMessage,
   isUuid,
   maxCoverAltLength,
   validatePostMetadata,
@@ -167,8 +168,8 @@ function mapRpcError(error: {
       }
 
       if (message.includes("Invalid language")) {
-        return errorState("Desteklenen bir dil seçin.", {
-          language: "Desteklenen bir dil seçin.",
+        return errorState(invalidLanguageMessage, {
+          language: invalidLanguageMessage,
         });
       }
 

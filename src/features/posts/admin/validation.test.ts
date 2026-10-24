@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { validatePostMetadata, type RawPostMetadata } from "./validation";
+import {
+  invalidLanguageMessage,
+  validatePostMetadata,
+  type RawPostMetadata,
+} from "./validation";
 
 const authorA = "11111111-1111-4111-8111-111111111111";
 const authorB = "22222222-2222-4222-8222-222222222222";
@@ -54,13 +58,29 @@ describe("validatePostMetadata", () => {
     expect(result.data.credits).toEqual([]);
   });
 
-  it.each(["", "fr", "EN", "tr-TR"])("rejects the unsupported language %j", (language) => {
+  it.each(["", "en_US", "xx-", "tr' or '1'='1", "a".repeat(40)])(
+    "rejects the invalid language tag %j",
+    (language) => {
+      const result = validatePostMetadata(raw({ language }));
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.fieldErrors.language).toBe(invalidLanguageMessage);
+      }
+    },
+  );
+
+  it.each([
+    ["fr", "fr"],
+    ["ja", "ja"],
+    ["pt-br", "pt-BR"],
+    [" zh-hant ", "zh-Hant"],
+    ["iw", "he"],
+  ])("accepts the language %j as %j", (language, canonical) => {
     const result = validatePostMetadata(raw({ language }));
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.fieldErrors.language).toBe("Desteklenen bir dil seçin.");
-    }
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.language).toBe(canonical);
   });
 
   it("rejects an invalid or empty derived slug", () => {

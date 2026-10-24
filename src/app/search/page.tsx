@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { postLanguageLabels, type PostLanguage } from "@/features/posts/language";
+import { postLanguageName, type PostLanguage } from "@/features/posts/language";
 import { SearchForm } from "@/features/search/components/search-form";
 import { SearchPagination } from "@/features/search/components/search-pagination";
 import { SearchResults } from "@/features/search/components/search-results";
@@ -64,7 +64,7 @@ async function Results({
   }
 
   const result = await searchPublishedPosts(query, page, language);
-  const languageNote = language ? ` (${postLanguageLabels[language]})` : "";
+  const languageNote = language ? ` (${postLanguageName(language) ?? language})` : "";
 
   if (result.results.length === 0) {
     if (page > 1) {

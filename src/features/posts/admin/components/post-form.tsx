@@ -32,13 +32,10 @@ import type {
   TagOption,
 } from "@/features/posts/admin/types";
 import type { BodyDocument } from "@/features/posts/content/schema";
-import {
-  postLanguageLabels,
-  postLanguages,
-  type PostLanguage,
-} from "@/features/posts/language";
+import type { PostLanguage } from "@/features/posts/language";
 import { PostBodyEditor } from "./post-body-editor";
 import { PostCoverField } from "./post-cover-field";
+import { PostLanguagePicker } from "./post-language-picker";
 import { useUnsavedChangesWarning } from "./use-unsaved-changes-warning";
 
 const initialState: PostFormState = {
@@ -103,7 +100,7 @@ export function PostForm({
     initialValues.tagIds,
   );
   const [categoryId, setCategoryId] = useState(initialValues.categoryId);
-  const [language, setLanguage] = useState<string>(initialValues.language);
+  const [language, setLanguage] = useState<PostLanguage>(initialValues.language);
   const [coverMediaId, setCoverMediaId] = useState(initialValues.coverMediaId);
   const [coverAlt, setCoverAlt] = useState(initialValues.coverAlt);
   const [authorToAdd, setAuthorToAdd] = useState("");
@@ -219,24 +216,23 @@ export function PostForm({
 
       <div className="space-y-2">
         <Label htmlFor="post-language">Yazının dili</Label>
-        <NativeSelect
-          className="w-full sm:w-64"
+        <PostLanguagePicker
           id="post-language"
           name="language"
           value={language}
-          onChange={(event) => setLanguage(event.target.value)}
-          aria-invalid={state.fieldErrors.language ? true : undefined}
-          aria-describedby="post-language-help post-language-error"
-        >
-          {postLanguages.map((option) => (
-            <NativeSelectOption key={option} value={option}>
-              {postLanguageLabels[option]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          onChange={(next) => {
+            // The picker submits through a hidden input, which fires no
+            // change event on the form.
+            if (next !== language) markDirty();
+            setLanguage(next);
+          }}
+          invalid={Boolean(state.fieldErrors.language)}
+          describedBy="post-language-help post-language-error"
+        />
         <p id="post-language-help" className="text-sm text-muted-foreground">
-          Başlık, özet ve gövde bu dilde işaretlenir; yönetim arayüzünün dili
-          değişmez.
+          Listede olmayan bir dil için BCP 47 kodunu yazın (ör. fr, pt-BR,
+          zh-Hant). Başlık, özet ve gövde bu dilde işaretlenir; yönetim
+          arayüzünün dili değişmez.
         </p>
         <FieldError id="post-language-error" message={state.fieldErrors.language} />
       </div>

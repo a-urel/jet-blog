@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { PostLanguage } from "@/features/posts/language";
 import { coverMediaId, mediaOrigin, postWithCover, publishedPost } from "./fixtures";
 import {
   buildArchiveMetadata,
@@ -45,9 +46,18 @@ describe("buildPostMetadata", () => {
   });
 
   it("uses the post language for the Open Graph locale", () => {
-    expect(buildPostMetadata({ ...publishedPost, language: "en" }, "S").openGraph).toMatchObject({
-      locale: "en_US",
-    });
+    expect(
+      buildPostMetadata({ ...publishedPost, language: "en" as PostLanguage }, "S").openGraph,
+    ).toMatchObject({ locale: "en_US" });
+    expect(
+      buildPostMetadata({ ...publishedPost, language: "fr" as PostLanguage }, "S").openGraph,
+    ).toMatchObject({ locale: "fr_FR" });
+  });
+
+  it("omits the Open Graph locale for a language without a known territory", () => {
+    const openGraph = buildPostMetadata({ ...publishedPost, language: "xyz" as PostLanguage }, "S")
+      .openGraph as Record<string, unknown>;
+    expect(openGraph.locale).toBeUndefined();
   });
 
   it("shares the site-wide image without a cover", () => {

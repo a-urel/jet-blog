@@ -8,7 +8,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 // input, paging, and the search rate limit. Since Phase 20 only the server
 // (service_role) may execute the search function, so clients cannot bypass
 // the page's per-IP limit through the Data API; the function's own published
-// filter is the visibility rule and is tested through that caller.
+// filter is the visibility rule and is tested through that caller. Since
+// Phase 21 posts may use any language: French uses its stemmer, Japanese
+// (no built-in configuration) the accent-folded fallback alone.
 
 const url = process.env.SUPABASE_TEST_URL;
 const publishableKey = process.env.SUPABASE_TEST_PUBLISHABLE_KEY;
@@ -58,8 +60,11 @@ const fixtures = {
   turkish: "",
   english: "",
   german: "",
+  french: "",
+  japanese: "",
   markup: "",
   draft: "",
+  frenchDraft: "",
 };
 
 const rateLimitHashes: string[] = [];
@@ -234,6 +239,33 @@ beforeAll(async () => {
     body: doc("Die Gebäude stehen noch."),
     language: "de",
   });
+  // Written by the author, published by an editor.
+  fixtures.french = await createDraft(clients.author, {
+    slug: `${slugPrefix}-fr`,
+    title: `Les maisons anciennes ${marker}`,
+    excerpt: "Une histoire de l’élégance des façades.",
+    body: doc("Nous marchions dans les rues étroites."),
+    language: "fr",
+  });
+  await publish(fixtures.french);
+  // Space-separated words: without a Japanese segmenter, the fallback
+  // configuration indexes each run of letters as one word.
+  fixtures.japanese = await createDraft(clients.author, {
+    slug: `${slugPrefix}-ja`,
+    title: `東京 の 古い 家 ${marker}`,
+    excerpt: null,
+    body: doc("木造 の 建物 が 残る"),
+    language: "ja",
+  });
+  await publish(fixtures.japanese);
+  fixtures.frenchDraft = await createDraft(clients.author, {
+    slug: `${slugPrefix}-fr-taslak`,
+    title: `Brouillon ${draftTerm} des jardins`,
+    excerpt: null,
+    body: doc(`Les jardins ${sharedTerm} restent secrets.`),
+    language: "fr",
+  });
+
   fixtures.markup = await createPublished({
     slug: `${slugPrefix}-markup`,
     title: `<img src=x onerror=alert(1)> işaretli ${marker}`,
@@ -388,9 +420,64 @@ describe("language-specific stemming and folding", () => {
     expect(await searchIds(service, `defter ${marker}`)).toEqual([titleHit, bodyHit]);
   });
 
+  it("matches French inflections and folded accents through the French stemmer", async () => {
+    // "maison" against "maisons", "étroit" against "étroites".
+    expect(await searchIds(service, `maison ${marker}`)).toEqual([fixtures.french]);
+    expect(await searchIds(service, `étroit ${marker}`)).toEqual([fixtures.french]);
+    // "élégance" after a typographic apostrophe (l’élégance) is its own word.
+    expect(await searchIds(service, `élégance ${marker}`)).toEqual([fixtures.french]);
+    expect(await searchIds(service, `elegance ${marker}`)).toEqual([fixtures.french]);
+    // Stemmed with the accent, or folded without the stem.
+    expect(await searchIds(service, `façade ${marker}`)).toEqual([fixtures.french]);
+    expect(await searchIds(service, `facades ${marker}`)).toEqual([fixtures.french]);
+  });
+
+  it("matches Japanese words through the folded fallback configuration", async () => {
+    expect(await searchIds(service, `東京 ${marker}`)).toEqual([fixtures.japanese]);
+    expect(await searchIds(service, "木造 建物")).toEqual([fixtures.japanese]);
+    expect(await searchIds(service, "木造")).toEqual([fixtures.japanese]);
+  });
+
+  it("indexes a fallback language once, not twice", async () => {
+    const { data, error } = await service
+      .from("posts")
+      .select("search_vector")
+      .eq("id", fixtures.japanese)
+      .single();
+
+    expect(error).toBeNull();
+    // One position per word: 東京 の 古い 家 marker, 木造 の 建物 が 残る.
+    expect(String(data!.search_vector)).toMatch(/'東京':1A /);
+    expect(String(data!.search_vector)).not.toMatch(/'東京':1A,/);
+  });
+
+  it("does not apply a French stem to posts in other languages", async () => {
+    // French stems "anciennes" to "ancien"; no other post contains it.
+    expect(await searchIds(service, `ancien ${marker}`)).toEqual([fixtures.french]);
+  });
+
+  it("keeps an author's French draft out of the results", async () => {
+    expect(await searchIds(service, `jardin ${draftTerm}`)).toEqual([]);
+    expect(await searchIds(service, "brouillon jardins")).not.toContain(fixtures.frenchDraft);
+    expect(await searchIds(service, sharedTerm)).toEqual([fixtures.turkish]);
+  });
+
   it("filters by post language", async () => {
     expect(await searchIds(service, marker, "de")).toEqual([fixtures.german]);
     expect(await searchIds(service, marker, "en")).toEqual([fixtures.english]);
+    expect(await searchIds(service, marker, "fr")).toEqual([fixtures.french]);
+    expect(await searchIds(service, marker, "ja")).toEqual([fixtures.japanese]);
+    expect(await searchIds(service, marker, "pt-BR")).toEqual([]);
+  });
+
+  it("highlights French and Japanese matches", async () => {
+    const { data } = await search(service, `maison ${marker}`);
+    const [row] = data as SearchRow[];
+    expect(marked(row.title_highlight)).toEqual(["maisons", marker]);
+
+    const { data: japanese } = await search(service, `東京 ${marker}`);
+    const [japaneseRow] = japanese as SearchRow[];
+    expect(marked(japaneseRow.title_highlight)).toEqual(["東京", marker]);
   });
 
   it("highlights the matched words with control markers", async () => {
@@ -439,7 +526,7 @@ describe("injection-like input", () => {
       expect(error).toBeNull();
       expect(Array.isArray(data)).toBe(true);
       for (const row of data as SearchRow[]) {
-        expect([fixtures.draft]).not.toContain(row.post_id);
+        expect([fixtures.draft, fixtures.frenchDraft]).not.toContain(row.post_id);
       }
     });
   }
@@ -476,9 +563,12 @@ describe("injection-like input", () => {
     expect(okError).toBeNull();
   });
 
-  it("refuses unsupported languages and out-of-range pages", async () => {
+  it("refuses invalid language tags and out-of-range pages", async () => {
     for (const options of [
-      { language: "fr" },
+      { language: "fr_FR" },
+      { language: "pt-br" },
+      { language: "xx-" },
+      { language: "fr' or '1'='1" },
       { limit: 0 },
       { limit: 51 },
       { offset: -1 },

@@ -1,4 +1,5 @@
 import type { PostSummary } from "@/features/posts/types";
+import type { PostLanguage } from "@/features/posts/language";
 
 export const coverMediaId = "99999999-9999-4999-8999-999999999999";
 export const mediaOrigin = "https://media.example.test";
@@ -9,7 +10,7 @@ export const publishedPost: PostSummary = {
   slug: "ornek-yazi",
   title: "Örnek yazı",
   excerpt: "Kısa özet.",
-  language: "tr",
+  language: "tr" as PostLanguage,
   cover: null,
   publishedAt: "2026-10-20T09:00:00+00:00",
   updatedAt: "2026-10-21T10:30:00+00:00",

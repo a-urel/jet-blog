@@ -1,6 +1,7 @@
 import { DOMParser, type Document, type Element } from "@xmldom/xmldom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { PostLanguage } from "@/features/posts/language";
 import type { PostSummary } from "@/features/posts/types";
 import { buildAtomFeed, escapeXml, feedAlternateTypes } from "./feed";
 import { coverMediaId, mediaOrigin, postWithCover, publishedPost } from "./fixtures";
@@ -65,7 +66,7 @@ describe("buildAtomFeed", () => {
     slug: "ikinci-yazi",
     title: hostileTitle,
     excerpt: "Özet & <script>alert(1)</script>",
-    language: "en",
+    language: "en" as PostLanguage,
     publishedAt: "2026-10-22T09:00:00.123456+00:00",
     updatedAt: "2026-10-23T08:00:00+00:00",
     authors: [

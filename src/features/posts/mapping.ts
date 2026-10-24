@@ -66,7 +66,7 @@ function manyRelated<T>(value: RelatedRecord<T>): T[] {
 }
 
 // Returns null for a row that cannot be shown publicly: a published post
-// always has a publication time, a category, and a supported language, so
+// always has a publication time, a category, and a canonical language tag, so
 // anything else is a partial or inconsistent read and stays hidden.
 export function mapPublicPostSummary(row: RawPublicPost): PostSummary | null {
   const category = firstRelated(row.category);

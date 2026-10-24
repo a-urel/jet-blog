@@ -54,6 +54,21 @@ if (postPath) {
 
   check(post.status === 200, `${postPath}: expected 200, got ${post.status}`);
   check(postHtml.includes('"@type":"BlogPosting"'), `${postPath}: missing Article JSON-LD`);
+
+  // The post language (any canonical BCP 47 tag) marks the content, and
+  // og:locale, when present, is its language_TERRITORY form.
+  const inLanguage = postHtml.match(/"inLanguage":"([^"]+)"/)?.[1];
+  check(Boolean(inLanguage), `${postPath}: JSON-LD has no inLanguage`);
+  if (inLanguage) {
+    check(postHtml.includes(`lang="${inLanguage}"`), `${postPath}: content is not marked lang="${inLanguage}"`);
+    const ogLocale = postHtml.match(/<meta property="og:locale" content="([^"]+)"/)?.[1];
+    if (ogLocale) {
+      check(
+        ogLocale.startsWith(`${inLanguage.split("-")[0]}_`) && /^[a-z]{2,3}_[A-Z]{2}$/.test(ogLocale),
+        `${postPath}: og:locale ${ogLocale} does not match ${inLanguage}`,
+      );
+    }
+  }
   // With a site origin every public post shares an image: its cover or the
   // site-wide generated one.
   if (/<link rel="canonical" href="https?:/.test(postHtml)) {
@@ -252,6 +267,15 @@ check(emptySearch.html.includes('name="q"'), "/search: search form is missing");
 
 const shortSearch = await getSearch("a");
 check(shortSearch.html.includes("en az 2 karakter"), "/search?q=a: too-short state is missing");
+
+// An invalid language filter falls back to all languages instead of failing.
+const invalidLanguage = await get("/search?q=smoke&language=fr_FR");
+const invalidLanguageHtml = await invalidLanguage.text();
+check(invalidLanguage.status === 200, `/search?language=fr_FR: expected 200, got ${invalidLanguage.status}`);
+check(
+  /<option(?=[^>]*value="")[^>]*selected/.test(invalidLanguageHtml),
+  "/search?language=fr_FR: the invalid filter is not reset to all languages",
+);
 
 const noResult = await getSearch("smokeyokboylebirsozcuk");
 check(noResult.html.includes("sonuç bulunamadı"), "/search: no-result state is missing");

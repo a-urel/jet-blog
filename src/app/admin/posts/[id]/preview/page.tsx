@@ -15,7 +15,7 @@ import { getAdminPostDetail } from "@/features/posts/admin/data";
 import { canEditPost } from "@/features/posts/admin/permissions";
 import { PostBody } from "@/features/posts/components/post-body";
 import { PostCover } from "@/features/posts/components/post-cover";
-import { postLanguageLabels } from "@/features/posts/language";
+import { postLanguageLabel } from "@/features/posts/language";
 import { getEditorialContext } from "@/lib/auth/editorial";
 
 export const metadata: Metadata = {
@@ -95,7 +95,7 @@ export default async function PostPreviewPage({
             <Badge variant={post.status === "published" ? "default" : "secondary"}>
               {post.status === "published" ? "Yayında" : "Taslak"}
             </Badge>
-            <Badge variant="outline">{postLanguageLabels[post.language]}</Badge>
+            <Badge variant="outline">{postLanguageLabel(post.language)}</Badge>
             {post.categoryName ? (
               <Badge variant="outline">{post.categoryName}</Badge>
             ) : (
