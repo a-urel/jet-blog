@@ -1857,6 +1857,18 @@ real-time collaborative editing, multi-publication tenancy, billing, AI writing,
 plugin systems, and social API integrations. Each requires a separate, explicit
 request and its own moderation/permission design.
 
+Planned, not yet scheduled: **semantic search with `pgvector`.** Phase 19
+search is lexical (stemmed and accent-folded `tsvector`), so it finds word
+forms but not synonyms or related concepts. The intended follow-up adds post
+embeddings in Postgres and combines vector similarity with the existing
+`ts_rank` score (hybrid ranking) inside the server-only search function,
+keeping the published-only filter and RLS-checked card reads. Open decisions
+before implementation: the embedding model and provider (a new external
+dependency and cost), what is embedded (title/excerpt/body, chunking of long
+bodies), when embeddings are computed (a durable job outside the post write
+transaction, with retries), re-embedding on edits and model changes, and the
+index type (HNSW or IVFFlat).
+
 ## Risks and watch items
 
 - Next.js 16 middleware/proxy and caching conventions differ from earlier

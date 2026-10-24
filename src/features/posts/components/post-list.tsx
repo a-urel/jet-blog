@@ -12,7 +12,7 @@ import type { PostSummary } from "../types";
 import { PostCover } from "./post-cover";
 import { PostMeta } from "./post-meta";
 
-// Card grid shared by the home listing and the category, tag, and author
+// Full-width card list shared by the home listing and the category, tag, and author
 // archives. Every card links to the canonical /posts/[slug] URL. Bookmark
 // state loads in the browser (BookmarkProvider), so the list stays shared ISR
 // output.
@@ -28,9 +28,9 @@ export function PostList({
 
   return (
     <BookmarkProvider postIds={posts.map((post) => post.id)}>
-      <div className="grid gap-6 md:grid-cols-2">
-        {posts.map((post, index) => (
-          <article key={post.id} className={index === 0 ? "md:col-span-2" : ""}>
+      <div className="grid gap-6">
+        {posts.map((post) => (
+          <article key={post.id}>
             <Card className="h-full gap-5 p-2">
               {post.cover ? (
                 // Decorative here: the linked title right below names the
@@ -38,11 +38,7 @@ export function PostList({
                 <PostCover
                   mediaId={post.cover.mediaId}
                   alt=""
-                  sizes={
-                    index === 0
-                      ? "(min-width: 1024px) 60rem, 100vw"
-                      : "(min-width: 1024px) 30rem, (min-width: 768px) 50vw, 100vw"
-                  }
+                  sizes="(min-width: 1024px) 60rem, 100vw"
                   className="rounded-lg"
                 />
               ) : null}
