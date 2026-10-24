@@ -12,15 +12,20 @@ import { getSupabaseEnvironment } from "./env";
 // a prerendered route uses it. cacheTags labels those entries so mutations can
 // expire them explicitly with updateTag; revalidatePath alone does not reliably
 // drop untagged fetch entries. Only anonymous (RLS-public) responses are ever
-// cached this way.
+// cached this way. noStore opts out of the Data Cache entirely, for reads that
+// depend on request input (search).
 export function createPublicServerSupabaseClient(
-  options: { cacheTags?: string[] } = {},
+  options: { cacheTags?: string[]; noStore?: boolean } = {},
 ) {
   const { url, publishableKey } = getSupabaseEnvironment();
   const tags = options.cacheTags;
 
   return createClient(url, publishableKey, {
-    global: tags?.length
+    global: options.noStore
+      ? {
+          fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+        }
+      : tags?.length
       ? {
           fetch: (input, init) =>
             fetch(input, { ...init, next: { ...init?.next, tags } }),

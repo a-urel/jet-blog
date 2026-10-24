@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
+import { SearchForm } from "@/features/search/components/search-form";
 import { feedAlternateTypes, feedPath } from "@/features/seo/feed";
 import { getConfiguredSiteUrl, getSiteName } from "@/lib/site-url";
 import "./globals.css";
@@ -44,11 +45,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           İçeriğe geç
         </a>
         <header className="border-b">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-6">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <BookOpen aria-hidden="true" className="size-5" />
               {siteName}
             </Link>
+            <div className="order-last w-full sm:order-none sm:ml-auto sm:w-auto">
+              {/* Static GET form: public pages stay prerendered. */}
+              <SearchForm variant="header" />
+            </div>
             {/* A static link keeps public pages prerendered; /account reads the
                 session itself and sends signed-out visitors to /login. */}
             <Link

@@ -816,6 +816,107 @@ home canonical URL, the `/page/1` redirect, `/page/2` when it exists, and 404
 with `noindex` for `/page/0`, `/page/02`, `/page/not-a-number`, `/page/99999`,
 and a missing tag's page 2.
 
+## Full-text search (Phase 19)
+
+`/search?q=...` searches published posts with Postgres full-text search.
+Migration `20261024180000_post_search.sql`; code in `src/features/search/` and
+`src/app/search/`.
+
+- **Search document.** `posts.search_vector` is a stored generated column
+  (`post_search_document()`): the title (weight A), the excerpt (B), and the
+  text of every Tiptap text node (C, `post_body_search_text()`; link targets,
+  image alt text and captions, and YouTube titles are attributes and are not
+  searched). Each part is indexed twice: with the post language's stemming
+  configuration (`turkish`, `english`, `german`, from `posts.language`) and
+  with `search_folded`, a `simple` copy behind the `unaccent` dictionary
+  (no stemming, no stop words). Folding makes "kucuk" find "küçük", "isik"
+  find "IŞIK", and "Strasse" find "Straße"; it also fixes Turkish dotted and
+  dotless i, which the database locale lowercases to `i` in both cases.
+  Stemming makes "kitap" find "kitapları", "runs" find "running", and "Haus"
+  find "Häuser".
+- **Index.** A partial GIN index on `search_vector` where `status =
+  'published'`. With 5,000 synthetic posts, a selective query used a
+  `BitmapOr` of three bitmap index scans on `posts_search_vector_idx`
+  (0.08 ms); a term in a third of the rows used a sequential scan, as it
+  should. GIN cost estimates come from statistics that `VACUUM` refreshes, so
+  a freshly created index on a tiny table can look expensive until then.
+- **Function.** `search_published_posts(p_query, p_language, p_limit,
+  p_offset)` is `SECURITY DEFINER` with `status = 'published'` as its
+  visibility rule, granted to `anon` and `authenticated`. Under RLS the planner
+  cannot use the GIN index (the `@@` operator is not leakproof, so it may not
+  run before the `posts_select_visible` policy), and every published row would
+  be scanned and checked with `can_view_post()`. The explicit filter is also
+  stricter than RLS for members: an author never finds their own drafts and an
+  editor never finds any draft. Ranking (`ts_rank`, length-normalized), the
+  total (`count(*) over ()`), and highlighting run only over rows that passed
+  the filter, so no draft text reaches a rank, a count, or a snippet. A post
+  matches through the branch of its own language only (stemmed query OR
+  folded query), so a German stem cannot match a Turkish post. Order: rank,
+  then `published_at` and `id` descending.
+- **Input.** User text goes to `websearch_to_tsquery`, which never raises a
+  syntax error: quoted phrases, `or`, and `-exclusion` work, and anything else
+  is words. The application trims it, collapses whitespace and control
+  characters, and requires 2–200 characters; the function refuses more than
+  200 characters, an unsupported language, a page size outside 1–50, and an
+  offset outside 0–1000 (`22023`). Results come 10 per page (`?page=`, at most
+  page 101); punctuation-only input returns nothing. An excluded term
+  (`-word`) is excluded per branch, so a word excluded in its stemmed form can
+  still match through its exact folded form, and stop words of the post
+  language still match through the folded branch.
+- **Highlights without HTML.** `ts_headline` does not escape markup, so the
+  function uses U+0002/U+0003 as start and stop markers and strips those
+  characters from the source text first. Titles are highlighted in full, the
+  snippet as up to two fragments of the excerpt and body; the two
+  configurations' passes are nested, so inflected and accent-folded matches
+  are both marked. `parseHighlight()` turns the result into text segments that
+  render as React text inside `<mark>`; there is no `dangerouslySetInnerHTML`.
+  A title highlight that does not spell the published title exactly falls back
+  to the plain title.
+  When a post matches only through a mix of stemmed and folded lexemes (the
+  Turkish stemmer turns "ekran" into `ekra` but "ekranlarda" into `ekran`),
+  neither pass can mark it and the snippet shows the opening words unmarked.
+- **Reads.** The page calls the function with the anonymous client, then reads
+  the result cards (`publicPostSummaryColumns`) through the same client, so RLS
+  filters what is displayed as well. Both reads use `cache: "no-store"`.
+- **Rate limit.** Before each real query (not the empty, too-short, too-long,
+  or invalid-page states) the server records one `search.query` event in
+  `consume_auth_rate_limit` with the secret key: 30 per IP per minute, keyed by
+  the SHA-256 digest of the first `X-Forwarded-For` entry (or `X-Real-IP`).
+  Requests without either share one bucket. It fails closed ("Arama şu anda
+  kullanılamıyor") without `SUPABASE_SECRET_KEY`. The same caveat as the Auth
+  limits applies: behind a proxy that does not overwrite `X-Forwarded-For`,
+  a client can send a new address on every request and is effectively
+  unlimited, so confirm the header handling with the host (D5). A client that
+  calls `search_published_posts` through the Data API directly bypasses the
+  application limit, as it can already read every published post through the
+  same API; add a gateway or Postgres-side limit if that becomes abuse.
+- **Route and caching.** `/search` is dynamic (`searchParams`, request
+  headers): `Cache-Control: private, no-store`, never prerendered or
+  ISR-cached, `noindex, nofollow`, and not in the sitemap. The header form is
+  a static `next/form` GET form, so every public page stays prerendered; the
+  search page has its own form with the query and an optional language filter.
+  Nothing in the invalidation map (`features/posts/cache.ts`) changed: the
+  generated column updates in the same statement as every post write, and
+  search reads are never cached, so the next search after a publish, edit, or
+  unpublish already sees it.
+
+Tests: `query.test.ts` and `results.test.ts` cover query normalization, code
+point length, page and language parsing, URLs, highlight parsing (markup as
+text, nested and stray markers), rank order, missing cards, and the title
+fallback. `search.rls.test.ts` (41 tests, local stack) covers the
+anonymous/reader/author/editor/admin matrix (a draft is never found, not even
+by its author who can read it directly; totals and snippets never include
+draft text; an unpublished post drops out), Turkish, English, and German
+stemming and folding, title-over-body ranking, the language filter,
+highlighting, injection-like input (SQL fragments, markup, tsquery operators,
+unbalanced quotes, marker characters), the input and paging limits, stable
+paging with a constant total, and the rate limit (client calls refused, 31st
+search per IP refused with `PT429`, separate budgets per IP, no email subject).
+The smoke test checks the header form, `/search` states (empty, too short, no
+result), `noindex` and `private` caching, that the newest post is found from
+its slug's first word, that every linked result answers 200, that the seed
+draft is not found, and that the sitemap does not list `/search`.
+
 ## Structure and sample content
 
 ```text
@@ -846,6 +947,7 @@ src/
     authors/[slug]/       # Author archive (+ page/[page])
     sitemap.ts, robots.ts # Published-content sitemap and crawler rules
     feed.xml/route.ts     # Atom feed of the newest published posts (ISR)
+    search/               # Dynamic, noindex full-text search page
   components/ui/          # Generated shadcn/ui controls
   features/
     account/              # Display name and account deletion actions
@@ -857,6 +959,7 @@ src/
     seo/                  # Metadata, Article JSON-LD, sitemap, robots, and Atom feed builders
     sharing/              # Copy link and provider share links
     taxonomy/             # Hierarchy and tree helpers, admin data, validation, actions
+    search/               # Search input parsing, highlights, rate limit, data, form and results
     posts/
       admin/              # Draft data, validation, permissions, form, editor, actions
       components/         # Shared post presentation and read-only body renderer
@@ -1612,7 +1715,7 @@ redirects anonymous visitors to sign-in.
 
 ## Next increment
 
-Phases 1–18 are implemented: authentication, editorial membership with
+Phases 1–19 are implemented: authentication, editorial membership with
 invitations and RLS, the content schema with taxonomy, credits, and public read
 rules, draft authoring with metadata forms and a members-only preview, the
 Tiptap body editor with a shared allowlist and a safe server-rendered renderer,
@@ -1625,11 +1728,11 @@ states, security headers, backup runbook, smoke test), self-service reader
 accounts (Phase 11), taxonomy administration, author identity
 administration, private bookmarks (Phase 12), post-moderated comments
 (Phase 13), per-post language (Phase 14), public listing pagination
-(Phase 15), post cover images (Phase 16), the Atom feed (Phase 17), and
-profile pictures (Phase 18). See
+(Phase 15), post cover images (Phase 16), the Atom feed (Phase 17),
+profile pictures (Phase 18), and full-text search (Phase 19). See
 [ROADMAP.md](./ROADMAP.md) for the ordered increments and their decision gates.
 
-All planned phases (1–18) are implemented; see ROADMAP.md for the open
+All planned phases (1–19) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

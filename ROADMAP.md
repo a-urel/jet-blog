@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-24 (Phase 17 Atom feed and Phase 18 profile pictures merged)
+Last updated: 2026-10-24 (Phase 19 full-text search, on `claude/full-text-search`)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–18, complete)
+## Current baseline (Phases 1–19, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -161,6 +161,16 @@ does not add requirements on its own.
   (denormalized `comments.avatar_id`, cleared by anonymization), and the
   shadcn/ui avatar with an initials fallback in the post byline, the author
   archive header, and comments.
+- Phase 19 full-text search: a stored generated `posts.search_vector` (title
+  A, excerpt B, Tiptap text nodes C) indexed with the post language's
+  stemming configuration and an `unaccent`-folded `simple` configuration, a
+  partial GIN index over published rows, the `SECURITY DEFINER`
+  `search_published_posts()` (explicit `status = 'published'`,
+  `websearch_to_tsquery`, `ts_rank`, stable order, 200-character cap,
+  control-character highlight markers instead of HTML), a dynamic `noindex`
+  `/search?q=` page with a header search form, an optional language filter,
+  `?page=` paging, and a per-IP `search.query` rate limit (30 per minute) in
+  `consume_auth_rate_limit`.
 - 549 unit tests and 377 local-Supabase RLS tests (including the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
@@ -220,6 +230,30 @@ show no avatars, and an Auth user deleted out of band (without the account
 page) can leave an unlisted orphan object in the `avatars` bucket.
 
 ## Where to resume (session handoff)
+
+Phase 19 (full-text search, `20261024180000_post_search.sql`) was developed on
+`claude/full-text-search` in its own worktree and is not committed or merged
+yet.
+
+- Last verified (Phase 19, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (582 tests), `npm run test:rls` (459 tests, 41 in the
+  new search suite), `npm run build` (`/search` dynamic, `/` still static),
+  and `npm run test:smoke` (against `next start` on port 3241) pass on the
+  worktree's own local stack after a clean `supabase db reset` (nineteen
+  migrations). `EXPLAIN ANALYZE` with 5,000 synthetic posts showed a
+  `BitmapOr` of bitmap index scans on `posts_search_vector_idx` as the
+  function owner, and a scan of the listing index with a per-row
+  `can_view_post()` filter as `anon` under RLS, which is why the function is
+  `SECURITY DEFINER`; the synthetic rows were removed by the reset. A browser
+  journey on `next start`: the header form searched "kucuk adim" and found
+  "İyi bir başlangıç, küçük bir adımla mümkün" with "küçük" and "adımla"
+  marked; "hazırlanan taslak" and "Kategorisi olmayan örnek" (the seed
+  draft's title and excerpt words) and a nonsense word showed the no-result
+  state; "x" showed the too-short state; a phrase query with the Türkçe
+  filter worked at mobile width in the light theme with a visible focus ring.
+  32 quick requests from one client got "Çok fazla arama yapıldı" while a
+  request with another `X-Forwarded-For` still got results (the spoofing
+  caveat below).
 
 Phases 17 (Atom feed, no migration; developed on `claude/rss-feed-8973c3`)
 and 18 (profile pictures, `20261024160000_avatars.sql`; developed on
@@ -488,6 +522,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 16 | Post cover image | Optional cover with alt text in header, cards, OG/Twitter, JSON-LD | Phases 6, 9 | Done |
 | 17 | Syndication feed | Atom feed of the newest published posts with discovery link | Phases 9, 10, 14, 16 | Done |
 | 18 | Profile pictures | Own account avatars, admin-set author avatars, avatars in bylines, archives, and comments | Phases 6, 11, 13, author administration | Done |
+| 19 | Full-text search | Language-aware, accent-insensitive search over published posts with highlights, paging, and a per-IP rate limit | Phases 5, 10, 11, 14 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1349,8 +1384,8 @@ Implementation notes:
   the post language, so Turkish labels, tags, and comments around an English
   post are still announced in Turkish.
 
-Follow-ups, not requested: a language filter on archives, per-language
-sitemaps, and language-aware full-text search once search exists.
+Follow-ups, not requested: a language filter on archives and per-language
+sitemaps. Language-aware full-text search shipped in Phase 19.
 
 ### Phase 15 — Public listing pagination
 
@@ -1480,6 +1515,53 @@ Follow-ups, not requested: a client-side crop/focal-point step, avatars on
 listing cards and the admin author list, Article JSON-LD author `image`, and a
 periodic sweep for orphan objects left by out-of-band Auth deletions.
 
+### Phase 19 — Full-text search
+
+Goal: readers can find published posts by words in the title, excerpt, or
+body, in the post's own language and without typing Turkish or German
+diacritics.
+
+Status: complete on 2026-10-24 (session request), on
+`claude/full-text-search`, migration `20261024180000_post_search.sql`.
+Verified as recorded in the handoff above. Details: README "Full-text search
+(Phase 19)".
+
+Decisions:
+
+- **Postgres full-text search, no external service.** A stored generated
+  column keeps the vector in step with every write without triggers and
+  without touching the authoring RPCs.
+- **Two configurations per post.** The language's Snowball stemmer
+  (`turkish`, `english`, `german`) for inflections, plus `search_folded`
+  (`unaccent` + `simple`) for diacritic-free input and the Turkish dotted and
+  dotless i, which the database locale lowercases to `i`. Each language branch
+  ORs both queries and applies only to posts in that language.
+- **`SECURITY DEFINER`, explicit published filter.** The `@@` operator is not
+  leakproof, so under RLS the GIN index cannot be used; the definer function
+  filters `status = 'published'` itself, which is also stricter than RLS for
+  members (no own drafts). Cards are still read through the anonymous client.
+- **Markers, not HTML.** `ts_headline` output uses U+0002/U+0003, which are
+  stripped from the source first; the page renders text segments in `<mark>`.
+- **Rate limit in the existing mechanism.** A `search.query` action (30 per IP
+  per minute) in `consume_auth_rate_limit`, with the same X-Forwarded-For
+  caveat. Requests without an address share one bucket. Direct Data API calls
+  bypass it, as they bypass every application limit on public reads.
+- **No cache, no invalidation change.** `/search` is dynamic and `noindex`,
+  reads with `no-store`, and is not in the sitemap; the invalidation map is
+  unchanged because nothing about search is cached.
+
+Known limits: Snowball stems are not always consistent across inflections
+(Turkish "ekran" stems to `ekra`, "ekranlarda" to `ekran`); recall is mostly
+rescued by the folded branch or a lexeme from the other branch, but then the
+snippet may show the opening words without marks. An excluded term (`-word`)
+is excluded per branch. Stop words of the post language still match through
+the folded branch. Body attributes (image alt text and captions, YouTube
+titles, link targets) are not searched.
+
+Follow-ups, not requested: searching image captions and YouTube titles, a
+typo-tolerant fallback (`pg_trgm` on titles), search analytics, and a
+Postgres-side limit for direct Data API calls if abuse appears.
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1522,10 +1604,11 @@ request and its own moderation/permission design.
   public author columns under an editorial-only policy. Future author
   administration must use a server-only path for the account link instead of
   widening the public grant.
-- Public sign-up exposes the Auth endpoints to abuse. Application limits use
-  the first `X-Forwarded-For` entry, which is only trustworthy behind a proxy
-  that overwrites it; confirm with the host (D5) and add CAPTCHA if abuse
-  appears.
+- Public sign-up exposes the Auth endpoints to abuse. Application limits
+  (Auth flows and, since Phase 19, search) use the first `X-Forwarded-For`
+  entry, which is only trustworthy behind a proxy that overwrites it; without
+  one a client can rotate the header and is effectively unlimited. Confirm
+  with the host (D5) and add CAPTCHA if abuse appears.
 - Reader-generated content adds spam, moderation load, abuse handling, and
   account-deletion obligations. Phases 11–13 must ship with rate limits,
   reporting, and the documented deletion policy. Post-moderation only works with
@@ -1533,7 +1616,7 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Every phase in the table (through Phase 18, profile pictures), both
+Every phase in the table (through Phase 19, full-text search), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

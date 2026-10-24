@@ -5,8 +5,9 @@
 // Anonymous HTTP checks only: public pages render, unknown and draft URLs
 // return 404, listing pages paginate (page 1 has one URL, invalid and
 // out-of-range pages return 404), admin and reader routes redirect to sign-in,
-// discovery files and the Atom feed exist, and every response carries the security headers. It needs no credentials and changes
-// no data, so it can also run against a staging deployment.
+// discovery files and the Atom feed exist, search answers dynamically with
+// noindex and links only public posts, and every response carries the security headers. It needs no credentials and changes
+// no data (a few searches count against this client's search rate limit), so it can also run against a staging deployment.
 
 const baseUrl = (process.env.SMOKE_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 const failures = [];
@@ -188,6 +189,67 @@ if (feedLink) {
   check(feed.status === 404, `/feed.xml: expected 404 without a discovery link, got ${feed.status}`);
   console.warn("No feed discovery link (NEXT_PUBLIC_SITE_URL unset?); feed content checks skipped.");
 }
+
+// Search: dynamic, noindex, never shared-cached, and never links a post that
+// is not public. The header form is on every page.
+check(
+  /<form[^>]*role="search"[^>]*action="\/search"|<form[^>]*action="\/search"[^>]*role="search"/.test(homeHtml),
+  "/: header search form is missing",
+);
+check(!sitemapXml.includes("/search"), "/sitemap.xml: lists the search page");
+
+async function getSearch(query) {
+  const path = `/search?q=${encodeURIComponent(query)}`;
+  const response = await get(path);
+  const html = await response.text();
+
+  check(response.status === 200, `${path}: expected 200, got ${response.status}`);
+  check(html.includes("noindex"), `${path}: search page is indexable`);
+  check(
+    /private|no-store/.test(response.headers.get("cache-control") ?? ""),
+    `${path}: search page is publicly cacheable (${response.headers.get("cache-control")})`,
+  );
+  check(!html.includes("Çok fazla arama"), `${path}: search rate limit hit during the smoke test`);
+  checkSecurityHeaders(path, response);
+  return { path, html };
+}
+
+const emptySearch = await getSearch("");
+check(emptySearch.html.includes('name="q"'), "/search: search form is missing");
+
+const shortSearch = await getSearch("a");
+check(shortSearch.html.includes("en az 2 karakter"), "/search?q=a: too-short state is missing");
+
+const noResult = await getSearch("smokeyokboylebirsozcuk");
+check(noResult.html.includes("sonuç bulunamadı"), "/search: no-result state is missing");
+
+// Every post a search links must be public (a draft would answer 404).
+async function checkSearchLinks({ path, html }) {
+  const links = [...new Set([...html.matchAll(/href="(\/posts\/[a-z0-9-]+)"/g)].map((match) => match[1]))];
+  for (const link of links) {
+    const response = await get(link);
+    await response.arrayBuffer();
+    check(response.status === 200, `${path}: links ${link}, which answers ${response.status}`);
+  }
+  return links;
+}
+
+if (postPath) {
+  // The slug is derived from the title, so its first word finds the post
+  // (accent-folded matching covers Turkish characters).
+  const term = postPath.split("/").pop().split("-")[0];
+  const found = await getSearch(term);
+  const links = await checkSearchLinks(found);
+  check(links.includes(postPath), `${found.path}: ${postPath} is not among the results`);
+}
+
+// The synthetic seed has a draft titled "Yayına hazırlanan taslak".
+const draftSearch = await getSearch("taslak");
+await checkSearchLinks(draftSearch);
+check(
+  !draftSearch.html.includes("/posts/taslak-yazi-ornegi"),
+  "/search?q=taslak: the seed draft is listed",
+);
 
 if (failures.length > 0) {
   console.error(`Smoke test failed against ${baseUrl}:`);
