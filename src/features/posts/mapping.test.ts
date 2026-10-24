@@ -47,6 +47,25 @@ describe("mapPublicPostSummary", () => {
     });
     expect(post?.publishedAt).toBe(row.published_at);
     expect(post?.language).toBe("en");
+    expect(post?.cover).toBeNull();
+  });
+
+  it("maps the cover reference with its alt text", () => {
+    const mediaId = "22222222-2222-4222-8222-222222222222";
+
+    expect(
+      mapPublicPostSummary({ ...row, cover_media_id: mediaId, cover_alt: "Sisli vadi" })?.cover,
+    ).toEqual({ mediaId, alt: "Sisli vadi" });
+    expect(mapPublicPostSummary({ ...row, cover_media_id: mediaId })?.cover).toEqual({
+      mediaId,
+      alt: "",
+    });
+  });
+
+  it("ignores a malformed cover reference", () => {
+    expect(
+      mapPublicPostSummary({ ...row, cover_media_id: "../secret", cover_alt: "x" })?.cover,
+    ).toBeNull();
   });
 
   it("hides rows with an unsupported or missing language", () => {

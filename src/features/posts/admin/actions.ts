@@ -17,14 +17,15 @@ import {
   getStringField,
   getTagFieldValues,
   isUuid,
+  maxCoverAltLength,
   validatePostMetadata,
   type PostFieldErrors,
 } from "./validation";
 
 // Submitted values of the uncontrolled fields. React resets a form after its
 // action settles, so a rejected save hands them back as the new default values
-// instead of silently reverting the user's input. Tags, credits, and the body
-// editor are client state and survive on their own.
+// instead of silently reverting the user's input. Tags, credits, the cover,
+// and the body editor are client state and survive on their own.
 export type SubmittedPostValues = {
   title: string;
   slug: string;
@@ -65,6 +66,8 @@ function readRawMetadata(formData: FormData) {
     excerpt: getStringField(formData, "excerpt"),
     categoryId: getStringField(formData, "categoryId"),
     language: getStringField(formData, "language"),
+    coverMediaId: getStringField(formData, "coverMediaId"),
+    coverAlt: getStringField(formData, "coverAlt"),
     tagIds: getTagFieldValues(formData),
     creditAuthorIds,
     creditSortOrders,
@@ -121,6 +124,24 @@ function mapRpcError(error: {
       ) {
         return errorState("Yazı gövdesi geçersiz.", {
           body: "Yazı gövdesi desteklenmeyen içerik içeriyor.",
+        });
+      }
+
+      if (message.includes("Cover alt text is required")) {
+        return errorState("Yayındaki bir yazının kapak görseli alternatif metin gerektirir.", {
+          coverAlt: "Kapak görseli için alternatif metin girin.",
+        });
+      }
+
+      if (message.includes("cover alt")) {
+        return errorState("Kapak alternatif metni geçersiz.", {
+          coverAlt: `Kapak alternatif metni en fazla ${maxCoverAltLength} karakter olabilir.`,
+        });
+      }
+
+      if (message.includes("Cover") || message.includes("cover")) {
+        return errorState("Kapak görseli bulunamadı veya bir görsel değil.", {
+          coverMediaId: "Medya kitaplığından geçerli bir görsel seçin.",
         });
       }
 
@@ -250,6 +271,8 @@ async function createDraftPost(formData: FormData): Promise<PostFormState> {
       p_body: validation.body,
       p_content_version: currentContentVersion,
       p_language: validation.data.language,
+      p_cover_media_id: validation.data.coverMediaId,
+      p_cover_alt: validation.data.coverAlt,
     },
   );
 
@@ -316,6 +339,8 @@ async function updatePostMetadata(formData: FormData): Promise<PostFormState> {
       p_body: validation.body,
       p_content_version: currentContentVersion,
       p_language: validation.data.language,
+      p_cover_media_id: validation.data.coverMediaId,
+      p_cover_alt: validation.data.coverAlt,
     },
   );
 

@@ -383,6 +383,44 @@ and a CHECK constraint (`23514`) reject anything else. The allowed set lives in
 Translations are not linked to each other, and the interface is not
 localized; both are separate increments.
 
+## Post cover image
+
+A post may have one optional cover image. The reference and its alt text live
+on the post (`posts.cover_media_id`, `posts.cover_alt`), outside the editor
+document, because a description belongs to this occurrence of the file.
+Migration: `20261024140000_post_cover_image.sql`.
+
+- **Authoring.** The post form's "Kapak görseli" field chooses an image from
+  the media library or uploads a new one through the Phase 6 upload action, and
+  has a 16:9 preview, alt text, and a remove control. `create_draft_post` and
+  `update_post_metadata` take required `p_cover_media_id` and `p_cover_alt`
+  parameters (pass `null` for no cover). They lock the media row and refuse
+  unknown or non-image media (`22023`); alt text without a cover, over 300
+  characters, or with control characters is refused too.
+- **Publishing.** Drafts may keep a cover without alt text. `publish_post`
+  refuses a cover without alt text (`23514`), and a published post keeps that
+  rule on later saves; the CHECK constraint `posts_published_cover_requires_alt`
+  backs it up.
+- **Deletion.** `posts.cover_media_id` references `public.media` with
+  `on delete restrict`, and `delete_media` treats a cover like a body image
+  reference (`23503`), so `/admin/media` refuses to delete a cover in use.
+- **Rendering.** The post page header, listing cards, and the member preview
+  render the cover with `next/image` in a fixed 16:9 box (`object-cover`), so
+  no layout shift occurs and readers never need the media row, which stays
+  members-only. The post page preloads it as the likely LCP image. Cards use an
+  empty alt because the linked title next to it names the post.
+- **SEO.** With a cover, Open Graph gets `images` (absolute media URL plus alt)
+  and Twitter switches to `summary_large_image`; Article JSON-LD gets `image`.
+  Without a cover, or without `NEXT_PUBLIC_SUPABASE_URL`, cards stay text-only.
+  The image URL is on the Supabase media origin, which the CSP `img-src`
+  already allows.
+
+Tests: `features/posts/admin/validation.test.ts`, `features/seo/metadata.test.ts`,
+`features/seo/json-ld.test.ts`, and `features/posts/mapping.test.ts` cover input
+validation and output; `src/lib/supabase/post-cover.rls.test.ts` covers the
+anonymous/reader/author/editor/admin matrix, unknown, unregistered, and
+non-image media, alt rules, publishing, public reads, and deletion protection.
+
 ## Post body editor and renderer
 
 Phase 5 stores the post body as a Tiptap/ProseMirror JSON document in
@@ -479,7 +517,7 @@ Storage bucket with UUID object paths and server-side validation.
   on a loopback address, so `images.dangerouslyAllowLocalIP` is enabled only
   when `NEXT_PUBLIC_SUPABASE_URL` is loopback.
 - **Deletion.** `/admin/media` lists uploads. `delete_media` refuses media that
-  any post body references (`23503`), then the Storage object is removed with
+  any post body or post cover references (`23503`), then the Storage object is removed with
   the user's session. Authors delete only their own uploads; editors and admins
   delete any unused upload. The reference scan reads every post body; add an
   index only if the media library grows enough to need one.

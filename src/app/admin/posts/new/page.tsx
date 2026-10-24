@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { listMedia } from "@/features/media/data";
 import { PostForm } from "@/features/posts/admin/components/post-form";
 import { listTaxonomyOptions } from "@/features/posts/admin/data";
 import { emptyBodyDocument } from "@/features/posts/content/schema";
@@ -25,7 +26,10 @@ export default async function NewPostPage() {
 
   if (!membership) return null;
 
-  const taxonomy = await listTaxonomyOptions();
+  const [taxonomy, mediaLibrary] = await Promise.all([
+    listTaxonomyOptions(),
+    listMedia(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -78,12 +82,16 @@ export default async function NewPostPage() {
               categories={taxonomy.categories}
               tags={taxonomy.tags}
               authors={taxonomy.authors}
+              media={mediaLibrary.media}
+              mediaError={mediaLibrary.error}
               initialValues={{
                 title: "",
                 slug: "",
                 excerpt: "",
                 categoryId: "",
                 language: defaultPostLanguage,
+                coverMediaId: "",
+                coverAlt: "",
                 tagIds: [],
                 credits: [],
                 body: emptyBodyDocument,

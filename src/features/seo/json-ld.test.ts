@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { publishedPost } from "./fixtures";
+import { coverMediaId, mediaOrigin, postWithCover, publishedPost } from "./fixtures";
 import { buildArticleJsonLd, serializeJsonLd } from "./json-ld";
 
 const siteUrl = new URL("https://example.test");
@@ -36,6 +36,21 @@ describe("buildArticleJsonLd", () => {
     );
 
     expect(jsonLd.inLanguage).toBe("de");
+  });
+
+  it("lists the cover as an absolute image URL", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", mediaOrigin);
+
+    try {
+      expect(buildArticleJsonLd(postWithCover, { siteUrl, siteName: "S" }).image).toEqual([
+        `${mediaOrigin}/storage/v1/object/public/media/${coverMediaId}`,
+      ]);
+      expect(buildArticleJsonLd(publishedPost, { siteUrl, siteName: "S" })).not.toHaveProperty(
+        "image",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("omits URLs without a site origin", () => {

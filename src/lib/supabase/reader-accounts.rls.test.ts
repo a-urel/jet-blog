@@ -423,6 +423,8 @@ describe("self-signed-up reader is denied editorial operations", () => {
         p_body: body,
         p_content_version: 1,
         p_language: "tr",
+        p_cover_media_id: null,
+        p_cover_alt: null,
       }),
       reader.rpc("update_post_metadata", {
         p_post_id: fixtures.draft,
@@ -436,6 +438,8 @@ describe("self-signed-up reader is denied editorial operations", () => {
         p_body: body,
         p_content_version: 1,
         p_language: "tr",
+        p_cover_media_id: null,
+        p_cover_alt: null,
       }),
       reader.rpc("publish_post", {
         p_post_id: fixtures.draft,

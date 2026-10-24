@@ -28,6 +28,7 @@ import {
 import type {
   AuthorOption,
   CategoryOption,
+  CoverMediaOption,
   TagOption,
 } from "@/features/posts/admin/types";
 import type { BodyDocument } from "@/features/posts/content/schema";
@@ -37,6 +38,7 @@ import {
   type PostLanguage,
 } from "@/features/posts/language";
 import { PostBodyEditor } from "./post-body-editor";
+import { PostCoverField } from "./post-cover-field";
 import { useUnsavedChangesWarning } from "./use-unsaved-changes-warning";
 
 const initialState: PostFormState = {
@@ -57,12 +59,16 @@ type PostFormProps = {
   categories: CategoryOption[];
   tags: TagOption[];
   authors: AuthorOption[];
+  media: CoverMediaOption[];
+  mediaError: boolean;
   initialValues: {
     title: string;
     slug: string;
     excerpt: string;
     categoryId: string;
     language: PostLanguage;
+    coverMediaId: string;
+    coverAlt: string;
     tagIds: string[];
     credits: InitialCredit[];
     body: BodyDocument;
@@ -86,6 +92,8 @@ export function PostForm({
   categories,
   tags,
   authors,
+  media,
+  mediaError,
   initialValues,
 }: PostFormProps) {
   const [credits, setCredits] = useState<InitialCredit[]>(
@@ -96,6 +104,8 @@ export function PostForm({
   );
   const [categoryId, setCategoryId] = useState(initialValues.categoryId);
   const [language, setLanguage] = useState<string>(initialValues.language);
+  const [coverMediaId, setCoverMediaId] = useState(initialValues.coverMediaId);
+  const [coverAlt, setCoverAlt] = useState(initialValues.coverAlt);
   const [authorToAdd, setAuthorToAdd] = useState("");
   // The revision the unsaved edits were made against. A successful save
   // re-renders this form with a newer revision, which clears the warning
@@ -285,6 +295,23 @@ export function PostForm({
         <p className="text-sm text-muted-foreground">En fazla 500 karakter.</p>
         <FieldError id="post-excerpt-error" message={state.fieldErrors.excerpt} />
       </div>
+
+      <PostCoverField
+        media={media}
+        mediaError={mediaError}
+        coverMediaId={coverMediaId}
+        coverAlt={coverAlt}
+        lang={language}
+        mediaIdError={state.fieldErrors.coverMediaId}
+        altError={state.fieldErrors.coverAlt}
+        onCoverChange={(mediaId) => {
+          // Choosing or removing a cover uses buttons, which fire no change
+          // event on the form.
+          markDirty();
+          setCoverMediaId(mediaId);
+        }}
+        onAltChange={setCoverAlt}
+      />
 
       <div className="space-y-2">
         <p id="post-body-label" className="text-sm font-medium">

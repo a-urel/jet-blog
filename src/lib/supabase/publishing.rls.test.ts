@@ -93,6 +93,8 @@ async function createDraft(
     p_body: body,
     p_content_version: 1,
     p_language: "tr",
+    p_cover_media_id: null,
+    p_cover_alt: null,
   });
 
   if (error) throw error;
@@ -133,6 +135,8 @@ async function renamePost(client: SupabaseClient, postId: string, slug: string) 
     p_body: body,
     p_content_version: 1,
     p_language: "tr",
+    p_cover_media_id: null,
+    p_cover_alt: null,
   });
 }
 
@@ -386,6 +390,8 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
       p_body: body,
       p_content_version: 1,
       p_language: "tr",
+      p_cover_media_id: null,
+      p_cover_alt: null,
     });
     expect(created.error?.code).toBe("23505");
 

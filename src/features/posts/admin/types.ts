@@ -18,6 +18,13 @@ export type AuthorOption = Readonly<{
   name: string;
 }>;
 
+// A media library entry offered as a post cover.
+export type CoverMediaOption = Readonly<{
+  id: string;
+  width: number;
+  height: number;
+}>;
+
 export type TaxonomyOptions = Readonly<{
   categories: CategoryOption[];
   tags: TagOption[];
@@ -50,6 +57,8 @@ export type AdminPostDetail = Readonly<{
   body: unknown;
   contentVersion: number;
   language: PostLanguage;
+  coverMediaId: string | null;
+  coverAlt: string | null;
   status: PostStatus;
   revision: number;
   updatedAt: string;

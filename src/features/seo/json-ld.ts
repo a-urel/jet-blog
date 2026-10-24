@@ -1,6 +1,7 @@
 import { archivePaths, postPath } from "@/features/posts/archives";
 import type { PostSummary } from "@/features/posts/types";
 import { absoluteSiteUrl } from "@/lib/site-url";
+import { postCoverImageUrl } from "./metadata";
 
 type JsonLd = Record<string, unknown>;
 
@@ -12,12 +13,14 @@ export function buildArticleJsonLd(
   options: { siteUrl: URL | null; siteName: string },
 ): JsonLd {
   const url = absoluteSiteUrl(postPath(post.slug), options.siteUrl);
+  const image = postCoverImageUrl(post);
 
   return {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
     ...(post.excerpt ? { description: post.excerpt } : {}),
+    ...(image ? { image: [image] } : {}),
     datePublished: post.publishedAt,
     dateModified: post.updatedAt,
     author: post.authors.map(({ author }) => {

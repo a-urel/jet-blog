@@ -10,6 +10,7 @@ import { BookmarkToggle } from "@/features/bookmarks/components/bookmark-toggle"
 import { CommentSection } from "@/features/comments/components/comment-section";
 import { listVisibleComments } from "@/features/comments/data";
 import { PostBody } from "@/features/posts/components/post-body";
+import { PostCover } from "@/features/posts/components/post-cover";
 import { PostMeta } from "@/features/posts/components/post-meta";
 import { archivePaths, postPath } from "@/features/posts/archives";
 import { findPublishedPost, listPublishedSlugs } from "@/features/posts/data";
@@ -94,6 +95,15 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
         <BookmarkProvider postIds={[post.id]}>
           <BookmarkToggle postId={post.id} />
         </BookmarkProvider>
+        {post.cover ? (
+          <PostCover
+            mediaId={post.cover.mediaId}
+            alt={post.cover.alt}
+            sizes="(min-width: 768px) 45rem, 100vw"
+            preload
+            className="rounded-xl"
+          />
+        ) : null}
       </header>
       <div lang={post.language} className="py-10">
         <PostBody body={post.body} contentVersion={post.contentVersion} />

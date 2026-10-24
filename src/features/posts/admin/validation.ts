@@ -3,7 +3,13 @@ import {
   isPostLanguage,
   type PostLanguage,
 } from "@/features/posts/language";
+import { maxImageAltLength } from "@/features/posts/content/schema";
 import { isValidSlug, normalizeName, slugify } from "@/lib/slug";
+
+// Cover alt text follows the body image rules: at most 300 characters, no
+// control characters. The database mirror is `public.assert_post_cover`.
+export const maxCoverAltLength = maxImageAltLength;
+const controlCharacterPattern = /[\u0000-\u001f\u007f]/;
 
 export type PostMetadataInput = Readonly<{
   title: string;
@@ -11,6 +17,8 @@ export type PostMetadataInput = Readonly<{
   excerpt: string | null;
   categoryId: string | null;
   language: PostLanguage;
+  coverMediaId: string | null;
+  coverAlt: string | null;
   tagIds: string[];
   credits: ReadonlyArray<{ authorId: string; sortOrder: number }>;
 }>;
@@ -22,6 +30,8 @@ export type PostFieldErrors = Partial<
     | "excerpt"
     | "categoryId"
     | "language"
+    | "coverMediaId"
+    | "coverAlt"
     | "tagIds"
     | "credits"
     | "body",
@@ -35,6 +45,8 @@ export type RawPostMetadata = Readonly<{
   excerpt: string;
   categoryId: string;
   language: string;
+  coverMediaId: string;
+  coverAlt: string;
   tagIds: string[];
   creditAuthorIds: string[];
   creditSortOrders: string[];
@@ -98,6 +110,27 @@ export function validatePostMetadata(
     language = languageValue;
   } else {
     fieldErrors.language = "Desteklenen bir dil seçin.";
+  }
+
+  // Drafts may keep a cover without alt text; publishing requires it, which
+  // the database enforces because only it knows the post's current status.
+  const coverValue = raw.coverMediaId.trim();
+  const coverAltValue = raw.coverAlt.trim();
+  let coverMediaId: string | null = null;
+
+  if (coverValue.length > 0) {
+    if (!isUuid(coverValue)) {
+      fieldErrors.coverMediaId = "Geçerli bir kapak görseli seçin.";
+    } else {
+      coverMediaId = coverValue.toLowerCase();
+    }
+  }
+
+  if (
+    [...coverAltValue].length > maxCoverAltLength ||
+    controlCharacterPattern.test(coverAltValue)
+  ) {
+    fieldErrors.coverAlt = `Kapak alternatif metni en fazla ${maxCoverAltLength} karakter olabilir.`;
   }
 
   const tagIds: string[] = [];
@@ -205,6 +238,10 @@ export function validatePostMetadata(
       excerpt: excerpt.length > 0 ? excerpt : null,
       categoryId,
       language,
+      coverMediaId,
+      // Alt text without a cover is dropped rather than rejected: removing the
+      // cover in the form leaves nothing for it to describe.
+      coverAlt: coverMediaId && coverAltValue.length > 0 ? coverAltValue : null,
       tagIds,
       credits,
     },

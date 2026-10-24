@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { listMedia } from "@/features/media/data";
 import { PostForm } from "@/features/posts/admin/components/post-form";
 import {
   getAdminPostDetail,
@@ -66,9 +67,10 @@ export default async function EditPostPage({
 
   if (!user || !membership) return null;
 
-  const [{ post, error }, taxonomy] = await Promise.all([
+  const [{ post, error }, taxonomy, mediaLibrary] = await Promise.all([
     getAdminPostDetail(id),
     listTaxonomyOptions(),
+    listMedia(),
   ]);
 
   if (error) {
@@ -169,7 +171,7 @@ export default async function EditPostPage({
             <CardDescription>
               {post.status === "published"
                 ? `Yayında${post.publishedAt ? ` · ${dateFormatter.format(new Date(post.publishedAt))}` : ""}. Kaydedilen değişiklikler hemen genel sayfaya yansır.`
-                : "Taslak yalnızca editöryal üyelere görünür. Yayınlama, kaydedilmiş son sürümü kullanır ve bir kategori gerektirir."}
+                : "Taslak yalnızca editöryal üyelere görünür. Yayınlama, kaydedilmiş son sürümü kullanır; bir kategori ve kapak görseli varsa onun alternatif metnini gerektirir."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
@@ -269,12 +271,16 @@ export default async function EditPostPage({
               categories={taxonomy.categories}
               tags={taxonomy.tags}
               authors={taxonomy.authors}
+              media={mediaLibrary.media}
+              mediaError={mediaLibrary.error}
               initialValues={{
                 title: post.title,
                 slug: post.slug,
                 excerpt: post.excerpt ?? "",
                 categoryId: post.categoryId ?? "",
                 language: post.language,
+                coverMediaId: post.coverMediaId ?? "",
+                coverAlt: post.coverAlt ?? "",
                 tagIds: post.tagIds,
                 credits: post.credits.map((credit) => ({
                   authorId: credit.authorId,
