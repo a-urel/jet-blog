@@ -23,13 +23,17 @@ describe("publicCacheInvalidation", () => {
       const paths = routes.map((route) => route.path);
 
       expect(tags).toEqual([publicPostsCacheTag]);
-      // Listing, post page, archives, and sitemap.
+      // Listing, post page, archives, their later pages, and sitemap.
       expect(paths).toEqual([
         "/",
+        "/page/[page]",
         "/posts/[slug]",
         "/categories/[slug]",
+        "/categories/[slug]/page/[page]",
         "/tags/[slug]",
+        "/tags/[slug]/page/[page]",
         "/authors/[slug]",
+        "/authors/[slug]/page/[page]",
         "/sitemap.xml",
       ]);
     },
@@ -41,12 +45,19 @@ describe("publicCacheInvalidation", () => {
     }
   });
 
+  it("covers the later pages of every paginated listing", () => {
+    const paths = publicContentRoutes.map((route) => route.path);
+    for (const listing of ["", "/categories/[slug]", "/tags/[slug]", "/authors/[slug]"]) {
+      expect(paths).toContain(`${listing}/page/[page]`);
+    }
+  });
+
   it("leaves public caches alone for a draft save", () => {
     expect(publicCacheInvalidation("draft-saved")).toEqual({ tags: [], routes: [] });
   });
 
   it("returns a copy that callers cannot use to change the route list", () => {
     publicCacheInvalidation("post-published").routes.pop();
-    expect(publicContentRoutes).toHaveLength(6);
+    expect(publicContentRoutes).toHaveLength(10);
   });
 });

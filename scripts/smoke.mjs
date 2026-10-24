@@ -3,8 +3,9 @@
 //   SMOKE_BASE_URL=http://localhost:3000 npm run test:smoke
 //
 // Anonymous HTTP checks only: public pages render, unknown and draft URLs
-// return 404, admin and reader routes redirect to sign-in, discovery files exist, and every
-// response carries the security headers. It needs no credentials and changes
+// return 404, listing pages paginate (page 1 has one URL, invalid and
+// out-of-range pages return 404), admin and reader routes redirect to sign-in,
+// discovery files exist, and every response carries the security headers. It needs no credentials and changes
 // no data, so it can also run against a staging deployment.
 
 const baseUrl = (process.env.SMOKE_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
@@ -59,7 +60,52 @@ if (postPath) {
   console.warn("No published post on the home page; post checks skipped.");
 }
 
-for (const path of ["/posts/smoke-missing-post", "/tags/smoke-missing-tag"]) {
+function canonicalOf(html) {
+  const href = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
+  return href ? new URL(href, baseUrl).pathname : null;
+}
+
+check(canonicalOf(homeHtml) === "/", `/: canonical is ${canonicalOf(homeHtml)}, expected /`);
+
+// Page 1 of a listing has a single URL.
+const firstPage = await get("/page/1");
+check(
+  [301, 308].includes(firstPage.status) &&
+    new URL(firstPage.headers.get("location") ?? "", baseUrl).pathname === "/",
+  `/page/1: expected a permanent redirect to /, got ${firstPage.status}`,
+);
+
+// Page 2 exists only with more published posts than one page holds.
+if (homeHtml.includes('href="/page/2"')) {
+  const second = await get("/page/2");
+  const secondHtml = await second.text();
+
+  check(second.status === 200, `/page/2: expected 200, got ${second.status}`);
+  check(
+    canonicalOf(secondHtml) === "/page/2",
+    `/page/2: canonical is ${canonicalOf(secondHtml)}, expected /page/2`,
+  );
+  check(!secondHtml.includes("noindex"), "/page/2: listing page is not indexable");
+  check(secondHtml.includes('aria-current="page"'), "/page/2: no current page in pagination");
+  check(
+    !(second.headers.get("cache-control") ?? "").includes("private"),
+    "/page/2: listing page is not publicly cacheable",
+  );
+  checkSecurityHeaders("/page/2", second);
+} else {
+  console.warn("The home listing has a single page; page 2 checks skipped.");
+}
+
+for (const path of [
+  "/posts/smoke-missing-post",
+  "/tags/smoke-missing-tag",
+  "/tags/smoke-missing-tag/page/2",
+  "/page/0",
+  "/page/02",
+  "/page/not-a-number",
+  // Past the end of any realistic listing.
+  "/page/99999",
+]) {
   const response = await get(path);
   const html = await response.text();
 

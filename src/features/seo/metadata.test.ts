@@ -53,6 +53,48 @@ describe("buildArchiveMetadata", () => {
     expect(metadata.alternates?.canonical).toBe("/categories/yazilim");
     expect(metadata.openGraph).toMatchObject({ type: "website", url: "/categories/yazilim" });
   });
+
+  it("keeps page 1 at the archive path", () => {
+    const metadata = buildArchiveMetadata({
+      title: "Şema etiketi",
+      description: "Açıklama",
+      path: "/tags/sema",
+      siteName: "S",
+      page: 1,
+    });
+
+    expect(metadata.title).toBe("Şema etiketi");
+    expect(metadata.alternates?.canonical).toBe("/tags/sema");
+  });
+
+  it("gives a later page its own canonical URL and title", () => {
+    const metadata = buildArchiveMetadata({
+      title: "Şema etiketi",
+      description: "Açıklama",
+      path: "/tags/sema",
+      siteName: "S",
+      page: 3,
+    });
+
+    expect(metadata.title).toBe("Şema etiketi — Sayfa 3");
+    expect(metadata.alternates?.canonical).toBe("/tags/sema/page/3");
+    expect(metadata.openGraph).toMatchObject({
+      url: "/tags/sema/page/3",
+      title: "Şema etiketi — Sayfa 3",
+    });
+  });
+
+  it("nests the home listing's later pages under /page", () => {
+    const metadata = buildArchiveMetadata({
+      title: "Son yazılar",
+      description: "Açıklama",
+      path: "/",
+      siteName: "S",
+      page: 2,
+    });
+
+    expect(metadata.alternates?.canonical).toBe("/page/2");
+  });
 });
 
 describe("noIndexMetadata", () => {

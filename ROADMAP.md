@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–14, complete)
+## Current baseline (Phases 1–15, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -154,8 +154,11 @@ does not add requirements on its own.
 
 Known gaps: posts have no cover or Open Graph image (text-only cards); the site
 name and origin are provisional (D5), so canonical/sitemap URLs point at
-whatever `NEXT_PUBLIC_SITE_URL` holds. Archive and sitemap builds read every
-published post (fine at the current size; revisit with pagination later).
+whatever `NEXT_PUBLIC_SITE_URL` holds. Public listings are paginated (Phase
+15), but the sitemap and archive discovery for `generateStaticParams` still
+read every published post's summary, and the category archive reads the
+category ids of all posts in its subtree (fine at the current size; revisit
+with a slimmer query or sitemap index if the post count grows large).
 Draft media is fetchable by URL (D4 tradeoff). Cache
 invalidation stays route-wide by design (Phase 10 documents why per-post tags
 would not save regenerations). Hosting, domain, and brand (D5) are still open,
@@ -176,12 +179,28 @@ its reports disappear with it.
 
 ## Where to resume (session handoff)
 
-Phases 1–13, taxonomy and author identity administration, and the fixes from
+Phase 15 (public listing pagination, no migration) was implemented on
+2026-10-24 on the `claude/public-pagination-2ed447` branch (not yet merged
+into `main`). Phases 1–13, taxonomy and author identity administration, and the fixes from
 the all-roles browser test (`59771bc`) are on `origin/main`. The first-admin
 bootstrap command (`npm run admin:bootstrap`, migration
 `20261024100000_admin_bootstrap.sql`) followed on 2026-10-24, and Phase 14
 (post language, migration `20261024120000_post_language.sql`) the same day;
 commit only on request. Do not push without an explicit request.
+
+- Last verified (Phase 15): `npm run lint`, `npm run typecheck`, `npm test`
+  (512 tests), `npm run test:rls` (353 tests), `npm run build`, and
+  `npm run test:smoke` (against `next start` on a free port) pass. No
+  `supabase db reset` was run (it would remove the local admin account); the
+  journey used 20 synthetic `pg-synth-` posts, a tag, an author, and an editor
+  account that were deleted afterwards. The build prerendered `/page/2..3` and
+  each archive's later pages. In the browser: home page 1 ended and page 2
+  started without overlap; tag page 3 was the last (no "Sonraki"), keyboard
+  focus was visible in the dark theme, Enter on "1" opened the archive URL,
+  `/tags/<slug>/page/4` was a `noindex` 404, and `/categories/uretim/page/2`
+  kept its child-category links. After the editor unpublished one synthetic
+  post, the next anonymous requests for the already cached `/page/3` and the
+  tag, author, and category later pages showed the shifted posts and totals.
 
 - Last verified (Phase 14): `npm run lint`, `npm run typecheck`, `npm test`
   (484 tests), `npm run test:rls` (347 tests), `npm run build`, and
@@ -362,6 +381,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 12 | Bookmarks | Private saved posts with strict per-user isolation | Phase 8, 11 | Done |
 | 13 | Comments | Flat, post-moderated comments with reports and rate limits | Phase 8, 11 | Done |
 | 14 | Post language | Per-post language (tr, en, de) in form, markup, OG, JSON-LD | Phase 9 | Done |
+| 15 | Listing pagination | Path-based ISR pages for home and archives, stable order | Phase 9, 10 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -1226,6 +1246,37 @@ Implementation notes:
 Follow-ups, not requested: a language filter on archives, per-language
 sitemaps, and language-aware full-text search once search exists.
 
+### Phase 15 — Public listing pagination
+
+Goal: the home listing and the category, tag, and author archives read and
+render one page of posts at a time, without losing ISR caching.
+
+Status: complete on 2026-10-24 (session request). Verified as recorded in the
+handoff above. Details: README "Public listing pagination".
+
+Implementation notes:
+
+- Path-based pages (`<listing>/page/<n>`, page 1 at the listing URL) instead
+  of `?page=`, because `searchParams` makes a Next.js 16 page dynamic. Later
+  pages prerender through `generateStaticParams`; others render on first
+  request and are cached.
+- Order is `published_at desc, id desc`; reads use `range()` with an exact
+  count. The existing partial `posts_published_listing_idx` still serves the
+  order (the tiebreaker only sorts rows with equal `published_at`), so no
+  migration was added.
+- `/page/1` redirects come from `next.config.ts`, because a redirect thrown
+  while rendering an ISR page sent `Location` twice on the first response.
+  Existing render-time redirects (old post and archive slugs) likely behave
+  the same on their first uncached request (not verified); browsers accept
+  identical duplicate values, but recheck on the chosen host.
+- Each page is self-canonical; no `rel=prev/next`. The sitemap lists posts and
+  archives, not pages.
+- Invalidation regenerates every page of every listing on each public change,
+  consistent with the route-wide model from Phase 10.
+
+Follow-up, not requested: pagination for the admin comment moderation queue
+(still the latest 100 rows per filter).
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -1279,7 +1330,7 @@ request and its own moderation/permission design.
 
 ## Next step
 
-Every phase in the table (through Phase 14, post language), both
+Every phase in the table (through Phase 15, listing pagination), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), revisit D4 if draft images must stay private, then
 follow the README hosting checklist (bootstrap the first admin with

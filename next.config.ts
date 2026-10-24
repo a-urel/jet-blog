@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 import { mediaPublicPath } from "./src/features/media/url";
+import { firstPageRedirects } from "./src/features/posts/pagination";
 import { buildSecurityHeaders, isLoopbackHostname } from "./src/lib/security-headers";
 
 // Public media lives in the Supabase Storage bucket chosen by decision D4. Only
@@ -45,6 +46,10 @@ const nextConfig: NextConfig = {
         }),
       },
     ];
+  },
+  // Page 1 of a listing has a single URL; see src/features/posts/pagination.ts.
+  async redirects() {
+    return firstPageRedirects;
   },
   turbopack: {
     rules: {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { postPath } from "@/features/posts/archives";
 import { openGraphLocale } from "@/features/posts/language";
+import { pagePath } from "@/features/posts/pagination";
 import type { PostSummary } from "@/features/posts/types";
 
 // Pure metadata builders. Paths stay relative; the root layout's metadataBase
@@ -45,27 +46,41 @@ export function buildPostMetadata(post: PostSummary, siteName: string): Metadata
   };
 }
 
+// Later pages of a listing carry the page number in their title.
+export function pageTitle(title: string, page: number) {
+  return page > 1 ? `${title} — Sayfa ${page}` : title;
+}
+
+// Each page of a listing is its own canonical URL (page 1 is the listing's
+// path, later pages <path>/page/[page]); pointing later pages at page 1 would
+// tell search engines to ignore the posts listed only there. No rel=prev/next:
+// the Metadata API has no field for it and major search engines ignore it.
 export function buildArchiveMetadata(input: {
   title: string;
   description: string;
   path: string;
   siteName: string;
+  page?: number;
 }): Metadata {
+  const page = input.page ?? 1;
+  const path = pagePath(input.path, page);
+  const title = pageTitle(input.title, page);
+
   return {
-    title: input.title,
+    title,
     description: input.description,
-    alternates: { canonical: input.path },
+    alternates: { canonical: path },
     openGraph: {
       type: "website",
-      url: input.path,
+      url: path,
       siteName: input.siteName,
       locale: "tr_TR",
-      title: input.title,
+      title,
       description: input.description,
     },
     twitter: {
       card: "summary",
-      title: input.title,
+      title,
       description: input.description,
     },
   };

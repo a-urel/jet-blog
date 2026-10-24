@@ -1,21 +1,26 @@
 import type { ReactNode } from "react";
 
-import type { PostSummary } from "../types";
+import type { PostPage } from "../pagination";
 import { PostList } from "./post-list";
+import { PageCount } from "./page-count";
+import { PostPagination } from "./post-pagination";
 
-// Shared frame for the category, tag, and author archive pages.
+// Shared frame for the category, tag, and author archive pages. basePath is
+// the archive's page-1 URL.
 export function ArchiveLayout({
   eyebrow,
   title,
   description,
   children,
+  basePath,
   posts,
 }: {
   eyebrow: string;
   title: string;
   description?: string | null;
   children?: ReactNode;
-  posts: PostSummary[];
+  basePath: string;
+  posts: PostPage;
 }) {
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
@@ -32,9 +37,10 @@ export function ArchiveLayout({
       <section aria-labelledby="archive-posts-title">
         <div className="mb-6 flex items-baseline justify-between gap-4 border-b pb-4">
           <h2 id="archive-posts-title" className="text-xl font-semibold">Yazılar</h2>
-          <span className="text-sm text-muted-foreground">{posts.length} yazı</span>
+          <PageCount {...posts} />
         </div>
-        <PostList posts={posts} />
+        <PostList posts={posts.posts} />
+        <PostPagination basePath={basePath} page={posts.page} pageCount={posts.pageCount} />
       </section>
     </div>
   );

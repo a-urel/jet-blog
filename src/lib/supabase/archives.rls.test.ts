@@ -54,9 +54,11 @@ const ids = {
   child: "",
   grandchild: "",
   empty: "",
+  paged: "",
   tag: "",
   secondTag: "",
   draftOnlyTag: "",
+  pageTag: "",
   author: "",
   draftOnlyAuthor: "",
   inChild: "",
@@ -64,7 +66,13 @@ const ids = {
   draftInParent: "",
   unpublished: "",
   renamed: "",
+  pageDraft: "",
 };
+
+// Posts of the pagination checks: same category and tag, published in the
+// same instant, so only the id tiebreaker orders them.
+const pagePosts: { id: string; slug: string }[] = [];
+const pageInstant = "2026-09-01T09:00:00+00:00";
 
 const slugs = {
   inChild: `${slugPrefix}-child-post`,
@@ -198,6 +206,23 @@ beforeAll(async () => {
   ids.unpublished = await insertPost(slugs.unpublished, ids.child, { published: true });
   ids.renamed = await insertPost(slugs.renamedOld, ids.grandchild, { published: true });
 
+  ids.paged = await insertOne("categories", {
+    name: `Arşiv Sayfalı ${runId}`,
+    slug: `${slugPrefix}-paged`,
+  });
+  ids.pageTag = await insertOne("tags", {
+    name: `Arşiv Sayfa Etiket ${runId}`,
+    slug: `${slugPrefix}-page-tag`,
+  });
+  for (let index = 0; index < 5; index += 1) {
+    const slug = `${slugPrefix}-page-${index}`;
+    pagePosts.push({
+      slug,
+      id: await insertPost(slug, ids.paged, { published: true, publishedAt: pageInstant }),
+    });
+  }
+  ids.pageDraft = await insertPost(`${slugPrefix}-page-draft`, ids.paged, { published: false });
+
   const { error: creditError } = await service.from("post_authors").insert([
     { post_id: ids.inChild, author_id: ids.author, sort_order: 0 },
     { post_id: ids.inGrandchild, author_id: ids.author, sort_order: 0 },
@@ -216,6 +241,8 @@ beforeAll(async () => {
     { post_id: ids.draftInParent, tag_id: ids.draftOnlyTag },
     { post_id: ids.unpublished, tag_id: ids.tag },
     { post_id: ids.unpublished, tag_id: ids.draftOnlyTag },
+    ...pagePosts.map(({ id }) => ({ post_id: id, tag_id: ids.pageTag })),
+    { post_id: ids.pageDraft, tag_id: ids.pageTag },
   ]);
   if (tagError) throw tagError;
 
@@ -238,8 +265,11 @@ afterAll(async () => {
   await service.from("posts").delete().like("slug", `${slugPrefix}%`);
   await service.from("categories").delete().in("id", [ids.grandchild].filter(Boolean));
   await service.from("categories").delete().in("id", [ids.child].filter(Boolean));
-  await service.from("categories").delete().in("id", [ids.parent, ids.empty].filter(Boolean));
-  await service.from("tags").delete().in("id", [ids.tag, ids.secondTag, ids.draftOnlyTag].filter(Boolean));
+  await service.from("categories").delete().in("id", [ids.parent, ids.empty, ids.paged].filter(Boolean));
+  await service
+    .from("tags")
+    .delete()
+    .in("id", [ids.tag, ids.secondTag, ids.draftOnlyTag, ids.pageTag].filter(Boolean));
   await service.from("authors").delete().in("id", [ids.author, ids.draftOnlyAuthor].filter(Boolean));
 
   for (const id of Object.values(userIds).filter(Boolean)) {
@@ -329,6 +359,68 @@ describe("author archives", () => {
   it("never exposes the author account link", async () => {
     const { error } = await clients.anon.from("authors").select("user_id").eq("id", ids.author);
     expect(error).not.toBeNull();
+  });
+});
+
+// Listings paginate with range() over a counted query (data.ts readPage).
+describe("paginated listings", () => {
+  // Newest first; equal published_at falls back to id, descending.
+  const expectedOrder = () =>
+    [...pagePosts].sort((left, right) => right.id.localeCompare(left.id)).map((post) => post.slug);
+
+  it.each(publicReaders)("%s pages through a tag archive in a stable order", async (who) => {
+    const pages = await Promise.all(
+      [0, 2, 4].map((from) => selectPublishedPostsWithTag(clients[who], ids.pageTag).range(from, from + 1)),
+    );
+
+    for (const page of pages) {
+      expect(page.error).toBeNull();
+      // The draft with the same tag is not counted.
+      expect(page.count).toBe(pagePosts.length);
+    }
+    const slugsInOrder = pages.flatMap((page) =>
+      ((page.data ?? []) as unknown as { slug: string }[]).map((row) => row.slug),
+    );
+    expect(slugsInOrder).toEqual(expectedOrder());
+  });
+
+  it("counts only published posts for an editor whose RLS can read drafts", async () => {
+    const all = await clients.editor.from("posts").select("slug").eq("id", ids.pageDraft);
+    expect(slugsOf(all.data)).toEqual([`${slugPrefix}-page-draft`]);
+
+    const { count, error } = await selectPublishedPostsWithTag(clients.editor, ids.pageTag).range(0, 1);
+    expect(error).toBeNull();
+    expect(count).toBe(pagePosts.length);
+  });
+
+  it("pages a category archive with the same order", async () => {
+    const { data, count, error } = await selectPublishedPostsInCategories(clients.anon, [ids.paged])
+      .range(2, 3);
+    expect(error).toBeNull();
+    expect(count).toBe(pagePosts.length);
+    expect(((data ?? []) as unknown as { slug: string }[]).map((row) => row.slug)).toEqual(
+      expectedOrder().slice(2, 4),
+    );
+  });
+
+  it("returns a short last page and rejects a range past the end", async () => {
+    const last = await selectPublishedPostsWithTag(clients.anon, ids.pageTag).range(4, 5);
+    expect(last.error).toBeNull();
+    expect(last.data).toHaveLength(1);
+
+    // data.ts treats PGRST103 as an out-of-range page (404), not a failure.
+    const past = await selectPublishedPostsWithTag(clients.anon, ids.pageTag).range(6, 7);
+    expect(past.error?.code).toBe("PGRST103");
+  });
+
+  it("returns an empty first page with a zero count for a tag used only on drafts", async () => {
+    const { data, count, error } = await selectPublishedPostsWithTag(
+      clients.anon,
+      ids.draftOnlyTag,
+    ).range(0, 1);
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
+    expect(count).toBe(0);
   });
 });
 

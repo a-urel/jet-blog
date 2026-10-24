@@ -10,6 +10,7 @@ import {
 } from "@/features/taxonomy/hierarchy";
 import { derivePublicArchives, type PublicArchives } from "./archives";
 import { publicPostsCacheTag } from "./cache";
+import { pageBounds, pageCount, type PostPage } from "./pagination";
 import {
   mapPublicPost,
   mapPublicPostSummary,
@@ -19,6 +20,7 @@ import {
 import {
   selectAuthorBySlug,
   selectCategories,
+  selectPublishedPostCategoryIds,
   selectPublishedPostsByAuthor,
   selectPublishedPostsInCategories,
   selectPublishedPostsWithTag,
@@ -54,6 +56,36 @@ function mapSummaries(rows: unknown[] | null): PostSummary[] {
   });
 }
 
+// PostgREST answers 416 with this code when a range starts past the last row.
+const rangeNotSatisfiable = "PGRST103";
+
+type CountedResult = {
+  data: unknown;
+  error: { code?: string; message: string } | null;
+  count: number | null;
+};
+
+// Reads one page of a counted, ordered listing query (queries.ts). Returns
+// null for a page past the end; page 1 of an empty listing is an empty page.
+async function readPage(
+  query: { range(from: number, to: number): PromiseLike<CountedResult> },
+  page: number,
+  label: string,
+): Promise<PostPage | null> {
+  const { from, to } = pageBounds(page);
+  const { data, error, count } = await query.range(from, to);
+
+  if (error?.code === rangeNotSatisfiable) return null;
+  if (error) throw new Error(`${label} could not be loaded: ${error.message}`);
+
+  const total = count ?? 0;
+  if (page > pageCount(total)) return null;
+
+  return { posts: mapSummaries(data as unknown[] | null), page, pageCount: pageCount(total), total };
+}
+
+// Every published post, for the sitemap and archive discovery. Listings read
+// one page at a time (listPublishedPostPage, the archive lookups).
 export const listPublishedPosts = cache(async (): Promise<PostSummary[]> => {
   // A checkout without Supabase credentials still builds and renders.
   if (!isSupabaseConfigured()) return [];
@@ -63,6 +95,15 @@ export const listPublishedPosts = cache(async (): Promise<PostSummary[]> => {
   if (error) throw new Error(`Published posts could not be loaded: ${error.message}`);
 
   return mapSummaries(data);
+});
+
+// One page of the home listing. null means the page is past the end.
+export const listPublishedPostPage = cache(async (page: number): Promise<PostPage | null> => {
+  if (!isSupabaseConfigured()) {
+    return page === 1 ? { posts: [], page, pageCount: 1, total: 0 } : null;
+  }
+
+  return readPage(selectPublishedPostSummaries(publicClient()), page, "Published posts");
 });
 
 export async function listPublishedSlugs(): Promise<string[]> {
@@ -165,8 +206,9 @@ export async function listPublicArchives(): Promise<PublicArchives> {
   return derivePublicArchives(posts, categories);
 }
 
+// "missing" also covers a page past the end of an existing archive.
 export type ArchiveLookup<T> =
-  | { kind: "archive"; subject: T; posts: PostSummary[] }
+  | { kind: "archive"; subject: T; posts: PostPage }
   | { kind: "redirect"; slug: string }
   | { kind: "missing" };
 
@@ -210,20 +252,28 @@ export type CategoryArchive = PublicCategory & {
 
 // The archive lists posts of the category and all of its descendants.
 export const findCategoryArchive = cache(
-  async (slug: string): Promise<ArchiveLookup<CategoryArchive>> => {
+  async (slug: string, page: number): Promise<ArchiveLookup<CategoryArchive>> => {
     if (!isSupabaseConfigured()) return { kind: "missing" };
 
     const categories = await listCategories();
     const category = categories.find((candidate) => candidate.slug === slug);
     if (!category) return findArchiveRedirect("category_slug_redirects", slug);
 
+    const supabase = publicClient();
     const subtree = collectCategorySubtree(categories, category.id);
-    const { data, error } = await selectPublishedPostsInCategories(publicClient(), subtree);
+    const [posts, postCategories] = await Promise.all([
+      readPage(selectPublishedPostsInCategories(supabase, subtree), page, "Category archive"),
+      selectPublishedPostCategoryIds(supabase, subtree),
+    ]);
 
-    if (error) throw new Error(`Category archive could not be loaded: ${error.message}`);
+    if (postCategories.error) {
+      throw new Error(`Category archive could not be loaded: ${postCategories.error.message}`);
+    }
+    if (!posts || posts.total === 0) return { kind: "missing" };
 
-    const posts = mapSummaries(data);
-    if (posts.length === 0) return { kind: "missing" };
+    const listedCategoryIds = new Set(
+      ((postCategories.data ?? []) as { category_id: string }[]).map((row) => row.category_id),
+    );
 
     const byId = new Map(categories.map((candidate) => [candidate.id, candidate]));
     const trail = collectCategoryAncestry(categories, category.id)
@@ -236,8 +286,7 @@ export const findCategoryArchive = cache(
     const children = categories
       .filter((candidate) => candidate.parentId === category.id)
       .filter((child) => {
-        const childSubtree = new Set(collectCategorySubtree(categories, child.id));
-        return posts.some((post) => childSubtree.has(post.category.id));
+        return collectCategorySubtree(categories, child.id).some((id) => listedCategoryIds.has(id));
       })
       .map(({ name, slug: childSlug }) => ({ name, slug: childSlug }));
 
@@ -253,7 +302,7 @@ export type TagArchive = {
 };
 
 export const findTagArchive = cache(
-  async (slug: string): Promise<ArchiveLookup<TagArchive>> => {
+  async (slug: string, page: number): Promise<ArchiveLookup<TagArchive>> => {
     if (!isSupabaseConfigured()) return { kind: "missing" };
 
     const supabase = publicClient();
@@ -261,11 +310,12 @@ export const findTagArchive = cache(
     if (tag.error) throw new Error(`Tag could not be loaded: ${tag.error.message}`);
     if (!tag.data) return findArchiveRedirect("tag_slug_redirects", slug);
 
-    const { data, error } = await selectPublishedPostsWithTag(supabase, tag.data.id);
-    if (error) throw new Error(`Tag archive could not be loaded: ${error.message}`);
-
-    const posts = mapSummaries(data);
-    return posts.length > 0
+    const posts = await readPage(
+      selectPublishedPostsWithTag(supabase, tag.data.id),
+      page,
+      "Tag archive",
+    );
+    return posts && posts.total > 0
       ? { kind: "archive", subject: tag.data as TagArchive, posts }
       : { kind: "missing" };
   },
@@ -279,7 +329,7 @@ export type AuthorArchive = {
 };
 
 export const findAuthorArchive = cache(
-  async (slug: string): Promise<ArchiveLookup<AuthorArchive>> => {
+  async (slug: string, page: number): Promise<ArchiveLookup<AuthorArchive>> => {
     if (!isSupabaseConfigured()) return { kind: "missing" };
 
     const supabase = publicClient();
@@ -287,11 +337,12 @@ export const findAuthorArchive = cache(
     if (author.error) throw new Error(`Author could not be loaded: ${author.error.message}`);
     if (!author.data) return findArchiveRedirect("author_slug_redirects", slug);
 
-    const { data, error } = await selectPublishedPostsByAuthor(supabase, author.data.id);
-    if (error) throw new Error(`Author archive could not be loaded: ${error.message}`);
-
-    const posts = mapSummaries(data);
-    return posts.length > 0
+    const posts = await readPage(
+      selectPublishedPostsByAuthor(supabase, author.data.id),
+      page,
+      "Author archive",
+    );
+    return posts && posts.total > 0
       ? { kind: "archive", subject: author.data as AuthorArchive, posts }
       : { kind: "missing" };
   },

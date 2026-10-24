@@ -17,6 +17,8 @@ export type ArchiveEntry = {
   slug: string;
   // Latest updatedAt of the posts the archive lists.
   lastModified: string;
+  // Published posts the archive lists, for prerendering its later pages.
+  postCount: number;
 };
 
 export type PublicArchives = {
@@ -27,13 +29,22 @@ export type PublicArchives = {
 
 type CategoryWithSlug = CategoryNode & { slug: string };
 
-function latest(current: string | undefined, candidate: string) {
-  return !current || Date.parse(candidate) > Date.parse(current) ? candidate : current;
+type EntryStats = Omit<ArchiveEntry, "slug">;
+
+function record(map: Map<string, EntryStats>, slug: string, updatedAt: string) {
+  const current = map.get(slug);
+  map.set(slug, {
+    lastModified:
+      !current || Date.parse(updatedAt) > Date.parse(current.lastModified)
+        ? updatedAt
+        : current.lastModified,
+    postCount: (current?.postCount ?? 0) + 1,
+  });
 }
 
-function toEntries(map: Map<string, string>): ArchiveEntry[] {
+function toEntries(map: Map<string, EntryStats>): ArchiveEntry[] {
   return [...map]
-    .map(([slug, lastModified]) => ({ slug, lastModified }))
+    .map(([slug, stats]) => ({ slug, ...stats }))
     .sort((left, right) => left.slug.localeCompare(right.slug));
 }
 
@@ -45,26 +56,22 @@ export function derivePublicArchives(
   categories: readonly CategoryWithSlug[],
 ): PublicArchives {
   const categorySlugs = new Map(categories.map((category) => [category.id, category.slug]));
-  const categoryDates = new Map<string, string>();
-  const tagDates = new Map<string, string>();
-  const authorDates = new Map<string, string>();
+  const categoryStats = new Map<string, EntryStats>();
+  const tagStats = new Map<string, EntryStats>();
+  const authorStats = new Map<string, EntryStats>();
 
   for (const post of posts) {
     for (const categoryId of collectCategoryAncestry(categories, post.category.id)) {
       const slug = categorySlugs.get(categoryId);
-      if (slug) categoryDates.set(slug, latest(categoryDates.get(slug), post.updatedAt));
+      if (slug) record(categoryStats, slug, post.updatedAt);
     }
-    for (const tag of post.tags) {
-      tagDates.set(tag.slug, latest(tagDates.get(tag.slug), post.updatedAt));
-    }
-    for (const { author } of post.authors) {
-      authorDates.set(author.slug, latest(authorDates.get(author.slug), post.updatedAt));
-    }
+    for (const tag of post.tags) record(tagStats, tag.slug, post.updatedAt);
+    for (const { author } of post.authors) record(authorStats, author.slug, post.updatedAt);
   }
 
   return {
-    categories: toEntries(categoryDates),
-    tags: toEntries(tagDates),
-    authors: toEntries(authorDates),
+    categories: toEntries(categoryStats),
+    tags: toEntries(tagStats),
+    authors: toEntries(authorStats),
   };
 }

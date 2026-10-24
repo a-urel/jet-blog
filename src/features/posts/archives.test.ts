@@ -25,7 +25,7 @@ describe("derivePublicArchives", () => {
     expect(archives.authors.map((entry) => entry.slug)).toEqual(["birinci-yazar", "ikinci-yazar"]);
   });
 
-  it("uses the newest post update per archive and omits empty archives", () => {
+  it("uses the newest post update and counts posts per archive, omitting empty archives", () => {
     const newer = {
       ...publishedPost,
       id: "22222222-2222-4222-8222-222222222222",
@@ -38,8 +38,9 @@ describe("derivePublicArchives", () => {
     const archives = derivePublicArchives([publishedPost, newer], categories);
 
     expect(archives.categories).toEqual([
-      { slug: "uretim", lastModified: newer.updatedAt },
-      { slug: "yazilim", lastModified: publishedPost.updatedAt },
+      // The parent archive lists its own post and its child's.
+      { slug: "uretim", lastModified: newer.updatedAt, postCount: 2 },
+      { slug: "yazilim", lastModified: publishedPost.updatedAt, postCount: 1 },
     ]);
     expect(archives.authors.find((entry) => entry.slug === "ikinci-yazar")?.lastModified)
       .toBe(newer.updatedAt);

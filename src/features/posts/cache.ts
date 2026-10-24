@@ -2,7 +2,8 @@
 //
 // Public routes are ISR pages with `revalidate = 300` as a fallback: the home
 // listing, /posts/[slug], /categories/[slug], /tags/[slug], /authors/[slug],
-// and sitemap.xml (robots.txt reads no content). Their anonymous Supabase reads
+// the later listing pages under <listing>/page/[page], and sitemap.xml
+// (robots.txt reads no content). Their anonymous Supabase reads
 // sit in the Data Cache under publicPostsCacheTag. Posts embed their category,
 // tags, and credited authors, and archives and the sitemap read posts plus
 // taxonomy, so one tag covers all public content; a narrower tag per post
@@ -16,6 +17,12 @@
 //   2. revalidatePath for every public route pattern: the rendered HTML/RSC
 //      entries are regenerated. Route patterns cover both slugs of a slug
 //      change (the old URL now redirects) without tracking them.
+//
+// Listings are paginated by path (./pagination.ts). A page pattern such as
+// /tags/[slug] does not cover the nested /tags/[slug]/page/[page], so the
+// later pages are listed as their own patterns. Every page of every listing is
+// regenerated: one published or unpublished post shifts all later pages, and
+// a page that was past the end (cached 404) may now exist, or the reverse.
 //
 // Drafts never reach public reads, so saving a draft changes nothing public.
 // Member previews are force-dynamic and never cached.
@@ -56,10 +63,14 @@ export type CacheInvalidation = {
 // Every public route that renders or lists published content.
 export const publicContentRoutes: readonly PublicRoute[] = [
   { path: "/" },
+  { path: "/page/[page]", type: "page" },
   { path: "/posts/[slug]", type: "page" },
   { path: "/categories/[slug]", type: "page" },
+  { path: "/categories/[slug]/page/[page]", type: "page" },
   { path: "/tags/[slug]", type: "page" },
+  { path: "/tags/[slug]/page/[page]", type: "page" },
   { path: "/authors/[slug]", type: "page" },
+  { path: "/authors/[slug]/page/[page]", type: "page" },
   { path: "/sitemap.xml" },
 ];
 

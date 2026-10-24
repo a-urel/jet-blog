@@ -654,8 +654,9 @@ needs a migration: archives reuse the Phase 3 RLS policies and indexes.
   `public-posts` tagged client. Every publish, unpublish, and post update
   (including slug changes and edits of published posts) calls
   `updateTag("public-posts")` and revalidates `/`, `/posts/[slug]`,
-  `/categories/[slug]`, `/tags/[slug]`, `/authors/[slug]`, and `/sitemap.xml`.
-  Taxonomy and author administration apply the same invalidation; only
+  `/categories/[slug]`, `/tags/[slug]`, `/authors/[slug]`, their later pages
+  (see [Public listing pagination](#public-listing-pagination)), and
+  `/sitemap.xml`. Taxonomy and author administration apply the same invalidation; only
   out-of-band database changes wait for the 5-minute fallback. Phase 10 moved this list into
   `features/posts/cache.ts` (see [Launch readiness](#launch-readiness-phase-10)).
 
@@ -667,6 +668,65 @@ posts, tag and author archives exclude drafts, draft-only authors stay hidden,
 of published posts and non-empty archives. Unit tests cover metadata, JSON-LD
 (including hostile titles), sitemap and robots output, share links, archive
 derivation, and the category hierarchy helpers.
+
+## Public listing pagination
+
+The home listing and the category, tag, and author archives show
+`postsPerPage` (9) posts per page; the first card spans both grid columns, so
+an odd size fills the grid. No migration was needed.
+
+- **URLs.** Page 1 stays at the listing's own URL (`/`, `/tags/<slug>`, ...);
+  later pages live at `<listing>/page/<n>` (`/page/2`,
+  `/categories/<slug>/page/3`). `/page/1` URLs answer a permanent redirect to
+  the listing from `next.config.ts` `redirects()` before anything renders (a
+  redirect thrown while rendering an ISR page sent its `Location` header twice
+  on the first, uncached response). Invalid numbers (`0`, `02`, `abc`, more
+  than six digits) and pages past the end return 404 with `noindex`; an empty
+  home listing still renders page 1 with its empty state. Old archive slugs
+  redirect to the same page of the current slug.
+- **Why paths, not `?page=`.** In Next.js 16 `searchParams` is a request-time
+  API that opts a page into dynamic rendering, so every listing request would
+  render on the server and skip ISR. Path segments keep each page an ISR route:
+  `generateStaticParams` prerenders pages 2..n of every listing (archive post
+  counts come from `derivePublicArchives`), and other page numbers render on
+  first request and are cached like the rest.
+- **Order and reads.** `features/posts/queries.ts` orders by `published_at`
+  descending with `id` descending as a tiebreaker, so posts published in the
+  same instant keep one order and never repeat or vanish between pages, and
+  counts matching rows (`count: "exact"`). `features/posts/data.ts` reads one
+  page with `range()`; PostgREST's `PGRST103` (range past the end) maps to 404,
+  not an error. The category archive reads only `category_id` of the subtree's
+  published posts to decide which child categories to link on every page. The
+  sitemap and archive discovery (`generateStaticParams`) still read the summary
+  of every published post; the sitemap lists posts and archives, never page
+  URLs.
+- **Metadata.** Each page is its own canonical URL; later pages add
+  "— Sayfa n" to the title. Pointing later pages at page 1 would hide the
+  posts listed only there. No `rel="prev"`/`rel="next"`: the Metadata API has
+  no field for it and major search engines ignore it.
+- **Controls.** `features/posts/components/post-pagination.tsx` uses the
+  shadcn/ui `pagination` component (rendered with `next/link`, Turkish labels,
+  `aria-current="page"` on the current page, an ellipsis for long gaps). The
+  first page has no "Önceki" and the last no "Sonraki" link rather than a
+  disabled one. Plain links keep the pages shared ISR output and usable
+  without JavaScript.
+- **Caching.** `revalidatePath("/tags/[slug]", "page")` does not cover the
+  nested `/tags/[slug]/page/[page]`, so the invalidation map in
+  `features/posts/cache.ts` lists `/page/[page]` and each
+  `<archive>/page/[page]` pattern too. Every publish, unpublish, and published
+  post update regenerates all pages of all listings: one post shifts every later
+  page, and a cached 404 past the end may become a page (or the reverse).
+
+Tests: `pagination.test.ts` covers page parsing, bounds, paths, the prerender
+params, the pagination items, and the page-1 redirects; `metadata.test.ts`
+covers per-page canonical URLs and titles; `cache.test.ts` the later-page
+invalidation. `archives.rls.test.ts` pages a tag and a category archive as
+anonymous and reader clients (stable order for posts with equal
+`published_at`, drafts not counted even for an editor, a short last page,
+`PGRST103` past the end, an empty draft-only tag). The smoke test checks the
+home canonical URL, the `/page/1` redirect, `/page/2` when it exists, and 404
+with `noindex` for `/page/0`, `/page/02`, `/page/not-a-number`, `/page/99999`,
+and a missing tag's page 2.
 
 ## Structure and sample content
 
@@ -690,10 +750,12 @@ src/
     login/password/       # Set-password step for invited users
     login/reset/          # Password reset request
     signup/               # Self-service reader sign-up
+    page.tsx, home-listing.tsx # Home listing (page 1) and its shared view
+    page/[page]/          # Later home listing pages
     posts/[slug]/         # Public post page (ISR) with slug redirects
-    categories/[slug]/    # Category archive including descendants
-    tags/[slug]/          # Tag archive
-    authors/[slug]/       # Author archive
+    categories/[slug]/    # Category archive including descendants (+ page/[page])
+    tags/[slug]/          # Tag archive (+ page/[page])
+    authors/[slug]/       # Author archive (+ page/[page])
     sitemap.ts, robots.ts # Published-content sitemap and crawler rules
   components/ui/          # Generated shadcn/ui controls
   features/
@@ -714,6 +776,7 @@ src/
       archives.ts         # Public paths and archive derivation
       cache.ts            # Data Cache tag for public post reads
       data.ts             # Anonymous, RLS-filtered public queries
+      pagination.ts       # Page size, page URLs, parsing, page-1 redirects
       queries.ts          # Query builders shared with the RLS tests
       mapping.ts          # Row-to-read-model mapping, "Güncellendi" rule
       types.ts            # Public read models, not database definitions
@@ -915,7 +978,8 @@ or creates hosted resources.
   a published post (title, slug with its redirect, excerpt, body including
   images and YouTube nodes, category, tags, credits) expire the `public-posts`
   Data Cache tag and revalidate `/`, `/posts/[slug]`, `/categories/[slug]`,
-  `/tags/[slug]`, `/authors/[slug]`, and `/sitemap.xml`. Saving a draft no
+  `/tags/[slug]`, `/authors/[slug]`, the later listing pages under
+  `.../page/[page]`, and `/sitemap.xml`. Saving a draft no
   longer touches public caches (the action reads the saved status; if it
   cannot, it invalidates). Media upload and deletion change nothing public:
   deletion is refused while a body references the image. Future taxonomy and
@@ -975,8 +1039,11 @@ or creates hosted resources.
 - **Smoke test.** `npm run test:smoke` (`SMOKE_BASE_URL`, default
   `http://localhost:3000`) checks a running server anonymously: listing and
   first post render with JSON-LD, unknown post and tag URLs return `noindex`
-  404s, `/admin` redirects to `/login`, `robots.txt` and `sitemap.xml` are
-  public-only, and every response has the security headers without eval.
+  404s, listing pagination behaves (`/page/1` redirects, `/page/2` renders
+  with its own canonical URL when it exists, invalid and out-of-range pages
+  are `noindex` 404s), `/admin` redirects to `/login`, `robots.txt` and
+  `sitemap.xml` are public-only, and every response has the security headers
+  without eval.
 
 Hosting checklist (open until D5 is decided): after the first deploy, create
 the first admin with `npm run admin:bootstrap` (see
