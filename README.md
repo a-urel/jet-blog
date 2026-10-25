@@ -1644,9 +1644,17 @@ or creates hosted resources.
   e-mails; the production build output contains neither the key nor its name
   in `.next/static`. Normal user operations use the user's session and RLS.
 - **Backups.** [docs/backup-and-restore.md](./docs/backup-and-restore.md)
-  covers Postgres and Storage, local and hosted, with consistency checks and the
-  exercised local drill (dump, reset, restore, identical fingerprints and image
-  checksum).
+  covers Postgres, Storage bytes, and Storage object ownership, local and
+  hosted, with consistency checks and the drill log
+  (`npm run backup:storage`, `npm run backup:storage-owners`, and their
+  `restore:` counterparts). Full local drill on 2026-10-25: a disposable
+  worktree stack with synthetic users, published snapshots, working copies,
+  versions, media, avatars, comments, and bookmarks was dumped, destroyed, and
+  restored in about 10 seconds of commands; every `auth` and `public` table
+  matched by count and content hash, schema and role dumps were identical,
+  9/9 objects matched their SHA-256, every user signed in, public pages served
+  the published snapshot with images and avatars, and `npm run test:rls`
+  (554) passed on the restored stack. The hosted path is not drilled yet.
 - **Smoke test.** `npm run test:smoke` (`SMOKE_BASE_URL`, default
   `http://localhost:3000`) checks a running server anonymously: listing and
   first post render with JSON-LD, unknown post and tag URLs return `noindex`
@@ -1677,8 +1685,11 @@ CDN or proxy in front of the app keys cached HTML on the `locale` cookie and
 `Accept-Language` (Next.js sends no such `Vary`; a cache keyed by URL alone
 would serve one interface language to every reader, so add the cache key or
 `Vary` at the edge, or do not cache HTML there),
-schedule database and Storage
-backups (draft images stay public by URL by decision, D4), and run
+schedule database, Storage, and Storage-owner
+backups (platform backups and PITR cover Postgres only; draft images stay
+public by URL by decision, D4), repeat the backup drill against the hosted
+project (keys, Auth settings, SMTP, and redirect URLs are not part of any
+backup; see the runbook), and run
 `npm run test:smoke` against the deployment.
 
 Tests: `launch-readiness.rls.test.ts` runs two simultaneous saves from the same
