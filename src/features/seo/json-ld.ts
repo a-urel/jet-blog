@@ -1,6 +1,9 @@
 import { avatarPublicUrl } from "@/features/avatars/url";
 import { archivePaths, postPath } from "@/features/posts/archives";
+import { mediaPublicUrl } from "@/features/media/url";
 import type { PostSummary } from "@/features/posts/types";
+import type { SiteSettings } from "@/features/site-settings/model";
+import { socialLinkEntries } from "@/features/site-settings/social";
 import { absoluteSiteUrl } from "@/lib/site-url";
 import { postCoverImageUrl } from "./metadata";
 
@@ -12,7 +15,7 @@ type JsonLd = Record<string, unknown>;
 // origin, absolute without metadataBase) becomes the Person image.
 export function buildArticleJsonLd(
   post: PostSummary,
-  options: { siteUrl: URL | null; siteName: string },
+  options: { siteUrl: URL | null; site: SiteJsonLdInput },
 ): JsonLd {
   const url = absoluteSiteUrl(postPath(post.slug), options.siteUrl);
   const image = postCoverImageUrl(post);
@@ -38,8 +41,47 @@ export function buildArticleJsonLd(
     articleSection: post.category.name,
     ...(post.tags.length > 0 ? { keywords: post.tags.map((tag) => tag.name) } : {}),
     inLanguage: post.language,
-    publisher: { "@type": "Organization", name: options.siteName },
+    publisher: buildOrganizationJsonLd(options.site, options.siteUrl),
     ...(url ? { url, mainEntityOfPage: { "@type": "WebPage", "@id": url } } : {}),
+  };
+}
+
+type SiteJsonLdInput = Pick<
+  SiteSettings,
+  "siteName" | "metaDescription" | "logoLightMediaId" | "socialLinks" | "defaultLocale"
+>;
+
+// The publication as a schema.org Organization: name, home URL, the light
+// logo (absolute, on the media origin), and the validated social profile
+// links as sameAs. Used as the Article publisher and on the home page.
+export function buildOrganizationJsonLd(site: SiteJsonLdInput, siteUrl: URL | null): JsonLd {
+  const url = absoluteSiteUrl("/", siteUrl);
+  const logo = site.logoLightMediaId ? mediaPublicUrl(site.logoLightMediaId) : null;
+  const sameAs = socialLinkEntries(site.socialLinks).map((link) => link.url);
+
+  return {
+    "@type": "Organization",
+    name: site.siteName,
+    ...(url ? { url } : {}),
+    ...(logo ? { logo: { "@type": "ImageObject", url: logo } } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+  };
+}
+
+// schema.org WebSite for the home page, with the Organization as publisher.
+// Only emitted with a site origin, because the WebSite needs its URL.
+export function buildWebSiteJsonLd(site: SiteJsonLdInput, siteUrl: URL | null): JsonLd | null {
+  const url = absoluteSiteUrl("/", siteUrl);
+  if (!url) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: site.siteName,
+    url,
+    ...(site.metaDescription ? { description: site.metaDescription } : {}),
+    inLanguage: site.defaultLocale,
+    publisher: buildOrganizationJsonLd(site, siteUrl),
   };
 }
 

@@ -24,6 +24,7 @@ import tr_adminAuthors from "@/messages/tr/adminAuthors.json";
 import tr_adminMembers from "@/messages/tr/adminMembers.json";
 import tr_adminMedia from "@/messages/tr/adminMedia.json";
 import tr_adminComments from "@/messages/tr/adminComments.json";
+import tr_adminSettings from "@/messages/tr/adminSettings.json";
 import en_common from "@/messages/en/common.json";
 import en_posts from "@/messages/en/posts.json";
 import en_archives from "@/messages/en/archives.json";
@@ -42,6 +43,7 @@ import en_adminAuthors from "@/messages/en/adminAuthors.json";
 import en_adminMembers from "@/messages/en/adminMembers.json";
 import en_adminMedia from "@/messages/en/adminMedia.json";
 import en_adminComments from "@/messages/en/adminComments.json";
+import en_adminSettings from "@/messages/en/adminSettings.json";
 import de_common from "@/messages/de/common.json";
 import de_posts from "@/messages/de/posts.json";
 import de_archives from "@/messages/de/archives.json";
@@ -60,6 +62,7 @@ import de_adminAuthors from "@/messages/de/adminAuthors.json";
 import de_adminMembers from "@/messages/de/adminMembers.json";
 import de_adminMedia from "@/messages/de/adminMedia.json";
 import de_adminComments from "@/messages/de/adminComments.json";
+import de_adminSettings from "@/messages/de/adminSettings.json";
 
 const tr = {
   common: tr_common,
@@ -80,6 +83,7 @@ const tr = {
   adminMembers: tr_adminMembers,
   adminMedia: tr_adminMedia,
   adminComments: tr_adminComments,
+  adminSettings: tr_adminSettings,
 };
 
 export type Messages = typeof tr;
@@ -109,6 +113,7 @@ export const catalogs: Record<InterfaceLocale, Messages> = {
     adminMembers: en_adminMembers,
     adminMedia: en_adminMedia,
     adminComments: en_adminComments,
+    adminSettings: en_adminSettings,
   },
   de: {
     common: de_common,
@@ -129,5 +134,6 @@ export const catalogs: Record<InterfaceLocale, Messages> = {
     adminMembers: de_adminMembers,
     adminMedia: de_adminMedia,
     adminComments: de_adminComments,
+    adminSettings: de_adminSettings,
   },
 };

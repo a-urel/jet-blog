@@ -20,6 +20,7 @@ import {
   isInterfaceLocale,
   localeCookieMaxAge,
   localeCookieName,
+  type InterfaceLocale,
 } from "@/lib/interface-locales";
 
 // Stores the choice in the locale cookie and re-renders the current URL;
@@ -31,11 +32,21 @@ function storeLocale(locale: string) {
   document.cookie = `${localeCookieName}=${locale}; Path=/; Max-Age=${localeCookieMaxAge}; SameSite=Lax${secure}`;
 }
 
-export function LanguageSwitcher({ align = "end" }: { align?: "start" | "end" }) {
+// Offers the locales enabled in the site settings (Phase 27). With a single
+// enabled locale there is nothing to choose, so it renders nothing.
+export function LanguageSwitcher({
+  align = "end",
+  locales = interfaceLocales,
+}: {
+  align?: "start" | "end";
+  locales?: readonly InterfaceLocale[];
+}) {
   const t = useTranslations("common.languageSwitcher");
   const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  if (locales.length < 2) return null;
 
   return (
     <DropdownMenu>
@@ -57,12 +68,12 @@ export function LanguageSwitcher({ align = "end" }: { align?: "start" | "end" })
         <DropdownMenuRadioGroup
           value={locale}
           onValueChange={(value) => {
-            if (!isInterfaceLocale(value) || value === locale) return;
+            if (!isInterfaceLocale(value) || value === locale || !locales.includes(value)) return;
             storeLocale(value);
             startTransition(() => router.refresh());
           }}
         >
-          {interfaceLocales.map((option) => (
+          {locales.map((option) => (
             <DropdownMenuRadioItem key={option} value={option} lang={option}>
               {interfaceLocaleNames[option]}
             </DropdownMenuRadioItem>

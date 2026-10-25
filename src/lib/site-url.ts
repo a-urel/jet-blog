@@ -26,9 +26,11 @@ export function absoluteSiteUrl(
   return siteUrl ? new URL(path, siteUrl).href : null;
 }
 
-// Provisional publication name (D5: brand is still open). Configurable through
-// NEXT_PUBLIC_SITE_NAME so no brand is hardcoded into application logic.
-export const defaultSiteName = "Yazılar";
+// Fallback publication name. Since Phase 27 the name comes from the site
+// settings (public.site_settings, edited at /admin/settings);
+// NEXT_PUBLIC_SITE_NAME and then this neutral word apply only while no
+// settings row exists. No brand is hardcoded into application logic.
+export const defaultSiteName = "Blog";
 
 export function getSiteName(
   value: string | undefined = process.env.NEXT_PUBLIC_SITE_NAME,

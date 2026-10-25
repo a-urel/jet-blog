@@ -90,3 +90,11 @@ export function canModerateComments(
 ): boolean {
   return membership?.role === "admin" || membership?.role === "editor";
 }
+
+// Phase 27: site settings (branding, locales, indexing) are admin-only (D1);
+// update_site_settings() enforces the same rule.
+export function canManageSiteSettings(
+  membership: EditorialMembership | null,
+): boolean {
+  return membership?.role === "admin";
+}

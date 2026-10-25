@@ -187,7 +187,7 @@ check(
   "/: public page is not publicly cacheable",
 );
 
-// The site-wide social image is generated once at build time.
+// The generated site-wide social image (ISR, from the site settings).
 const socialImage = await get("/opengraph-image");
 check(socialImage.status === 200, `/opengraph-image: expected 200, got ${socialImage.status}`);
 check(
@@ -197,14 +197,35 @@ check(
 await socialImage.arrayBuffer();
 if (/<link rel="canonical" href="https?:/.test(homeHtml)) {
   check(
-    /<meta property="og:image" content="https?:\/\/[^"]+\/opengraph-image/.test(homeHtml),
+    // The generated image, or the default image chosen in the site settings.
+    /<meta property="og:image" content="https?:\/\/[^"]+\/(opengraph-image|storage\/v1\/object\/public\/media\/)/.test(
+      homeHtml,
+    ),
     "/: missing the site-wide og:image",
   );
 }
 
+// App icons generated from the site settings, declared by the root layout.
+for (const path of ["/site-icon.png", "/apple-touch-icon.png"]) {
+  const icon = await get(path);
+  check(icon.status === 200, `${path}: expected 200, got ${icon.status}`);
+  check(
+    (icon.headers.get("content-type") ?? "").startsWith("image/png"),
+    `${path}: unexpected content type ${icon.headers.get("content-type")}`,
+  );
+  await icon.arrayBuffer();
+}
+check(/<link rel="icon" href="\/site-icon\.png\?v=\d+"/.test(homeHtml), "/: missing the site icon link");
+
+// /admin is disallowed, or everything is (no site origin, or indexing turned
+// off in the site settings).
 const robots = await get("/robots.txt");
+const robotsText = await robots.text();
 check(robots.status === 200, `/robots.txt: expected 200, got ${robots.status}`);
-check((await robots.text()).includes("/admin"), "/robots.txt: /admin is not disallowed");
+check(
+  robotsText.includes("/admin") || /Disallow: \/\s*$/m.test(robotsText),
+  "/robots.txt: /admin is not disallowed",
+);
 
 const sitemap = await get("/sitemap.xml");
 const sitemapXml = await sitemap.text();

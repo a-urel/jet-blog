@@ -1,8 +1,6 @@
 import { mediaPublicUrl } from "@/features/media/url";
 import { archivePaths, postPath } from "@/features/posts/archives";
-import { defaultInterfaceLocale } from "@/lib/interface-locales";
 import type { PostSummary } from "@/features/posts/types";
-import { getConfiguredSiteUrl, getSiteName } from "@/lib/site-url";
 
 // Atom 1.0 (RFC 4287) feed of the latest published posts. The input comes
 // from anonymous, RLS-filtered reads (src/features/posts/data.ts), so drafts
@@ -32,8 +30,8 @@ export type FeedChannel = {
 // Metadata alternates.types: an archive's own feed first, then the site feed.
 // Omitted without a site origin, where every feed answers 404.
 export function feedAlternateTypes(
-  siteUrl: URL | null = getConfiguredSiteUrl(),
-  siteName: string = getSiteName(),
+  siteUrl: URL | null,
+  siteName: string,
   archiveFeed?: Pick<FeedChannel, "path" | "title">,
 ) {
   if (!siteUrl) return undefined;
@@ -134,10 +132,14 @@ function buildEntry(post: PostSummary, siteUrl: URL): string | null {
 // Entries keep the input order (newest publication first, see
 // selectLatestPublishedPosts). The feed's updated time is the latest entry
 // update; an empty feed falls back to the generation time. Without a channel
-// this is the site feed; archive feeds pass their own (archiveFeedPath).
+// this is the site feed; archive feeds pass their own (archiveFeedPath). The
+// subtitle is the site tagline and xml:lang the default interface locale,
+// both from the site settings (Phase 27).
 export function buildAtomFeed(input: {
   siteUrl: URL;
   siteName: string;
+  language: string;
+  subtitle?: string | null;
   posts: readonly PostSummary[];
   channel?: FeedChannel;
   now?: Date;
@@ -154,9 +156,10 @@ export function buildAtomFeed(input: {
 
   return [
     '<?xml version="1.0" encoding="utf-8"?>',
-    `<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/"${attribute("xml:lang", defaultInterfaceLocale)}>`,
+    `<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/"${attribute("xml:lang", input.language)}>`,
     element("id", selfUrl),
     element("title", channel.title, attribute("type", "text")),
+    ...(input.subtitle ? [element("subtitle", input.subtitle, attribute("type", "text"))] : []),
     element("updated", updated.toISOString()),
     `<link rel="self"${attribute("type", feedContentType)}${attribute("href", selfUrl)}/>`,
     `<link rel="alternate" type="text/html"${attribute("href", new URL(channel.htmlPath, siteUrl).href)}/>`,

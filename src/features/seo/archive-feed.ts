@@ -5,8 +5,9 @@ import { getTranslations } from "next-intl/server";
 
 import { archivePaths } from "@/features/posts/archives";
 import { findArchiveFeed, type ArchiveKind } from "@/features/posts/data";
-import { defaultInterfaceLocale } from "@/lib/interface-locales";
-import { getConfiguredSiteUrl, getSiteName } from "@/lib/site-url";
+import { getSiteSettings } from "@/features/site-settings/data";
+import type { SiteSettings } from "@/features/site-settings/model";
+import { getConfiguredSiteUrl } from "@/lib/site-url";
 import {
   archiveFeedPath,
   buildAtomFeed,
@@ -17,13 +18,15 @@ import {
 
 // Category, tag, and author feeds. Like the site feed (src/app/feed.xml), a
 // feed has one copy outside the [locale] segment, so its title is in the
-// default interface language, matching the feed's xml:lang. The archive's
-// title follows the page title template ("<title> | <site>").
+// default interface language of the site settings, matching the feed's
+// xml:lang. The archive's title follows the page title template
+// ("<title> | <site>").
 export async function archiveFeedChannel(
   archive: ArchiveKind,
   subject: { name: string; slug: string },
+  site: Pick<SiteSettings, "siteName" | "defaultLocale">,
 ): Promise<FeedChannel> {
-  const t = await getTranslations({ locale: defaultInterfaceLocale, namespace: "archives" });
+  const t = await getTranslations({ locale: site.defaultLocale, namespace: "archives" });
   const title =
     archive === "category"
       ? t("category.title", { name: subject.name })
@@ -32,7 +35,7 @@ export async function archiveFeedChannel(
         : subject.name;
   const htmlPath = archivePaths[archive](subject.slug);
 
-  return { path: archiveFeedPath(htmlPath), title: `${title} | ${getSiteName()}`, htmlPath };
+  return { path: archiveFeedPath(htmlPath), title: `${title} | ${site.siteName}`, htmlPath };
 }
 
 // Entry ids, links, and the self link need absolute URLs. Without a site
@@ -63,8 +66,16 @@ export async function archiveFeedResponse(archive: ArchiveKind, slug: string): P
   }
   if (lookup.kind !== "feed") return feedNotFound();
 
-  const channel = await archiveFeedChannel(archive, lookup.subject);
+  const site = await getSiteSettings();
+  const channel = await archiveFeedChannel(archive, lookup.subject, site);
   return feedResponse(
-    buildAtomFeed({ siteUrl, siteName: getSiteName(), posts: lookup.posts, channel }),
+    buildAtomFeed({
+      siteUrl,
+      siteName: site.siteName,
+      language: site.defaultLocale,
+      subtitle: site.tagline,
+      posts: lookup.posts,
+      channel,
+    }),
   );
 }

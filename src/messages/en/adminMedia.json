@@ -1,6 +1,6 @@
 {
   "title": "Media",
-  "intro": "Images uploaded from the post editor or the cover field. An image used in a post body or as a cover cannot be deleted.",
+  "intro": "Images uploaded from the post editor, the cover field, or the site settings. An image used by a post or the site settings cannot be deleted.",
   "status": {
     "deleted": "Image deleted."
   },
@@ -8,7 +8,7 @@
     "invalid": "Invalid request.",
     "forbidden": "You are not allowed to delete this image.",
     "missing": "Image not found.",
-    "inUse": "This image is used in a post body or as a cover, so it cannot be deleted. Remove it from the posts first.",
+    "inUse": "This image is used in a post body, as a cover, or in the site settings (logo, icon, share image), so it cannot be deleted. Remove it there first.",
     "objectRemains": "The image record was deleted, but the file could not be removed from Storage. Try again or notify an administrator.",
     "rateLimited": "Too many images were deleted in a short time (at most 60 per 10 minutes). Try again shortly.",
     "failed": "The action could not be completed. Try again."

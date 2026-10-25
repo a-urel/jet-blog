@@ -18,7 +18,8 @@ import { findPublishedPost, listPublishedSlugs } from "@/features/posts/data";
 import { buildArticleJsonLd, serializeJsonLd } from "@/features/seo/json-ld";
 import { buildPostMetadata, noIndexMetadata } from "@/features/seo/metadata";
 import { ShareControls } from "@/features/sharing/components/share-controls";
-import { absoluteSiteUrl, getConfiguredSiteUrl, getSiteName } from "@/lib/site-url";
+import { getSiteSettings } from "@/features/site-settings/data";
+import { absoluteSiteUrl, getConfiguredSiteUrl } from "@/lib/site-url";
 
 // Published posts are prerendered at build time; posts published later render
 // on first request and are then cached (ISR). Publication Server Actions call
@@ -52,7 +53,7 @@ export async function generateMetadata({
   // canonical; missing and unpublished slugs 404 with noindex.
   if (lookup.kind !== "post") return noIndexMetadata;
 
-  return buildPostMetadata(lookup.post, getSiteName());
+  return buildPostMetadata(lookup.post, await getSiteSettings());
 }
 
 export default async function PostPage({ params }: PageProps<"/[locale]/posts/[slug]">) {
@@ -67,7 +68,7 @@ export default async function PostPage({ params }: PageProps<"/[locale]/posts/[s
   const comments = await listVisibleComments(post.id);
   const siteUrl = getConfiguredSiteUrl();
   const shareUrl = absoluteSiteUrl(postPath(post.slug), siteUrl);
-  const jsonLd = buildArticleJsonLd(post, { siteUrl, siteName: getSiteName() });
+  const jsonLd = buildArticleJsonLd(post, { siteUrl, site: await getSiteSettings() });
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-10 sm:py-16">

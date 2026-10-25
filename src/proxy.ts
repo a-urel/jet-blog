@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { signInPathFor } from "@/features/auth/return-path";
+import { getProxyLocaleConfig } from "@/features/site-settings/proxy-locales";
 import {
   localeCookieName,
   localeRequestHeader,
@@ -48,9 +49,12 @@ function localizedRewrite(request: NextRequest, locale: InterfaceLocale) {
 }
 
 export async function proxy(request: NextRequest) {
+  // The default and enabled locales come from the site settings (Phase 27);
+  // a cookie for a disabled locale is ignored.
   const locale = resolveInterfaceLocale(
     request.cookies.get(localeCookieName)?.value,
     request.headers.get("accept-language"),
+    await getProxyLocaleConfig(),
   );
   let response = localizedRewrite(request, locale);
 
@@ -117,7 +121,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Every page. Skipped: Next.js internals, files with an extension
-    // (feed.xml, sitemap.xml, robots.txt, favicon.ico, static assets), the
+    // (feed.xml, sitemap.xml, robots.txt, the icon routes, static assets), the
     // auth Route Handlers, and the site-wide social image, which all live
     // outside the [locale] segment.
     "/((?!_next/|auth/callback|auth/recovery|opengraph-image|.*\\.).*)",

@@ -1,15 +1,13 @@
 {
-  "site": {
-    "description": "Fikirler, notlar ve birlikte üretilen yazılar. Örnek blog."
-  },
   "layout": {
     "skipToContent": "İçeriğe geç",
     "notifications": "Bildirimler",
     "account": "Hesabım",
-    "tagline": "Birlikte düşünmek, birlikte yazmak.",
     "themeNote": "Görünüm sistem temanızı izler.",
     "feed": "Atom akışı",
-    "admin": "Yönetim"
+    "admin": "Yönetim",
+    "socialLinks": "Sosyal bağlantılar",
+    "website": "Web sitesi"
   },
   "languageSwitcher": {
     "label": "Arayüz dili",

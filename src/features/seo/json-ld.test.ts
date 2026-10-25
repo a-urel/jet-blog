@@ -4,11 +4,21 @@ import type { PostLanguage } from "@/features/posts/language";
 import { coverMediaId, mediaOrigin, postWithCover, publishedPost } from "./fixtures";
 import { buildArticleJsonLd, serializeJsonLd } from "./json-ld";
 
+function site(siteName: string) {
+  return {
+    siteName,
+    metaDescription: null,
+    logoLightMediaId: null,
+    socialLinks: {},
+    defaultLocale: "tr" as const,
+  };
+}
+
 const siteUrl = new URL("https://example.test");
 
 describe("buildArticleJsonLd", () => {
   it("matches the post with authors in credit order", () => {
-    const jsonLd = buildArticleJsonLd(publishedPost, { siteUrl, siteName: "Örnek Site" });
+    const jsonLd = buildArticleJsonLd(publishedPost, { siteUrl, site: site("Örnek Site") });
 
     expect(jsonLd).toMatchObject({
       "@context": "https://schema.org",
@@ -33,7 +43,7 @@ describe("buildArticleJsonLd", () => {
   it("declares the post's own language", () => {
     const jsonLd = buildArticleJsonLd(
       { ...publishedPost, language: "de" as PostLanguage },
-      { siteUrl, siteName: "S" },
+      { siteUrl, site: site("S") },
     );
 
     expect(jsonLd.inLanguage).toBe("de");
@@ -42,7 +52,7 @@ describe("buildArticleJsonLd", () => {
   it("declares a regional language tag unchanged", () => {
     const jsonLd = buildArticleJsonLd(
       { ...publishedPost, language: "pt-BR" as PostLanguage },
-      { siteUrl, siteName: "S" },
+      { siteUrl, site: site("S") },
     );
 
     expect(jsonLd.inLanguage).toBe("pt-BR");
@@ -52,10 +62,10 @@ describe("buildArticleJsonLd", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", mediaOrigin);
 
     try {
-      expect(buildArticleJsonLd(postWithCover, { siteUrl, siteName: "S" }).image).toEqual([
+      expect(buildArticleJsonLd(postWithCover, { siteUrl, site: site("S") }).image).toEqual([
         `${mediaOrigin}/storage/v1/object/public/media/${coverMediaId}`,
       ]);
-      expect(buildArticleJsonLd(publishedPost, { siteUrl, siteName: "S" })).not.toHaveProperty(
+      expect(buildArticleJsonLd(publishedPost, { siteUrl, site: site("S") })).not.toHaveProperty(
         "image",
       );
     } finally {
@@ -74,7 +84,7 @@ describe("buildArticleJsonLd", () => {
           ...publishedPost,
           authors: [{ ...first, author: { ...first.author, avatarId } }, second],
         },
-        { siteUrl, siteName: "S" },
+        { siteUrl, site: site("S") },
       );
 
       expect(jsonLd.author).toEqual([
@@ -101,7 +111,7 @@ describe("buildArticleJsonLd", () => {
           ...publishedPost,
           authors: [{ ...first, author: { ...first.author, avatarId: "88888888-8888-4888-8888-888888888888" } }],
         },
-        { siteUrl, siteName: "S" },
+        { siteUrl, site: site("S") },
       );
 
       expect((jsonLd.author as object[])[0]).not.toHaveProperty("image");
@@ -111,7 +121,7 @@ describe("buildArticleJsonLd", () => {
   });
 
   it("omits URLs without a site origin", () => {
-    const jsonLd = buildArticleJsonLd(publishedPost, { siteUrl: null, siteName: "S" });
+    const jsonLd = buildArticleJsonLd(publishedPost, { siteUrl: null, site: site("S") });
 
     expect(jsonLd).not.toHaveProperty("url");
     expect(jsonLd).not.toHaveProperty("mainEntityOfPage");
@@ -129,7 +139,7 @@ describe("serializeJsonLd", () => {
       title: "</script><script>alert(1)</script><!-- & \u2028",
     };
     const serialized = serializeJsonLd(
-      buildArticleJsonLd(hostile, { siteUrl, siteName: "S" }),
+      buildArticleJsonLd(hostile, { siteUrl, site: site("S") }),
     );
 
     expect(serialized).not.toMatch(/[<>&\u2028\u2029]/);

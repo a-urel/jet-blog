@@ -38,7 +38,7 @@ describe("absoluteSiteUrl", () => {
 });
 
 describe("getSiteName", () => {
-  it("uses the configured name or the provisional default", () => {
+  it("uses the configured name or the neutral fallback", () => {
     expect(getSiteName("  Örnek Dergi ")).toBe("Örnek Dergi");
     expect(getSiteName("   ")).toBe(defaultSiteName);
     expect(getSiteName(undefined)).toBe(defaultSiteName);

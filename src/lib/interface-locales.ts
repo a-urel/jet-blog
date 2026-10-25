@@ -12,7 +12,21 @@ export const interfaceLocales = ["tr", "en", "de"] as const;
 
 export type InterfaceLocale = (typeof interfaceLocales)[number];
 
+// Built-in default. Since Phase 27 the site settings choose the default and
+// the enabled subset (InterfaceLocaleConfig); this value applies until an
+// admin saves them.
 export const defaultInterfaceLocale: InterfaceLocale = "tr";
+
+export type InterfaceLocaleConfig = {
+  defaultLocale: InterfaceLocale;
+  // Non-empty, in interfaceLocales order, always containing defaultLocale.
+  enabledLocales: readonly InterfaceLocale[];
+};
+
+export const builtInLocaleConfig: InterfaceLocaleConfig = {
+  defaultLocale: defaultInterfaceLocale,
+  enabledLocales: interfaceLocales,
+};
 
 // Strictly functional preference cookie: it only selects the interface
 // language, carries no identifier, and is never read for tracking, so it
@@ -47,17 +61,23 @@ export function isInterfaceLocale(value: unknown): value is InterfaceLocale {
   );
 }
 
-// The supported locale for one language range ("de-AT" -> "de"), or null.
-function matchLanguageRange(range: string): InterfaceLocale | null {
+// The enabled locale for one language range ("de-AT" -> "de"), or null.
+function matchLanguageRange(
+  range: string,
+  enabled: readonly InterfaceLocale[],
+): InterfaceLocale | null {
   const primary = range.toLowerCase().split("-")[0];
-  return isInterfaceLocale(primary) ? primary : null;
+  return isInterfaceLocale(primary) && enabled.includes(primary) ? primary : null;
 }
 
 // Accept-Language negotiation (RFC 9110 §12.5.4): ranges by descending
 // quality, ties in header order; q=0 means "not acceptable"; "*" and
 // malformed entries are skipped. Only the primary subtag is compared, because
 // the interface locales carry no region. Returns null when nothing matches.
-export function negotiateInterfaceLocale(header: string | null | undefined): InterfaceLocale | null {
+export function negotiateInterfaceLocale(
+  header: string | null | undefined,
+  enabled: readonly InterfaceLocale[] = interfaceLocales,
+): InterfaceLocale | null {
   if (!header) return null;
 
   const ranges = header
@@ -79,19 +99,23 @@ export function negotiateInterfaceLocale(header: string | null | undefined): Int
     .sort((left, right) => right.quality - left.quality || left.index - right.index);
 
   for (const { tag } of ranges) {
-    const match = matchLanguageRange(tag);
+    const match = matchLanguageRange(tag, enabled);
     if (match) return match;
   }
 
   return null;
 }
 
-// The interface locale of a request: a valid cookie wins, then
-// Accept-Language, then the default. Unknown cookie values fall back silently.
+// The interface locale of a request: a valid, enabled cookie wins, then
+// Accept-Language among the enabled locales, then the configured default.
+// Unknown or disabled cookie values fall back silently.
 export function resolveInterfaceLocale(
   cookieValue: string | null | undefined,
   acceptLanguage: string | null | undefined,
+  config: InterfaceLocaleConfig = builtInLocaleConfig,
 ): InterfaceLocale {
-  if (isInterfaceLocale(cookieValue)) return cookieValue;
-  return negotiateInterfaceLocale(acceptLanguage) ?? defaultInterfaceLocale;
+  if (isInterfaceLocale(cookieValue) && config.enabledLocales.includes(cookieValue)) {
+    return cookieValue;
+  }
+  return negotiateInterfaceLocale(acceptLanguage, config.enabledLocales) ?? config.defaultLocale;
 }

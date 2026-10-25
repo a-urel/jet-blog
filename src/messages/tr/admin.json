@@ -16,7 +16,8 @@
       "categories": "Kategoriler",
       "tags": "Etiketler",
       "authors": "Yazarlar",
-      "members": "Üyeler"
+      "members": "Üyeler",
+      "settings": "Site ayarları"
     },
     "signOut": "Çıkış yap",
     "backToSite": "Siteye dön",

@@ -12,7 +12,7 @@ const categories = [
 
 describe("buildSitemap", () => {
   const archives = derivePublicArchives([publishedPost], categories);
-  const sitemap = buildSitemap({ siteUrl, posts: [publishedPost], archives });
+  const sitemap = buildSitemap({ siteUrl, indexing: true, posts: [publishedPost], archives });
   const urls = sitemap.map((entry) => entry.url);
 
   it("lists the home page, canonical post URLs, and non-empty archives", () => {
@@ -34,11 +34,21 @@ describe("buildSitemap", () => {
   });
 
   it("returns nothing without a site origin", () => {
-    expect(buildSitemap({ siteUrl: null, posts: [publishedPost], archives })).toEqual([]);
+    expect(
+      buildSitemap({ siteUrl: null, indexing: true, posts: [publishedPost], archives }),
+    ).toEqual([]);
+  });
+
+  it("returns nothing while search-engine indexing is turned off", () => {
+    expect(buildSitemap({ siteUrl, indexing: false, posts: [publishedPost], archives })).toEqual([]);
   });
 });
 
 describe("buildRobots", () => {
+  it("disallows everything while search-engine indexing is turned off", () => {
+    expect(buildRobots(siteUrl, false)).toEqual({ rules: { userAgent: "*", disallow: "/" } });
+  });
+
   it("allows public pages, blocks private routes, and links the sitemap", () => {
     expect(buildRobots(siteUrl)).toEqual({
       rules: { userAgent: "*", allow: "/", disallow: ["/admin", "/login", "/auth"] },

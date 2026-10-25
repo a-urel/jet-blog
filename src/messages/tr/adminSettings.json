@@ -1,0 +1,114 @@
+{
+  "metaTitle": "Site ayarları",
+  "title": "Site ayarları",
+  "intro": "Sitenin adı, logosu, renkleri, sosyal bağlantıları, arayüz dilleri ve arama motoru görünürlüğü. Kaydedince tüm herkese açık sayfalar, akışlar ve simgeler yenilenir.",
+  "fallbackNotice": "Ayarlar henüz kaydedilmedi. Şu an yedek değerler gösteriliyor; ilk kayıt ayarları oluşturur.",
+  "noSiteUrl": "NEXT_PUBLIC_SITE_URL ayarlı değil: site, bu ayardan bağımsız olarak arama motorlarına kapalı kalır ve akışlar yayımlanmaz.",
+  "denied": {
+    "title": "Site ayarlarına erişiminiz yok",
+    "description": "Site ayarlarını yalnızca adminler değiştirebilir."
+  },
+  "status": {
+    "saved": "Site ayarları kaydedildi."
+  },
+  "sections": {
+    "identity": {
+      "title": "Kimlik",
+      "description": "Başlıklarda, sekmede, akışlarda ve alt bilgide görünen ad ve metinler. Tüm arayüz dillerinde aynıdır."
+    },
+    "appearance": {
+      "title": "Görünüm",
+      "description": "Logolar, simge ve vurgu rengi. Açık ve koyu tema, ziyaretçinin sistem tercihini izler."
+    },
+    "social": {
+      "title": "Sosyal bağlantılar",
+      "description": "Alt bilgide gösterilir ve yapılandırılmış veride (sameAs) bildirilir. Yalnızca https adresleri kabul edilir."
+    },
+    "language": {
+      "title": "Dil",
+      "description": "Ziyaretçilere sunulan arayüz dilleri. Adresler dil içermez; seçim tarayıcı diline ve dil çerezine göre yapılır."
+    },
+    "seo": {
+      "title": "Arama ve paylaşım",
+      "description": "Arama sonuçlarında ve paylaşım önizlemelerinde kullanılan açıklama ve görsel."
+    }
+  },
+  "fields": {
+    "siteName": "Site adı",
+    "siteNameHint": "Sekme başlıklarında, akışlarda ve logo yoksa üst bilgide görünür.",
+    "tagline": "Slogan",
+    "taglineHint": "İsteğe bağlı. Akış alt başlığı ve paylaşım görseli için kullanılır.",
+    "footerText": "Alt bilgi metni",
+    "footerTextHint": "İsteğe bağlı. Boşsa slogan gösterilir. Satır sonları korunur.",
+    "metaDescription": "Site açıklaması",
+    "metaDescriptionHint": "Ana sayfa ve genel sayfaların arama açıklaması. Boşsa slogan kullanılır.",
+    "logoLight": "Logo (açık arka plan)",
+    "logoLightHint": "Açık temada üst bilgide gösterilir. Logo yoksa site adı gösterilir.",
+    "logoDark": "Logo (koyu arka plan)",
+    "logoDarkHint": "Koyu temada ve paylaşım görselinde gösterilir. Boşsa açık logo kullanılır.",
+    "icon": "Site simgesi",
+    "iconHint": "Tarayıcı sekmesi ve ana ekran simgesi. Kare ve en az 48 piksel olmalı. Boşsa site adının ilk harfi vurgu renginde gösterilir.",
+    "ogImage": "Varsayılan paylaşım görseli",
+    "ogImageHint": "Kapak görseli olmayan sayfalar paylaşıldığında gösterilir. En az 200×200, ideal olarak 1200×630 piksel. Boşsa site adından bir görsel üretilir.",
+    "accentColor": "Vurgu rengi",
+    "accentColorHint": "#rrggbb biçiminde. Düğmeler, bağlantı düğmeleri ve odak halkaları için kullanılır. Boşsa nötr renkler kullanılır.",
+    "accentPicker": "Vurgu rengini seç",
+    "accentClear": "Rengi kaldır",
+    "website": "Web sitesi",
+    "socialHint": "Tam https adresi, örneğin https://github.com/kullanici",
+    "enabledLocales": "Etkin arayüz dilleri",
+    "enabledLocalesHint": "En az bir dil seçili olmalı. Tek dil seçilirse dil seçici gizlenir.",
+    "defaultLocale": "Varsayılan arayüz dili",
+    "defaultLocaleHint": "Tarayıcı dili etkin dillerle eşleşmediğinde kullanılır. Akışların dili de budur.",
+    "searchIndexing": "Arama motorlarının siteyi dizinlemesine izin ver",
+    "searchIndexingHint": "Kapalıyken tüm sayfalar noindex gönderir, robots.txt taramayı engeller ve site haritası boş olur."
+  },
+  "media": {
+    "choose": "Kitaplıktan seç",
+    "upload": "Yeni yükle",
+    "remove": "Kaldır",
+    "none": "Seçilmedi",
+    "preview": "Seçili görsel",
+    "libraryEmpty": "Kitaplıkta görsel yok.",
+    "libraryError": "Medya kitaplığı yüklenemedi.",
+    "libraryItem": "Görsel {position}, {width}×{height} piksel",
+    "libraryItemSelected": "Görsel {position}, {width}×{height} piksel, seçili",
+    "file": "Görsel dosyası",
+    "fileHelp": "JPEG, PNG, WebP veya GIF, en fazla 5 MB. SVG kabul edilmez.",
+    "fileRequired": "Bir dosya seçin.",
+    "fileTooLarge": "Dosya 5 MB'tan büyük.",
+    "uploadAndSet": "Yükle ve seç",
+    "uploading": "Yükleniyor…",
+    "failed": "Yükleme tamamlanamadı. Tekrar deneyin."
+  },
+  "accent": {
+    "preview": "Önizleme",
+    "light": "Açık tema",
+    "dark": "Koyu tema",
+    "sampleButton": "Düğme",
+    "sampleLink": "Bağlantı",
+    "contrast": "Arka plana karşıtlık: {ratio}:1",
+    "adjusted": "Okunabilirlik için bu temada {color} kullanılır (en az 4,5:1 karşıtlık).",
+    "none": "Vurgu rengi yok; nötr tema renkleri kullanılır."
+  },
+  "validation": {
+    "required": "Bu alan zorunludur.",
+    "tooLong": "En fazla {max} karakter olabilir.",
+    "invalidColor": "Rengi #rrggbb biçiminde girin, örneğin #2563eb.",
+    "invalidMedia": "Geçersiz görsel seçimi.",
+    "socialInvalid": "Geçerli bir adres girin.",
+    "socialNotHttps": "Adres https:// ile başlamalı.",
+    "socialWrongHost": "Adres bu hizmetin kendi alan adında olmalı.",
+    "socialTooLong": "Adres en fazla {max} karakter olabilir.",
+    "localesEmpty": "En az bir dil seçin.",
+    "invalidLocale": "Desteklenmeyen dil.",
+    "defaultNotEnabled": "Varsayılan dil etkin diller arasında olmalı."
+  },
+  "errors": {
+    "forbidden": "Site ayarlarını yalnızca adminler değiştirebilir.",
+    "stale": "Ayarlar siz düzenlerken başka biri tarafından değiştirildi. Girdiğiniz değerler korundu; sayfayı yenileyip değişiklikleri yeniden uygulayın.",
+    "mediaMissing": "Seçilen görsel artık medya kitaplığında yok.",
+    "iconShape": "Simge kare ve en az 48 piksel olmalı.",
+    "ogImageSize": "Paylaşım görseli her kenarda en az 200 piksel olmalı."
+  }
+}

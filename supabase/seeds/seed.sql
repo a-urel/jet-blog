@@ -173,3 +173,26 @@ select public.sync_published_post(posts.id)
 from public.posts
 where posts.status = 'published'
 order by posts.published_at, posts.id;
+
+-- Phase 27: synthetic site settings. Real deployments create their own row
+-- from /admin/settings; the migration inserts none.
+insert into public.site_settings (
+  site_name,
+  tagline,
+  meta_description,
+  footer_text,
+  social_links,
+  default_locale,
+  enabled_locales,
+  search_indexing
+)
+values (
+  'Örnek Blog',
+  'Birlikte düşünmek, birlikte yazmak.',
+  'Birlikte yazılan fikirler, notlar ve yazılar. Geliştirme için sentetik bir örnek blog.',
+  'Bu, geliştirme ortamı için sentetik örnek içeriktir.',
+  '{"website": "https://example.com"}'::jsonb,
+  'tr',
+  array['tr', 'en', 'de'],
+  true
+);

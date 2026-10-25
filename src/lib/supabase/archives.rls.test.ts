@@ -478,6 +478,7 @@ describe("sitemap input", () => {
     );
     const urls = buildSitemap({
       siteUrl: new URL("https://example.test"),
+      indexing: true,
       posts: summaries,
       archives,
     }).map((entry) => entry.url);
@@ -540,7 +541,12 @@ describe("feed input", () => {
         const summary = mapPublicPostSummary(row);
         return summary ? [summary] : [];
       });
-      const xml = buildAtomFeed({ siteUrl: new URL("https://example.test"), siteName: "S", posts });
+      const xml = buildAtomFeed({
+        siteUrl: new URL("https://example.test"),
+        siteName: "S",
+        language: "tr",
+        posts,
+      });
 
       // Published just now, so it is among the newest posts.
       expect(xml).toContain(`urn:uuid:${ids.renamed}`);

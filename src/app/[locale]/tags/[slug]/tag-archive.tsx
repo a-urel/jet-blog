@@ -9,7 +9,7 @@ import { pagePath } from "@/features/posts/pagination";
 import { archiveFeedChannel } from "@/features/seo/archive-feed";
 import { listingMetadataContext } from "@/features/seo/listing-metadata";
 import { buildArchiveMetadata, noIndexMetadata } from "@/features/seo/metadata";
-import { getSiteName } from "@/lib/site-url";
+import { getSiteSettings } from "@/features/site-settings/data";
 
 // The tag archive, shared by /tags/[slug] (page 1) and
 // /tags/[slug]/page/[page]. Tags without a published post, and pages past the
@@ -20,14 +20,15 @@ export async function tagArchiveMetadata(slug: string, page: number): Promise<Me
   if (lookup.kind !== "archive") return noIndexMetadata;
 
   const { subject } = lookup;
+  const site = await getSiteSettings();
   const t = await getTranslations("archives.tag");
   return buildArchiveMetadata({
     title: t("title", { name: subject.name }),
     description: subject.description ?? t("description", { name: subject.name }),
     path: archivePaths.tag(subject.slug),
-    siteName: getSiteName(),
+    site,
     page,
-    feed: await archiveFeedChannel("tag", subject),
+    feed: await archiveFeedChannel("tag", subject, site),
     ...(await listingMetadataContext()),
   });
 }

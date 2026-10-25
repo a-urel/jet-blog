@@ -8,10 +8,15 @@ import {
   canonicalAlternates,
   defaultSocialImage,
   noIndexMetadata,
+  type SiteBrand,
 } from "./metadata";
 
+function brand(siteName: string, ogImageMediaId: string | null = null): SiteBrand {
+  return { siteName, ogImageMediaId, revision: 3 };
+}
+
 const defaultImage = {
-  url: "/opengraph-image",
+  url: "/opengraph-image?v=3",
   alt: "Örnek Site",
   width: 1200,
   height: 630,
@@ -19,7 +24,7 @@ const defaultImage = {
 };
 
 describe("buildPostMetadata", () => {
-  const metadata = buildPostMetadata(publishedPost, "Örnek Site");
+  const metadata = buildPostMetadata(publishedPost, brand("Örnek Site"));
 
   it("matches the post", () => {
     expect(metadata.title).toBe(publishedPost.title);
@@ -47,15 +52,15 @@ describe("buildPostMetadata", () => {
 
   it("uses the post language for the Open Graph locale", () => {
     expect(
-      buildPostMetadata({ ...publishedPost, language: "en" as PostLanguage }, "S").openGraph,
+      buildPostMetadata({ ...publishedPost, language: "en" as PostLanguage }, brand("S")).openGraph,
     ).toMatchObject({ locale: "en_US" });
     expect(
-      buildPostMetadata({ ...publishedPost, language: "fr" as PostLanguage }, "S").openGraph,
+      buildPostMetadata({ ...publishedPost, language: "fr" as PostLanguage }, brand("S")).openGraph,
     ).toMatchObject({ locale: "fr_FR" });
   });
 
   it("omits the Open Graph locale for a language without a known territory", () => {
-    const openGraph = buildPostMetadata({ ...publishedPost, language: "xyz" as PostLanguage }, "S")
+    const openGraph = buildPostMetadata({ ...publishedPost, language: "xyz" as PostLanguage }, brand("S"))
       .openGraph as Record<string, unknown>;
     expect(openGraph.locale).toBeUndefined();
   });
@@ -64,7 +69,7 @@ describe("buildPostMetadata", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
 
     try {
-      const withDefault = buildPostMetadata(publishedPost, "Örnek Site");
+      const withDefault = buildPostMetadata(publishedPost, brand("Örnek Site"));
       expect(withDefault.openGraph).toMatchObject({ images: [defaultImage] });
       expect(withDefault.twitter).toMatchObject({
         card: "summary_large_image",
@@ -79,7 +84,7 @@ describe("buildPostMetadata", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
 
     try {
-      const textOnly = buildPostMetadata(publishedPost, "Örnek Site");
+      const textOnly = buildPostMetadata(publishedPost, brand("Örnek Site"));
       expect(textOnly.openGraph).not.toHaveProperty("images");
       expect(textOnly.twitter).toMatchObject({ card: "summary" });
       expect(textOnly.twitter).not.toHaveProperty("images");
@@ -89,7 +94,7 @@ describe("buildPostMetadata", () => {
   });
 
   it("omits the description when there is no excerpt", () => {
-    expect(buildPostMetadata({ ...publishedPost, excerpt: null }, "S").description).toBeUndefined();
+    expect(buildPostMetadata({ ...publishedPost, excerpt: null }, brand("S")).description).toBeUndefined();
   });
 });
 
@@ -105,7 +110,7 @@ describe("buildPostMetadata with a cover", () => {
   const coverUrl = `${mediaOrigin}/storage/v1/object/public/media/${coverMediaId}`;
 
   it("adds an absolute Open Graph image with the cover alt text", () => {
-    const metadata = buildPostMetadata(postWithCover, "S");
+    const metadata = buildPostMetadata(postWithCover, brand("S"));
 
     expect(metadata.openGraph).toMatchObject({
       images: [{ url: coverUrl, alt: "Sisli bir vadi" }],
@@ -113,7 +118,7 @@ describe("buildPostMetadata with a cover", () => {
   });
 
   it("switches Twitter to a large image card", () => {
-    expect(buildPostMetadata(postWithCover, "S").twitter).toMatchObject({
+    expect(buildPostMetadata(postWithCover, brand("S")).twitter).toMatchObject({
       card: "summary_large_image",
       images: [{ url: coverUrl, alt: "Sisli bir vadi" }],
     });
@@ -121,7 +126,7 @@ describe("buildPostMetadata with a cover", () => {
 
   it("prefers the cover over the site-wide image", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
-    const metadata = buildPostMetadata(postWithCover, "S");
+    const metadata = buildPostMetadata(postWithCover, brand("S"));
 
     expect(metadata.openGraph).toMatchObject({ images: [{ url: coverUrl }] });
     expect(JSON.stringify(metadata)).not.toContain("/opengraph-image");
@@ -130,7 +135,7 @@ describe("buildPostMetadata with a cover", () => {
   it("falls back to a text-only card without a media or site origin", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
-    const metadata = buildPostMetadata(postWithCover, "S");
+    const metadata = buildPostMetadata(postWithCover, brand("S"));
 
     expect(metadata.openGraph).not.toHaveProperty("images");
     expect(metadata.twitter).toMatchObject({ card: "summary" });
@@ -150,7 +155,7 @@ describe("buildArchiveMetadata", () => {
       title: "Yazılım kategorisi",
       description: "Açıklama",
       path: "/categories/yazilim",
-      siteName: "S",
+      site: brand("S"),
       ...turkishListing,
     });
 
@@ -163,7 +168,7 @@ describe("buildArchiveMetadata", () => {
       title: "Şema etiketi",
       description: "Açıklama",
       path: "/tags/sema",
-      siteName: "S",
+      site: brand("S"),
       ...turkishListing,
       page: 1,
     });
@@ -177,7 +182,7 @@ describe("buildArchiveMetadata", () => {
       title: "Şema etiketi",
       description: "Açıklama",
       path: "/tags/sema",
-      siteName: "S",
+      site: brand("S"),
       ...turkishListing,
       page: 3,
     });
@@ -195,7 +200,7 @@ describe("buildArchiveMetadata", () => {
       title: "Tag: Schema",
       description: "Description",
       path: "/tags/sema",
-      siteName: "S",
+      site: brand("S"),
       pageTitle: (title, page) => `${title} — Page ${page}`,
       locale: "en_US",
       page: 2,
@@ -210,7 +215,7 @@ describe("buildArchiveMetadata", () => {
       title: "Son yazılar",
       description: "Açıklama",
       path: "/",
-      siteName: "S",
+      site: brand("S"),
       ...turkishListing,
       page: 2,
     });
@@ -224,7 +229,7 @@ describe("archive social image", () => {
     vi.unstubAllEnvs();
   });
 
-  const input = { title: "Şema etiketi", description: "Açıklama", path: "/tags/sema", siteName: "Örnek Site", ...turkishListing };
+  const input = { title: "Şema etiketi", description: "Açıklama", path: "/tags/sema", site: brand("Örnek Site"), ...turkishListing };
 
   it("uses the site-wide image and a large card with a site origin", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
@@ -243,11 +248,20 @@ describe("archive social image", () => {
   });
 
   it("declares the default image only for a site origin", () => {
-    expect(defaultSocialImage("S", null)).toBeNull();
-    expect(defaultSocialImage("S", new URL("https://example.test"))).toMatchObject({
-      url: "/opengraph-image",
+    expect(defaultSocialImage(brand("S"), null)).toBeNull();
+    expect(defaultSocialImage(brand("S"), new URL("https://example.test"))).toMatchObject({
+      url: "/opengraph-image?v=3",
       alt: "S",
     });
+  });
+});
+
+describe("defaultSocialImage with a chosen image", () => {
+  it("uses the chosen media image, even without a site origin", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", mediaOrigin);
+    const image = defaultSocialImage(brand("S", coverMediaId), null);
+    expect(image).toEqual({ url: `${mediaOrigin}/storage/v1/object/public/media/${coverMediaId}`, alt: "S" });
+    vi.unstubAllEnvs();
   });
 });
 
@@ -264,7 +278,7 @@ describe("canonicalAlternates", () => {
     title: "Şema etiketi",
     description: "Açıklama",
     path: "/tags/sema",
-    siteName: "Örnek Site",
+    site: brand("Örnek Site"),
     ...turkishListing,
     feed: { path: "/tags/sema/feed.xml", title: "Şema etiketi | Örnek Site" },
   };
@@ -275,20 +289,19 @@ describe("canonicalAlternates", () => {
 
   it("repeats the feed link next to the canonical URL", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
-    vi.stubEnv("NEXT_PUBLIC_SITE_NAME", "Örnek Site");
 
-    expect(canonicalAlternates("/tags/sema")).toEqual({
+    expect(canonicalAlternates("/tags/sema", "Örnek Site")).toEqual({
       canonical: "/tags/sema",
       types: { "application/atom+xml": [{ url: "/feed.xml", title: "Örnek Site" }] },
     });
-    expect(buildPostMetadata(publishedPost, "Örnek Site").alternates?.types).toEqual({
+    expect(buildPostMetadata(publishedPost, brand("Örnek Site")).alternates?.types).toEqual({
       "application/atom+xml": [{ url: "/feed.xml", title: "Örnek Site" }],
     });
   });
 
   it("has no feed link without a site origin", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
-    expect(canonicalAlternates("/")).toEqual({ canonical: "/" });
+    expect(canonicalAlternates("/", "S")).toEqual({ canonical: "/" });
     expect(
       buildArchiveMetadata({ ...archiveInput, page: 2 }).alternates,
     ).toEqual({ canonical: "/tags/sema/page/2" });
@@ -296,7 +309,6 @@ describe("canonicalAlternates", () => {
 
   it("links an archive's own feed from every page of the archive", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://example.test");
-    vi.stubEnv("NEXT_PUBLIC_SITE_NAME", "Örnek Site");
 
     for (const page of [1, 2]) {
       expect(buildArchiveMetadata({ ...archiveInput, page }).alternates?.types).toEqual({

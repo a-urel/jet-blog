@@ -40,6 +40,9 @@
 // draft or published, changes only its working copy, so a save never touches
 // public caches; publish, republish, discard, and unpublish do. Member
 // previews (the working copy) are force-dynamic and never cached.
+//
+// Site settings (branding, locales, indexing) are a separate cache with a
+// site-wide invalidation: src/features/site-settings/cache.ts.
 
 import { localizedRoutePattern } from "@/lib/localized-paths";
 

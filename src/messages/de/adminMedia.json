@@ -1,6 +1,6 @@
 {
   "title": "Medien",
-  "intro": "Bilder, die im Beitragseditor oder im Titelbildfeld hochgeladen wurden. Ein Bild, das im Text oder als Titelbild eines Beitrags verwendet wird, kann nicht gelöscht werden.",
+  "intro": "Bilder, die im Beitragseditor, im Titelbildfeld oder in den Website-Einstellungen hochgeladen wurden. Ein Bild, das in einem Beitrag oder in den Website-Einstellungen verwendet wird, kann nicht gelöscht werden.",
   "status": {
     "deleted": "Bild gelöscht."
   },
@@ -8,7 +8,7 @@
     "invalid": "Ungültige Anfrage.",
     "forbidden": "Sie sind nicht berechtigt, dieses Bild zu löschen.",
     "missing": "Bild nicht gefunden.",
-    "inUse": "Dieses Bild wird im Text oder als Titelbild eines Beitrags verwendet und kann daher nicht gelöscht werden. Entfernen Sie es zuerst aus den Beiträgen.",
+    "inUse": "Dieses Bild wird im Text oder als Titelbild eines Beitrags oder in den Website-Einstellungen (Logo, Symbol, Vorschaubild) verwendet und kann daher nicht gelöscht werden. Entfernen Sie es zuerst dort.",
     "objectRemains": "Der Bildeintrag wurde gelöscht, die Datei konnte jedoch nicht aus dem Storage entfernt werden. Versuchen Sie es erneut oder benachrichtigen Sie einen Administrator.",
     "rateLimited": "Zu viele Bilder in kurzer Zeit gelöscht (höchstens 60 pro 10 Minuten). Versuchen Sie es gleich erneut.",
     "failed": "Der Vorgang konnte nicht abgeschlossen werden. Versuchen Sie es erneut."

@@ -10,6 +10,7 @@ import {
   LogOut,
   MessageSquare,
   PenLine,
+  Settings,
   Tags,
   Users,
 } from "lucide-react";
@@ -22,10 +23,12 @@ import { EditorialAccessDenied } from "@/features/auth/components/editorial-acce
 import {
   canManageAuthors,
   canManageMembership,
+  canManageSiteSettings,
   canManageTaxonomy,
   canModerateComments,
   getEditorialContext,
 } from "@/lib/auth/editorial";
+import { getSiteSettings } from "@/features/site-settings/data";
 import { adminClientMessages } from "@/i18n/client-messages";
 import { ClientMessages } from "@/i18n/client-messages-provider";
 
@@ -36,9 +39,10 @@ export const metadata: Metadata = {
 export default async function AdminLayout({
   children,
 }: LayoutProps<"/[locale]/admin">) {
-  const [{ user, membership }, t] = await Promise.all([
+  const [{ user, membership }, t, site] = await Promise.all([
     getEditorialContext(),
     getTranslations("admin"),
+    getSiteSettings(),
   ]);
 
   if (!user) redirect("/login");
@@ -136,10 +140,19 @@ export default async function AdminLayout({
                   {t("shell.nav.members")}
                 </Link>
               ) : null}
+              {canManageSiteSettings(membership) ? (
+                <Link
+                  href="/admin/settings"
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/80"
+                >
+                  <Settings aria-hidden="true" className="size-4" />
+                  {t("shell.nav.settings")}
+                </Link>
+              ) : null}
             </nav>
 
             <div className="space-y-3 border-t pt-4">
-              <LanguageSwitcher align="start" />
+              <LanguageSwitcher align="start" locales={site.enabledLocales} />
               <form action={signOutAction}>
                 <Button type="submit" variant="outline" size="sm" className="w-full">
                   <LogOut aria-hidden="true" />

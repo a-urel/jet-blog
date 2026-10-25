@@ -114,7 +114,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public publishable API key for that project. |
 | `SUPABASE_SECRET_KEY` | Server-only secret key used by the invitation action and admin client. Required for `/admin/members`. |
 | `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical, Open Graph, JSON-LD, share-link, sitemap, robots, and feed URLs. It must match the Supabase Auth site URL and redirect allowlist. Without it the site is `noindex`, `robots.txt` disallows everything, the sitemap is empty, `/feed.xml` and the archive feeds answer 404 with no discovery link, and share controls are hidden. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
-| `NEXT_PUBLIC_SITE_NAME` | Optional publication name for titles, `og:site_name`, and the JSON-LD publisher. Defaults to the provisional `Yazılar`; the brand (D5) is still open. |
+| `NEXT_PUBLIC_SITE_NAME` | Optional fallback publication name, used only until an admin saves the site settings (Phase 27, `/admin/settings`), which own the brand. Without it the fallback is the neutral `Blog`. |
 
 Restart the development server after changing these values. `NEXT_PUBLIC_*`
 values are included in the browser bundle at build time. Never put a secret or
@@ -1272,8 +1272,8 @@ configuration here, message extraction is not used). The shadcn
   and `Accept-Language` (or add `Vary: Cookie, Accept-Language` at the edge,
   accepting that `Vary: Cookie` also splits by session cookies), or do not
   cache HTML at the edge. See the hosting checklist.
-- **Left as is.** The provisional site name (`NEXT_PUBLIC_SITE_NAME`,
-  default "Yazılar") is a brand, not copy. Supabase Auth email templates
+- **Left as is.** The site name is a brand, not copy: since Phase 27 it
+  comes from the site settings, one value for every locale. Supabase Auth email templates
   (invitation, confirmation, recovery) are configured in Supabase, not in this
   repository, and stay in their current language for now. The Atom feed,
   sitemap, and the site-wide social image are locale-free and use the default
@@ -1330,6 +1330,71 @@ Sonner component (`src/components/ui/sonner.tsx`, `sonner` 2.0.8, added with
   the prerendered live region.
 - **Strings.** Toast text comes from the existing next-intl catalogs; Phase
   23 adds `common.layout.notifications` and `comments.itemActions.deleted`.
+
+## Site settings (Phase 27)
+
+Each deployment is single-tenant and white-label: one customer, one
+deployment, one Supabase project. Admins set the brand at `/admin/settings`
+(menu "Site ayarları"; editors and authors get a denial, and the database
+refuses them too). Branding text has one value for every interface language.
+
+| Section | Fields | Used by |
+| --- | --- | --- |
+| Identity | Site name (required, 80), tagline (160), footer text (500, line breaks kept) | `<title>` template, `og:site_name`, header without a logo, home heading, feed titles and subtitle, JSON-LD, footer |
+| Appearance | Logo for light and for dark backgrounds, icon, accent color | Header `<picture>` (switches with `prefers-color-scheme`), `/site-icon.png` and `/apple-touch-icon.png`, `--primary`/`--ring`/`--sidebar-primary` in both themes |
+| Social | https links for website, X, Bluesky, Mastodon, GitHub, LinkedIn, Instagram, Facebook, YouTube | Footer (`rel="me"`), JSON-LD Organization `sameAs` |
+| Language | Enabled interface locales (at least one), default locale | `src/proxy.ts` negotiation, language switcher (hidden with one locale), feed `xml:lang` and archive feed titles |
+| SEO | Meta description (300), default share image, search-engine indexing | Root metadata and home intro, Open Graph/Twitter for pages without a cover, `noindex` everywhere plus `Disallow: /` and an empty sitemap when indexing is off |
+
+Data and security: `public.site_settings` is a singleton (`id boolean
+primary key check (id)`), created by the first save (migration
+`20261025120000_site_settings.sql` inserts no row; the seed inserts a
+synthetic one). Everyone may read every column except `updated_by`; there are
+no write grants. `update_site_settings()` requires an active admin, consumes
+one `site_settings.write` event (30 per 10 minutes), compares the loaded
+revision atomically (40001 when someone saved in between; revision 0 creates
+the row), checks the images (registered media; the icon square and at least
+48 px; the share image at least 200 px per side), and writes an audit entry.
+CHECK constraints bound every text, the `#rrggbb` color, the social link
+providers, scheme, and length, and the locale set (non-empty, no duplicates,
+default enabled). Images come from the media library or a new upload through
+the existing media path (public `media` bucket, signature validation,
+JPEG/PNG/WebP/GIF, no SVG); `delete_media` refuses an image the settings use.
+
+Accent color and readability: the color must read at least 4.5:1 against
+the page and card backgrounds of each theme. Where it does not, that theme
+mixes it toward black (light) or white (dark) just far enough; the form shows
+both results with their contrast ratios and a warning. Button text is black
+or white, whichever reads better. Without a color the neutral tokens apply.
+
+Fallbacks: before the first save (and without Supabase) the site uses
+`NEXT_PUBLIC_SITE_NAME` (else the neutral "Blog"), all three locales with
+Turkish as the default, indexing on, and no logo, color, or links. A failed
+settings read throws like the public post reads, so a transient error is not
+cached as the fallback brand.
+
+Caching (`src/features/site-settings/cache.ts`): public reads go through
+`getSiteSettings()` (anonymous client, `site-settings` fetch tag, React
+`cache()`), so pages stay SSG/ISR. A save calls `updateTag("site-settings")`
+and `revalidatePath("/", "layout")`, which regenerates every page in every
+locale, the site and archive feeds, sitemap.xml, robots.txt, the icons, and
+`/opengraph-image` (all ISR with `revalidate = 300`). Icon and generated
+share-image URLs carry `?v=<revision>`, so browsers and social platforms
+fetch the new files. The proxy cannot use the Data Cache; it re-reads the
+locale fields at most every 30 seconds per server instance. The settings
+form itself reads uncached through the session client.
+
+Merging with Phase 28 (pages and navigation): the root layout marks the brand
+blocks (`SiteBrand` in the header, `SiteFooterBrand` in the footer); header
+navigation and footer page links belong to Phase 28.
+
+Tests: `src/features/site-settings/site-settings.test.ts` (contrast and
+palette, CSS output, social URL allowlist, form validation, locale
+negotiation with settings, invalidation) and
+`src/lib/supabase/site-settings.rls.test.ts` (reads by anonymous, reader,
+author, editor, and admin; no direct writes; RPC denial for every non-admin
+and a deactivated admin; stale and concurrent saves; first save; CHECK
+constraints; media checks; media deletion refused).
 
 ## Structure and sample content
 
@@ -1669,12 +1734,13 @@ or creates hosted resources.
   `SMOKE_SUPABASE_PUBLISHABLE_KEY` add a check that clients cannot call
   `search_published_posts` directly.
 
-Hosting checklist (open until D5 is decided): after the first deploy, create
+Hosting checklist (open until the domain and hosting of D5 are decided): after the first deploy, create
 the first admin with `npm run admin:bootstrap` (see
-[Bootstrap the first admin](#bootstrap-the-first-admin)); set `NEXT_PUBLIC_SITE_URL` and
-`NEXT_PUBLIC_SITE_NAME` before the production build, add the origin to the
+[Bootstrap the first admin](#bootstrap-the-first-admin)); set `NEXT_PUBLIC_SITE_URL` (and optionally
+the fallback `NEXT_PUBLIC_SITE_NAME`) before the production build, add the origin to the
 Supabase Auth site URL and redirect allowlist, keep `SUPABASE_SECRET_KEY` in
-the host's server-only secrets, enable HSTS at the edge, configure a shared
+the host's server-only secrets, then set the brand, locales, and indexing at
+`/admin/settings` (Phase 27), enable HSTS at the edge, configure a shared
 cache handler or a single instance so `updateTag` reaches every instance,
 review the hosted Auth rate limits and SMTP, apply the reader-account Auth
 settings (confirm email and confirm phone on, `letters_digits` password rule,
