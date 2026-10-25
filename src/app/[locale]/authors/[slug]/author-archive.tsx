@@ -10,7 +10,7 @@ import { pagePath } from "@/features/posts/pagination";
 import { archiveFeedChannel } from "@/features/seo/archive-feed";
 import { listingMetadataContext } from "@/features/seo/listing-metadata";
 import { buildArchiveMetadata, noIndexMetadata } from "@/features/seo/metadata";
-import { getSiteName } from "@/lib/site-url";
+import { getSiteSettings } from "@/features/site-settings/data";
 
 // The author archive, shared by /authors/[slug] (page 1) and
 // /authors/[slug]/page/[page]. RLS exposes an author only while they are
@@ -23,14 +23,15 @@ export async function authorArchiveMetadata(slug: string, page: number): Promise
   if (lookup.kind !== "archive") return noIndexMetadata;
 
   const { subject } = lookup;
+  const site = await getSiteSettings();
   const t = await getTranslations("archives.author");
   return buildArchiveMetadata({
     title: subject.name,
     description: subject.bio ?? t("description", { name: subject.name }),
     path: archivePaths.author(subject.slug),
-    siteName: getSiteName(),
+    site,
     page,
-    feed: await archiveFeedChannel("author", subject),
+    feed: await archiveFeedChannel("author", subject, site),
     ...(await listingMetadataContext()),
   });
 }

@@ -1,6 +1,6 @@
 {
   "title": "Medya",
-  "intro": "Yazı editöründen veya kapak alanından yüklenen görseller. Bir yazının gövdesinde ya da kapağında kullanılan görsel silinemez.",
+  "intro": "Yazı editöründen, kapak alanından veya site ayarlarından yüklenen görseller. Bir yazıda ya da site ayarlarında kullanılan görsel silinemez.",
   "status": {
     "deleted": "Görsel silindi."
   },
@@ -8,7 +8,7 @@
     "invalid": "Geçersiz istek.",
     "forbidden": "Bu görseli silme yetkiniz yok.",
     "missing": "Görsel bulunamadı.",
-    "inUse": "Bu görsel bir yazının gövdesinde veya kapağında kullanıldığı için silinemez. Önce yazılardan kaldırın.",
+    "inUse": "Bu görsel bir yazının gövdesinde ya da kapağında veya site ayarlarında (logo, simge, paylaşım görseli) kullanıldığı için silinemez. Önce oradan kaldırın.",
     "objectRemains": "Görsel kaydı silindi ancak dosya Storage''dan kaldırılamadı. Tekrar deneyin veya bir yöneticiye bildirin.",
     "rateLimited": "Kısa sürede çok fazla görsel silindi (10 dakikada en fazla 60). Biraz sonra tekrar deneyin.",
     "failed": "İşlem tamamlanamadı. Tekrar deneyin."

@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-25 (Phase 26: published snapshots, on `claude/phase26-published-snapshot`; Phases 23–25 merged into main)
+Last updated: 2026-10-25 (Phase 27: site settings, on `worktree-phase27-site-settings`; Phase 26 merged into main)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–26, complete)
+## Current baseline (Phases 1–27, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -232,6 +232,20 @@ does not add requirements on its own.
   row (publisher, time, full snapshot). A slug change redirects on republish.
   Migration `20261025100000_published_snapshots.sql` backfills version 1 for
   posts published at upgrade time.
+- Phase 27 site settings (white-label branding): a singleton
+  `site_settings` row (site name, tagline, meta description, light and dark
+  logos, icon, default social image, accent color, social links, footer text,
+  default and enabled interface locales, search-engine indexing), readable by
+  everyone except `updated_by`, written only by active admins through
+  `update_site_settings()` (revision compare-and-swap, media checks, audit
+  entry, `site_settings.write` rate limit). `/admin/settings` edits it with a
+  live accent preview; every public page, feed, icon, robots.txt, sitemap,
+  and the generated social image render from it and stay SSG/ISR; a save
+  expires `site-settings` and revalidates the root layout. The proxy and the
+  language switcher honor the default and enabled locales.
+  `NEXT_PUBLIC_SITE_NAME` is only the fallback before the first save; sample
+  branding left the application code and catalogs. Migration
+  `20261025120000_site_settings.sql`.
 - 681 unit tests and 531 local-Supabase RLS tests as of Phase 21 (including the language parity suite, the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
@@ -259,12 +273,17 @@ does not add requirements on its own.
   conflict, preview, draft exclusion from public routes, and author isolation.
 
 Known gaps: the cover is cropped to 16:9 everywhere with no focal point, and
-the site-wide social image is generic (site name and host only, rebuilt only
-with the build) and is not declared without `NEXT_PUBLIC_SITE_URL`; Open Graph image URLs point at the original upload on the media
+the generated site-wide social image is not declared without
+`NEXT_PUBLIC_SITE_URL` (an uploaded default image from the site settings is);
+Open Graph image URLs point at the original upload on the media
 origin (no 1200×630 rendition) and omit width/height, because readers cannot
-read media rows. The site
-name and origin are provisional (D5), so canonical/sitemap URLs point at
-whatever `NEXT_PUBLIC_SITE_URL` holds. Public listings are paginated (Phase
+read media rows. The origin is provisional (D5), so canonical/sitemap URLs
+point at whatever `NEXT_PUBLIC_SITE_URL` holds. Site settings (Phase 27):
+a new default or enabled locale reaches the proxy within its 30-second
+per-instance cache; logos render as plain `<img>` with a fixed height
+(their dimensions are not public); the accent color is mixed toward black or
+white per theme when it would read below 4.5:1, so the brand color can look
+slightly different in one theme. Public listings are paginated (Phase
 15), but the sitemap and archive discovery for `generateStaticParams` still
 read every published post's summary, and the category archive reads the
 category ids of all posts in its subtree (fine at the current size; revisit
@@ -294,6 +313,35 @@ fall back to the link and `beforeunload` guards). The search function is
 server-only, but plain Data API reads of published rows stay public by design.
 
 ## Where to resume (session handoff)
+
+Phase 27 (site settings, `20261025120000_site_settings.sql`) was developed on
+`worktree-phase27-site-settings` against the worktree's own local stack; not
+committed or merged. Phase 28 (pages and navigation) was developed in
+parallel; it owns the header navigation and footer page links, Phase 27 the
+brand identity in both (`SiteBrand`, `SiteFooterBrand` in the root layout).
+
+- Last verified (Phase 27, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (774 tests, including the color, social link,
+  validation, locale negotiation, and invalidation suite), `npm run
+  test:rls` (565 tests, including `site-settings.rls.test.ts`, after a clean
+  `supabase db reset`), `npm run build` (public routes, feeds, sitemap,
+  robots, icons, and the social image stay SSG/ISR), and `npm run
+  test:smoke` against `next start` on port 3100 (with the direct-RPC check).
+  Upgrade path: `supabase migration up --local` on a Phase 26 database with
+  the seed (no row until the first save). Browser journey on `next start` as
+  a synthetic admin: renamed the site, chose light and dark logos and an
+  icon from the library, typed accent `#e11d48` (the live preview showed
+  4.7:1 light and the adjusted `#e64165` dark), set English as the default
+  locale, and turned indexing off; after the toast the cached home page
+  (x-nextjs-cache HIT) showed the new title, logos per system theme without a
+  reload, the accent tokens, `noindex`, `/site-icon.png?v=2`, and
+  `/opengraph-image?v=2`; robots.txt disallowed everything, the sitemap was
+  empty, `/feed.xml` had the new title, the tagline subtitle, and
+  `xml:lang="en"`, archive feed titles were English, and after the proxy
+  cache window a French browser got `<html lang="en">`. A lookalike GitHub
+  URL returned the inline error and kept every value. A synthetic editor saw
+  no menu entry and a denial on `/admin/settings`. Synthetic users, media, and
+  objects were removed and the stack reset.
 
 Phase 26 (published snapshots, `20261025100000_published_snapshots.sql`) was
 developed on `claude/phase26-published-snapshot` against the worktree's own
@@ -612,9 +660,9 @@ on request. Do not push without an explicit request.
   phases: the other migrations and `*.rls.test.ts` files.
 - Next slice: none planned. Every phase in the table is done; the remaining
   work is the D5 launch gate.
-- Open gates: D5 remains provisional (hosting deferred, no production domain,
-  `NEXT_PUBLIC_SITE_NAME` default "Yazılar"). Launch needs those decisions plus
-  the README hosting checklist. D4 is closed: draft images stay public by
+- Open gates: D5 now reduces to the domain and hosting (deferred, no
+  production domain); the brand is edited per deployment in the site settings
+  (Phase 27). Launch needs those decisions plus the README hosting checklist. D4 is closed: draft images stay public by
   URL (confirmed 2026-10-25).
 
 ## Deferred administration follow-ups
@@ -653,7 +701,7 @@ widening an active phase silently.
 | D2 | Workflow states and editing live posts | Phases 3, 8 | `draft` → `published` only; `review`/`archived` later; editors may edit published posts and `updated_at` is shown | **Answered 2026-10-22** |
 | D3 | Concurrency and revisions | Phases 3–5, 8, 26 | Working copy with atomic revision comparison and a preview route for members; since 2026-10-25 a separate published snapshot per published post: every reader-visible field waits for an editor/admin republish, authors edit their own live working copy but never publish, every publish/republish stores an immutable version | **Answered 2026-10-22; revised 2026-10-25** (Phase 26) |
 | D4 | Media bucket visibility | Phase 6 | One public bucket, UUID object paths, app-level validation; document that draft media is fetchable by URL | **Answered 2026-10-22; confirmed for launch 2026-10-25** |
-| D5 | Language, brand, domain, hosting | Phases 8–10, launch | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–10 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`; site name from `NEXT_PUBLIC_SITE_NAME`, default "Yazılar"); for Phase 10 the user deferred hosting, has no production domain yet, and keeps the name provisional. Interface language decided 2026-10-24: tr (default), en, de by cookie (Phase 22). Blocks launch only |
+| D5 | Language, brand, domain, hosting | Phases 8–10, launch | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–10 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`); for Phase 10 the user deferred hosting and has no production domain yet. Interface language decided 2026-10-24: tr (default), en, de by cookie (Phase 22). Brand decided 2026-10-25: white-label, edited per deployment in the site settings (Phase 27; `NEXT_PUBLIC_SITE_NAME` is only a fallback). D5 now reduces to domain and hosting. Blocks launch only |
 | D6 | Reader accounts, bookmarks, and comments | Phases 11–13 | Private bookmarks only; reader accounts with email + password; post-moderation with reader reports and editor hide/delete; account deletion removes bookmarks and anonymizes comments. No public like counts, OAuth, or magic links initially | **Answered 2026-10-22** |
 
 D1, D2, D3, D4, and D6 were answered on 2026-10-22 and no longer block their
@@ -760,6 +808,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 24 | Toast notifications | Sonner toasts for transient successes, inline errors, one live region | Phases 12, 13, 18, 22 | Done |
 | 25 | Avatar cropping | Client-side square crop dialog before avatar uploads, fixed 512×512 output | Phases 18, 22 | Done |
 | 26 | Published snapshots | Private working copy for live posts, republish/discard, immutable published versions | Phases 8, 10, 19, D3 revision | Done |
+| 27 | Site settings | Admin-edited white-label branding, accent, socials, locales, indexing; consumed by every public route | Phases 9, 17, 22, 23, D1 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -2113,6 +2162,50 @@ Known limits: no version history or restore interface; versions backfilled
 by the migration have no publisher; republishing a slug change while
 unpublished still records nothing (unchanged); the change flag compares whole
 documents, so it does not say which field changed.
+
+### Phase 27 — Site settings (white-label branding)
+
+Goal: each deployment sets its own brand, colors, social links, interface
+locales, and search visibility from the administration, without code or
+environment changes.
+
+Status: complete on 2026-10-25, on `worktree-phase27-site-settings` (not
+merged). Details: README "Site settings (Phase 27)".
+
+Decisions (user, 2026-10-25): single-tenant white-label (each customer runs
+its own deployment and Supabase project); branding text has one value for
+every interface language; static and legal pages plus navigation are Phase
+28.
+
+Implementation choices:
+
+- **Singleton row, no row in the migration.** `id boolean primary key check
+  (id)` allows one row; the brand is not schema, so the migration inserts
+  none. Revision 0 means "no row yet": the first save creates it, a
+  concurrent first save is stale (40001).
+- **Writes only through the RPC**, like taxonomy and author administration;
+  RLS opens reads to everyone, and column grants keep `updated_by` private.
+- **Images reuse the media library and bucket** (D4, signature validation,
+  no SVG). The RPC checks the icon (square, 48 px or more) and the default
+  social image (200 px or more); referenced media cannot be deleted.
+- **Accent per theme.** One color cannot reach 4.5:1 on both white and
+  near-black, so each theme keeps it or mixes it toward black or white until
+  text reaches 4.5:1 (the form warns and previews both); invalid hex values
+  are rejected in the Server Action and by a CHECK constraint.
+- **One invalidation for everything.** A save calls `updateTag("site-settings")`
+  and `revalidatePath("/", "layout")`; robots.txt, the icons, and the
+  generated social image became ISR (`revalidate = 300`) and carry `?v=<revision>`
+  in their declared URLs. The proxy keeps its own 30-second locale cache.
+- **Icons as Route Handlers** (`/site-icon.png`, `/apple-touch-icon.png`):
+  root icon conventions do not reach the `[locale]` root layout, and the
+  proxy skips paths with a dot. The default Next.js `favicon.ico` was removed.
+- **Sample branding removed**: the home heading is the site name with the
+  meta description or tagline, the footer shows the footer text or tagline,
+  and the catalogs lost the sample description, tagline, and hero copy. The
+  fallback name without a row or `NEXT_PUBLIC_SITE_NAME` is "Blog".
+
+Known limits: see "Known gaps" (proxy cache window, plain `<img>` logos,
+adjusted accent). No favicon.ico fallback for clients that ignore link tags.
 
 ## Cross-cutting delivery rules
 

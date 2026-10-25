@@ -1,0 +1,114 @@
+{
+  "metaTitle": "Website-Einstellungen",
+  "title": "Website-Einstellungen",
+  "intro": "Name, Logo, Farben, Social-Media-Links, Oberflächensprachen und Sichtbarkeit für Suchmaschinen. Beim Speichern werden alle öffentlichen Seiten, Feeds und Symbole aktualisiert.",
+  "fallbackNotice": "Die Einstellungen wurden noch nicht gespeichert. Es werden Ersatzwerte angezeigt; das erste Speichern legt die Einstellungen an.",
+  "noSiteUrl": "NEXT_PUBLIC_SITE_URL ist nicht gesetzt: Die Website bleibt unabhängig von dieser Einstellung für Suchmaschinen gesperrt, und es werden keine Feeds veröffentlicht.",
+  "denied": {
+    "title": "Kein Zugriff auf die Website-Einstellungen",
+    "description": "Nur Admins können die Website-Einstellungen ändern."
+  },
+  "status": {
+    "saved": "Website-Einstellungen gespeichert."
+  },
+  "sections": {
+    "identity": {
+      "title": "Identität",
+      "description": "Name und Texte in Titeln, im Browser-Tab, in Feeds und in der Fußzeile. Sie gelten für alle Oberflächensprachen."
+    },
+    "appearance": {
+      "title": "Darstellung",
+      "description": "Logos, Symbol und Akzentfarbe. Helles und dunkles Design folgen der Systemeinstellung der Besucher."
+    },
+    "social": {
+      "title": "Social-Media-Links",
+      "description": "Werden in der Fußzeile angezeigt und in strukturierten Daten (sameAs) angegeben. Nur https-Adressen sind erlaubt."
+    },
+    "language": {
+      "title": "Sprache",
+      "description": "Oberflächensprachen für Besucher. Adressen enthalten keine Sprache; sie wird anhand der Browsersprache und des Sprach-Cookies gewählt."
+    },
+    "seo": {
+      "title": "Suche und Teilen",
+      "description": "Beschreibung und Bild für Suchergebnisse und Vorschauen beim Teilen."
+    }
+  },
+  "fields": {
+    "siteName": "Name der Website",
+    "siteNameHint": "Erscheint in Tab-Titeln, Feeds und, ohne Logo, in der Kopfzeile.",
+    "tagline": "Slogan",
+    "taglineHint": "Optional. Wird als Feed-Untertitel und im erzeugten Vorschaubild verwendet.",
+    "footerText": "Fußzeilentext",
+    "footerTextHint": "Optional. Ist er leer, wird der Slogan angezeigt. Zeilenumbrüche bleiben erhalten.",
+    "metaDescription": "Beschreibung der Website",
+    "metaDescriptionHint": "Suchbeschreibung der Startseite und allgemeiner Seiten. Ist sie leer, wird der Slogan verwendet.",
+    "logoLight": "Logo (heller Hintergrund)",
+    "logoLightHint": "Wird im hellen Design in der Kopfzeile angezeigt. Ohne Logo wird der Name angezeigt.",
+    "logoDark": "Logo (dunkler Hintergrund)",
+    "logoDarkHint": "Wird im dunklen Design und im Vorschaubild angezeigt. Ist es leer, wird das helle Logo verwendet.",
+    "icon": "Website-Symbol",
+    "iconHint": "Symbol für Browser-Tab und Startbildschirm. Muss quadratisch und mindestens 48 Pixel groß sein. Ohne Symbol erscheint der erste Buchstabe des Namens in der Akzentfarbe.",
+    "ogImage": "Standard-Vorschaubild",
+    "ogImageHint": "Wird angezeigt, wenn eine Seite ohne Titelbild geteilt wird. Mindestens 200×200, ideal 1200×630 Pixel. Ohne Bild wird eines aus dem Namen erzeugt.",
+    "accentColor": "Akzentfarbe",
+    "accentColorHint": "Im Format #rrggbb. Für Schaltflächen, Link-Schaltflächen und Fokusrahmen. Ist sie leer, werden neutrale Farben verwendet.",
+    "accentPicker": "Akzentfarbe auswählen",
+    "accentClear": "Farbe entfernen",
+    "website": "Website",
+    "socialHint": "Vollständige https-Adresse, zum Beispiel https://github.com/benutzer",
+    "enabledLocales": "Aktive Oberflächensprachen",
+    "enabledLocalesHint": "Mindestens eine Sprache muss ausgewählt sein. Bei nur einer Sprache wird die Sprachauswahl ausgeblendet.",
+    "defaultLocale": "Standard-Oberflächensprache",
+    "defaultLocaleHint": "Wird verwendet, wenn die Browsersprache keiner aktiven Sprache entspricht. Auch die Feeds verwenden diese Sprache.",
+    "searchIndexing": "Suchmaschinen erlauben, die Website zu indexieren",
+    "searchIndexingHint": "Ist die Option aus, senden alle Seiten noindex, robots.txt sperrt das Crawling und die Sitemap ist leer."
+  },
+  "media": {
+    "choose": "Aus der Mediathek wählen",
+    "upload": "Neu hochladen",
+    "remove": "Entfernen",
+    "none": "Nicht ausgewählt",
+    "preview": "Ausgewähltes Bild",
+    "libraryEmpty": "Die Mediathek enthält keine Bilder.",
+    "libraryError": "Die Mediathek konnte nicht geladen werden.",
+    "libraryItem": "Bild {position}, {width}×{height} Pixel",
+    "libraryItemSelected": "Bild {position}, {width}×{height} Pixel, ausgewählt",
+    "file": "Bilddatei",
+    "fileHelp": "JPEG, PNG, WebP oder GIF, höchstens 5 MB. SVG wird nicht akzeptiert.",
+    "fileRequired": "Wählen Sie eine Datei.",
+    "fileTooLarge": "Die Datei ist größer als 5 MB.",
+    "uploadAndSet": "Hochladen und auswählen",
+    "uploading": "Wird hochgeladen…",
+    "failed": "Das Hochladen konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+  },
+  "accent": {
+    "preview": "Vorschau",
+    "light": "Helles Design",
+    "dark": "Dunkles Design",
+    "sampleButton": "Schaltfläche",
+    "sampleLink": "Link",
+    "contrast": "Kontrast zum Hintergrund: {ratio}:1",
+    "adjusted": "Für die Lesbarkeit wird in diesem Design {color} verwendet (mindestens 4,5:1 Kontrast).",
+    "none": "Keine Akzentfarbe; es werden die neutralen Designfarben verwendet."
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich.",
+    "tooLong": "Höchstens {max} Zeichen.",
+    "invalidColor": "Geben Sie die Farbe als #rrggbb ein, zum Beispiel #2563eb.",
+    "invalidMedia": "Ungültige Bildauswahl.",
+    "socialInvalid": "Geben Sie eine gültige Adresse ein.",
+    "socialNotHttps": "Die Adresse muss mit https:// beginnen.",
+    "socialWrongHost": "Die Adresse muss auf der Domain dieses Dienstes liegen.",
+    "socialTooLong": "Die Adresse darf höchstens {max} Zeichen lang sein.",
+    "localesEmpty": "Wählen Sie mindestens eine Sprache.",
+    "invalidLocale": "Nicht unterstützte Sprache.",
+    "defaultNotEnabled": "Die Standardsprache muss eine der aktiven Sprachen sein."
+  },
+  "errors": {
+    "forbidden": "Nur Admins können die Website-Einstellungen ändern.",
+    "stale": "Jemand anderes hat die Einstellungen geändert, während Sie sie bearbeitet haben. Ihre Eingaben bleiben erhalten; laden Sie die Seite neu und übernehmen Sie Ihre Änderungen erneut.",
+    "mediaMissing": "Das ausgewählte Bild ist nicht mehr in der Mediathek.",
+    "iconShape": "Das Symbol muss quadratisch und mindestens 48 Pixel groß sein.",
+    "ogImageSize": "Das Vorschaubild muss auf jeder Seite mindestens 200 Pixel groß sein."
+  }
+}

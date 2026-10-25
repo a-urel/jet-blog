@@ -1,0 +1,114 @@
+{
+  "metaTitle": "Site settings",
+  "title": "Site settings",
+  "intro": "The site's name, logo, colors, social links, interface languages, and search-engine visibility. Saving refreshes every public page, feed, and icon.",
+  "fallbackNotice": "The settings have not been saved yet. Fallback values are shown; the first save creates the settings.",
+  "noSiteUrl": "NEXT_PUBLIC_SITE_URL is not set: the site stays closed to search engines regardless of this setting, and no feeds are published.",
+  "denied": {
+    "title": "No access to site settings",
+    "description": "Only admins can change the site settings."
+  },
+  "status": {
+    "saved": "Site settings saved."
+  },
+  "sections": {
+    "identity": {
+      "title": "Identity",
+      "description": "The name and texts shown in titles, the browser tab, feeds, and the footer. They are the same in every interface language."
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Logos, icon, and accent color. The light and dark theme follow the visitor's system preference."
+    },
+    "social": {
+      "title": "Social links",
+      "description": "Shown in the footer and declared in structured data (sameAs). Only https addresses are accepted."
+    },
+    "language": {
+      "title": "Language",
+      "description": "Interface languages offered to visitors. Addresses contain no language; it is chosen from the browser language and the language cookie."
+    },
+    "seo": {
+      "title": "Search and sharing",
+      "description": "The description and image used in search results and share previews."
+    }
+  },
+  "fields": {
+    "siteName": "Site name",
+    "siteNameHint": "Shown in tab titles, feeds, and the header when there is no logo.",
+    "tagline": "Tagline",
+    "taglineHint": "Optional. Used as the feed subtitle and on the generated share image.",
+    "footerText": "Footer text",
+    "footerTextHint": "Optional. The tagline is shown when it is empty. Line breaks are kept.",
+    "metaDescription": "Site description",
+    "metaDescriptionHint": "Search description of the home page and general pages. The tagline is used when it is empty.",
+    "logoLight": "Logo (light background)",
+    "logoLightHint": "Shown in the header in the light theme. Without a logo the site name is shown.",
+    "logoDark": "Logo (dark background)",
+    "logoDarkHint": "Shown in the dark theme and on the share image. The light logo is used when it is empty.",
+    "icon": "Site icon",
+    "iconHint": "Browser tab and home screen icon. Must be square and at least 48 pixels. Without one, the first letter of the site name is shown on the accent color.",
+    "ogImage": "Default share image",
+    "ogImageHint": "Shown when a page without a cover image is shared. At least 200×200, ideally 1200×630 pixels. Without one, an image is generated from the site name.",
+    "accentColor": "Accent color",
+    "accentColorHint": "In #rrggbb format. Used for buttons, link buttons, and focus rings. Neutral colors are used when it is empty.",
+    "accentPicker": "Pick the accent color",
+    "accentClear": "Remove color",
+    "website": "Website",
+    "socialHint": "Full https address, for example https://github.com/username",
+    "enabledLocales": "Enabled interface languages",
+    "enabledLocalesHint": "At least one language must be selected. With a single language the language switcher is hidden.",
+    "defaultLocale": "Default interface language",
+    "defaultLocaleHint": "Used when the browser language matches none of the enabled languages. Feeds use this language too.",
+    "searchIndexing": "Allow search engines to index the site",
+    "searchIndexingHint": "When off, every page sends noindex, robots.txt blocks crawling, and the sitemap is empty."
+  },
+  "media": {
+    "choose": "Choose from library",
+    "upload": "Upload new",
+    "remove": "Remove",
+    "none": "Not selected",
+    "preview": "Selected image",
+    "libraryEmpty": "The library has no images.",
+    "libraryError": "The media library could not be loaded.",
+    "libraryItem": "Image {position}, {width}×{height} pixels",
+    "libraryItemSelected": "Image {position}, {width}×{height} pixels, selected",
+    "file": "Image file",
+    "fileHelp": "JPEG, PNG, WebP, or GIF, up to 5 MB. SVG is not accepted.",
+    "fileRequired": "Choose a file.",
+    "fileTooLarge": "The file is larger than 5 MB.",
+    "uploadAndSet": "Upload and select",
+    "uploading": "Uploading…",
+    "failed": "The upload could not be completed. Try again."
+  },
+  "accent": {
+    "preview": "Preview",
+    "light": "Light theme",
+    "dark": "Dark theme",
+    "sampleButton": "Button",
+    "sampleLink": "Link",
+    "contrast": "Contrast with the background: {ratio}:1",
+    "adjusted": "For readability this theme uses {color} (at least 4.5:1 contrast).",
+    "none": "No accent color; the neutral theme colors are used."
+  },
+  "validation": {
+    "required": "This field is required.",
+    "tooLong": "At most {max} characters.",
+    "invalidColor": "Enter the color as #rrggbb, for example #2563eb.",
+    "invalidMedia": "Invalid image selection.",
+    "socialInvalid": "Enter a valid address.",
+    "socialNotHttps": "The address must start with https://.",
+    "socialWrongHost": "The address must be on this service's own domain.",
+    "socialTooLong": "The address can be at most {max} characters.",
+    "localesEmpty": "Select at least one language.",
+    "invalidLocale": "Unsupported language.",
+    "defaultNotEnabled": "The default language must be one of the enabled languages."
+  },
+  "errors": {
+    "forbidden": "Only admins can change the site settings.",
+    "stale": "Someone else changed the settings while you were editing. Your input was kept; reload the page and apply your changes again.",
+    "mediaMissing": "The selected image is no longer in the media library.",
+    "iconShape": "The icon must be square and at least 48 pixels.",
+    "ogImageSize": "The share image must be at least 200 pixels on each side."
+  }
+}

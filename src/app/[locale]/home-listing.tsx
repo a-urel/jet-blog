@@ -7,31 +7,39 @@ import { PostPagination } from "@/features/posts/components/post-pagination";
 import { pagePath, type PostPage } from "@/features/posts/pagination";
 import { listingMetadataContext } from "@/features/seo/listing-metadata";
 import { canonicalAlternates, pageTitle } from "@/features/seo/metadata";
+import { getSiteSettings } from "@/features/site-settings/data";
 
 // The home listing, shared by / (page 1) and /page/[page].
 
 export async function homeListingMetadata(page: number): Promise<Metadata> {
   const t = await getTranslations("posts.home");
-  const listing = await listingMetadataContext();
+  const [listing, site] = await Promise.all([listingMetadataContext(), getSiteSettings()]);
 
   return {
     ...(page > 1 ? { title: pageTitle(t("latest"), page, listing.pageTitle) } : {}),
-    alternates: canonicalAlternates(pagePath("/", page)),
+    alternates: canonicalAlternates(pagePath("/", page), site.siteName),
   };
 }
 
 export async function HomeListing({ posts }: { posts: PostPage }) {
-  const t = await getTranslations("posts.home");
-  const tPagination = await getTranslations("common.pagination");
+  const [t, tPagination, site] = await Promise.all([
+    getTranslations("posts.home"),
+    getTranslations("common.pagination"),
+    getSiteSettings(),
+  ]);
+  // The introduction is the site's own identity (site settings), not copy.
+  const intro = site.metaDescription ?? site.tagline;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
       {posts.page === 1 ? (
         <section aria-labelledby="page-title" className="mb-12 max-w-2xl">
           <h1 id="page-title" className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-            {t("title")}
+            {site.siteName}
           </h1>
-          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">{t("intro")}</p>
+          {intro ? (
+            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">{intro}</p>
+          ) : null}
         </section>
       ) : (
         <h1 id="page-title" className="mb-12 text-4xl leading-tight font-semibold tracking-tight">

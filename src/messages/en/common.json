@@ -1,15 +1,13 @@
 {
-  "site": {
-    "description": "Ideas, notes, and posts written together. A sample blog."
-  },
   "layout": {
     "skipToContent": "Skip to content",
     "notifications": "Notifications",
     "account": "My account",
-    "tagline": "Thinking together, writing together.",
     "themeNote": "The appearance follows your system theme.",
     "feed": "Atom feed",
-    "admin": "Administration"
+    "admin": "Administration",
+    "socialLinks": "Social links",
+    "website": "Website"
   },
   "languageSwitcher": {
     "label": "Interface language",

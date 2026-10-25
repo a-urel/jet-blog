@@ -21,7 +21,7 @@ function parseXml(xml: string): Document {
 }
 
 function feedOf(posts: PostSummary[], now?: Date) {
-  return buildAtomFeed({ siteUrl, siteName: "Örnek Site", posts, now });
+  return buildAtomFeed({ siteUrl, siteName: "Örnek Site", language: "tr", posts, now });
 }
 
 function entries(document: Document): Element[] {
@@ -188,7 +188,13 @@ describe("buildAtomFeed archive channel", () => {
     title: 'Şema "&" <etiketi> | Örnek Site',
     htmlPath: "/tags/sema",
   };
-  const xml = buildAtomFeed({ siteUrl, siteName: "Örnek Site", posts: [publishedPost], channel });
+  const xml = buildAtomFeed({
+    siteUrl,
+    siteName: "Örnek Site",
+    language: "tr",
+    posts: [publishedPost],
+    channel,
+  });
   const root = parseXml(xml).documentElement!;
 
   it("identifies the archive feed by its own absolute URL and title", () => {
