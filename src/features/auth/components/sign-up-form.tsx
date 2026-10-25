@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,9 @@ import { FormAlert } from "./form-alert";
 
 const initialState: SignUpState = { status: "idle", message: null };
 
-export function SignUpForm() {
+// notice: the server-rendered privacy notice link (Phase 28), shown above
+// the submit button.
+export function SignUpForm({ notice }: { notice?: ReactNode }) {
   const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
     signUpAction,
@@ -98,6 +100,8 @@ export function SignUpForm() {
           {state.message}
         </FormAlert>
       ) : null}
+
+      {notice}
 
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? t("signUp.pending") : t("signUp.submit")}

@@ -16,7 +16,9 @@
       "categories": "Kategorien",
       "tags": "Schlagwörter",
       "authors": "Autoren",
-      "members": "Mitglieder"
+      "members": "Mitglieder",
+      "pages": "Seiten",
+      "navigation": "Menüs"
     },
     "signOut": "Abmelden",
     "backToSite": "Zurück zur Website",

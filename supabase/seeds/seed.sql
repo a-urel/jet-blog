@@ -173,3 +173,62 @@ select public.sync_published_post(posts.id)
 from public.posts
 where posts.status = 'published'
 order by posts.published_at, posts.id;
+
+-- Phase 28: synthetic static pages. Every legal text below is a clearly marked
+-- placeholder, not legal advice; a customer replaces it with text reviewed for
+-- their own deployment before launch.
+insert into public.pages (
+  id, title, slug, meta_description, kind, status, published_at, body
+)
+values
+  (
+    '7d1f8a52-0c4e-4b8a-9f3e-5a6b7c8d9e01',
+    'Hakkında',
+    'hakkinda',
+    'Bu örnek yayın hakkında kısa bilgi.',
+    'other',
+    'published',
+    '2026-01-05 09:00:00+00',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Bu sayfa örnek bir “Hakkında” metnidir. Yönetim panelinde "},{"type":"text","marks":[{"type":"code"}],"text":"Sayfalar"},{"type":"text","text":" bölümünden düzenlenebilir."}]}]}'::jsonb
+  ),
+  (
+    '7d1f8a52-0c4e-4b8a-9f3e-5a6b7c8d9e02',
+    'Gizlilik ve KVKK Aydınlatma Metni (örnek)',
+    'gizlilik',
+    'Örnek gizlilik bildirimi ve KVKK aydınlatma metni; hukuki tavsiye değildir.',
+    'privacy',
+    'published',
+    '2026-01-05 09:00:00+00',
+    '{"type":"doc","content":[{"type":"blockquote","content":[{"type":"paragraph","content":[{"type":"text","marks":[{"type":"bold"}],"text":"ÖRNEK METİN — hukuki tavsiye değildir."},{"type":"text","text":" Yayına almadan önce kendi veri işleme faaliyetlerinize göre hazırlanmış ve hukukçu tarafından gözden geçirilmiş bir metinle değiştirin."}]}]},{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Veri sorumlusu"}]},{"type":"paragraph","content":[{"type":"text","text":"[Şirket adı, adresi ve iletişim bilgisi]"}]},{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"İşlenen kişisel veriler"}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Okur hesabı: e-posta adresi, görünen ad, isteğe bağlı profil fotoğrafı."}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Yorumlar ve kaydedilen yazılar."}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Zorunlu çerezler: oturum ve arayüz dili."}]}]}]},{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Haklarınız"}]},{"type":"paragraph","content":[{"type":"text","text":"[KVKK m. 11 ve GDPR m. 15–22 kapsamındaki haklar ve başvuru yolu]"}]}]}'::jsonb
+  ),
+  (
+    '7d1f8a52-0c4e-4b8a-9f3e-5a6b7c8d9e03',
+    'Kullanım Koşulları (örnek)',
+    'kullanim-kosullari',
+    'Örnek kullanım koşulları; hukuki tavsiye değildir.',
+    'terms',
+    'published',
+    '2026-01-05 09:00:00+00',
+    '{"type":"doc","content":[{"type":"blockquote","content":[{"type":"paragraph","content":[{"type":"text","marks":[{"type":"bold"}],"text":"ÖRNEK METİN — hukuki tavsiye değildir."}]}]},{"type":"paragraph","content":[{"type":"text","text":"[Hizmetin kapsamı, okur hesapları, yorum kuralları ve sorumluluk sınırları]"}]}]}'::jsonb
+  ),
+  (
+    '7d1f8a52-0c4e-4b8a-9f3e-5a6b7c8d9e04',
+    'Künye (örnek taslak)',
+    'kunye',
+    null,
+    'imprint',
+    'draft',
+    null,
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"ÖRNEK TASLAK — yayımlanmadı. [Yayıncı, sorumlu kişi, adres]"}]}]}'::jsonb
+  );
+
+-- Published samples were not edited after publication.
+alter table public.pages disable trigger pages_set_updated_at;
+update public.pages
+set created_at = published_at,
+    updated_at = published_at
+where status = 'published';
+alter table public.pages enable trigger pages_set_updated_at;
+
+insert into public.navigation_items (location, sort_order, page_id)
+values ('header', 0, '7d1f8a52-0c4e-4b8a-9f3e-5a6b7c8d9e01');

@@ -15,6 +15,8 @@ import {
   SupabaseNotConfigured,
 } from "@/features/auth/components/auth-page-shell";
 import { SignUpForm } from "@/features/auth/components/sign-up-form";
+import { LegalNotice } from "@/features/pages/components/legal-notice";
+import { findLegalPage } from "@/features/pages/data";
 import { getSessionUser } from "@/lib/auth/session";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -39,6 +41,9 @@ export default async function SignUpPage() {
 
   if (await getSessionUser()) redirect("/account");
 
+  // A failed read only hides the notice; it must not block sign-up.
+  const privacyPage = await findLegalPage("privacy").catch(() => null);
+
   return (
     <AuthPageShell
       eyebrow={t("eyebrow.reader")}
@@ -51,7 +56,7 @@ export default async function SignUpPage() {
           <CardDescription>{t("signUp.cardDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <SignUpForm />
+          <SignUpForm notice={<LegalNotice context="signUp" privacyPage={privacyPage} />} />
         </CardContent>
       </Card>
 

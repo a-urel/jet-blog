@@ -1,0 +1,173 @@
+{
+  "list": {
+    "title": "Sayfalar",
+    "description": "Hakkında, iletişim ve yasal metinler (KVKK, gizlilik, kullanım koşulları, künye) gibi yazılardan bağımsız sayfalar. Sayfalar yazı listelerinde, akışlarda ve aramada görünmez.",
+    "navigation": "Menüleri düzenle",
+    "newPage": "Yeni sayfa",
+    "loadError": "Sayfalar yüklenemedi. Sayfayı yenileyip tekrar deneyin.",
+    "cardTitle": "Tüm sayfalar",
+    "cardDescription": "Taslaklar yalnızca editörlere ve adminlere görünür.",
+    "empty": "Henüz sayfa yok.",
+    "updated": "Güncellendi: {updatedAt}"
+  },
+  "status": {
+    "created": "Sayfa taslak olarak oluşturuldu.",
+    "updated": "Sayfa kaydedildi.",
+    "published": "Sayfa yayımlandı.",
+    "unpublished": "Sayfa yayından kaldırıldı.",
+    "deleted": "Taslak sayfa silindi."
+  },
+  "statusLabel": {
+    "draft": "Taslak",
+    "published": "Yayında"
+  },
+  "kinds": {
+    "privacy": "Gizlilik / KVKK",
+    "terms": "Kullanım koşulları",
+    "imprint": "Künye",
+    "cookies": "Çerezler",
+    "other": "Diğer"
+  },
+  "newPage": {
+    "title": "Yeni sayfa",
+    "cardTitle": "Sayfa bilgileri",
+    "cardDescription": "Sayfa taslak olarak kaydedilir; yayımlayana kadar ziyaretçilere görünmez."
+  },
+  "editPage": {
+    "metaTitle": "Sayfayı düzenle",
+    "loadErrorTitle": "Sayfa yüklenemedi",
+    "loadErrorDescription": "Sayfa şu anda alınamadı. Birazdan tekrar deneyin.",
+    "backToPages": "Sayfalara dön",
+    "revisionLine": "Revizyon {revision} · son değişiklik {updatedAt}",
+    "publicationTitle": "Yayın durumu",
+    "publishedDescription": "{publishedAt} tarihinden beri yayında. Sayfaların tek bir sürümü vardır: kaydettiğiniz değişiklikler hemen yayına girer.",
+    "draftDescription": "Bu sayfa taslak. Yayımlandığında /pages adresinde, site haritasında ve türü yasal bir metinse alt bilgide görünür.",
+    "openPublicPage": "Yayındaki sayfayı aç",
+    "formCardTitle": "İçerik",
+    "formCardDescription": "Taslaktaki değişiklikler ziyaretçilere görünmez.",
+    "formCardPublishedDescription": "Bu sayfa yayında; kaydettiğinizde değişiklikler hemen görünür.",
+    "unsupportedTitle": "Desteklenmeyen içerik sürümü",
+    "unsupportedDescription": "Bu sayfanın içeriği {version} sürümünde ve bu düzenleyicide açılamıyor."
+  },
+  "form": {
+    "title": "Başlık",
+    "slug": "Bağlantı adı (slug)",
+    "slugHelp": "Boş bırakırsanız başlıktan oluşturulur. Yayındaki bir sayfanın bağlantı adı değişirse eski adres yenisine yönlendirilir.",
+    "kind": "Sayfa türü",
+    "kindHelp": "Yasal türlerin her birinden yalnızca bir sayfa yayında olabilir. Gizlilik sayfası kayıt ve yorum formlarından bağlantılanır.",
+    "metaDescription": "Arama motoru açıklaması",
+    "metaDescriptionHelp": "İsteğe bağlı, en fazla 300 karakter. Arama sonuçlarında ve paylaşım önizlemelerinde görünür.",
+    "body": "İçerik",
+    "liveWarning": "Bu sayfa yayında. Kaydettiğinizde değişiklikler hemen ziyaretçilere görünür ve son güncelleme tarihi değişir.",
+    "saving": "Kaydediliyor…",
+    "create": "Taslağı oluştur",
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "openCurrentVersion": "Güncel sürümü aç"
+  },
+  "stateActions": {
+    "publish": {
+      "trigger": "Yayımla",
+      "title": "Sayfa yayımlansın mı?",
+      "description": "“{title}” herkese açık olacak, site haritasına eklenecek ve yasal bir türdeyse alt bilgide listelenecek.",
+      "confirm": "Yayımla"
+    },
+    "unpublish": {
+      "trigger": "Yayından kaldır",
+      "title": "Sayfa yayından kaldırılsın mı?",
+      "description": "“{title}” ziyaretçilere 404 döndürecek; menülerden, alt bilgiden ve site haritasından çıkacak.",
+      "confirm": "Yayından kaldır"
+    },
+    "delete": {
+      "trigger": "Taslağı sil",
+      "title": "Taslak silinsin mi?",
+      "description": "“{title}” kalıcı olarak silinecek. Bir menüden bağlantılıysa önce menüden kaldırın.",
+      "confirm": "Sil"
+    }
+  },
+  "validation": {
+    "titleRequired": "Başlık gerekli.",
+    "titleTooLong": "Başlık en fazla 200 karakter olabilir.",
+    "slugMissing": "Bağlantı adı oluşturulamadı; başlığa harf veya rakam ekleyin ya da bir bağlantı adı yazın.",
+    "slugTooLong": "Bağlantı adı en fazla 200 karakter olabilir.",
+    "slugInvalid": "Bağlantı adı yalnızca küçük harf, rakam ve tire içerebilir.",
+    "metaDescriptionTooLong": "Açıklama en fazla 300 karakter olabilir.",
+    "kindInvalid": "Geçerli bir sayfa türü seçin."
+  },
+  "actionErrors": {
+    "noSession": "Oturumunuz sona erdi. Yeniden giriş yapın.",
+    "formInvalid": "Formdaki hataları düzeltin.",
+    "bodyUnsupported": "İçerik okunamadı. Sayfayı yenileyip tekrar deneyin.",
+    "bodyInvalidField": "İçerik desteklenmeyen bir öğe içeriyor."
+  },
+  "errors": {
+    "forbidden": "Sayfaları yalnızca editörler ve adminler yönetebilir.",
+    "conflict": "Bu sayfa siz düzenlerken değişti. Güncel sürümü açıp değişikliklerinizi yeniden uygulayın.",
+    "slug": "Bu bağlantı adı başka bir sayfada kullanılıyor.",
+    "kind": "Bu türde yayında bir sayfa zaten var. Önce onu yayından kaldırın veya türünü değiştirin.",
+    "body": "İçerik doğrulanamadı.",
+    "title": "Başlık geçersiz.",
+    "metaDescription": "Açıklama en fazla 300 karakter olabilir.",
+    "state": "Sayfa bu işlem için uygun durumda değil.",
+    "missing": "Sayfa bulunamadı.",
+    "linked": "Bu sayfa bir menüden bağlantılı. Önce menüden kaldırın.",
+    "rateLimited": "Kısa sürede çok fazla değişiklik yaptınız. Bir süre sonra tekrar deneyin.",
+    "invalidInput": "Girilen bilgiler geçersiz.",
+    "failed": "İşlem tamamlanamadı. Tekrar deneyin."
+  },
+  "denied": {
+    "title": "Sayfa yönetimi erişimi yok",
+    "description": "Sayfaları ve menüleri yalnızca editörler ve adminler yönetebilir."
+  },
+  "navigation": {
+    "title": "Menüler",
+    "pages": "Sayfalar",
+    "intro": "Üst menü ve alt bilgi bağlantıları her sayfada görünür. Bir öğe bir sayfaya ya da https ile başlayan bir dış adrese bağlanır; taslak sayfalara giden öğeler yayımlanana kadar gizli kalır.",
+    "loadError": "Menüler yüklenemedi. Sayfayı yenileyip tekrar deneyin.",
+    "saved": {
+      "header": "Üst menü kaydedildi.",
+      "footer": "Alt bilgi bağlantıları kaydedildi."
+    },
+    "menus": {
+      "header": {
+        "title": "Üst menü",
+        "description": "Site adının yanında görünür."
+      },
+      "footer": {
+        "title": "Alt bilgi bağlantıları",
+        "description": "Boş bırakılırsa yayındaki yasal sayfalar (gizlilik, kullanım koşulları, künye, çerezler) otomatik olarak listelenir."
+      }
+    },
+    "empty": {
+      "header": "Üst menüde öğe yok.",
+      "footer": "Alt bilgide öğe yok; yayındaki yasal sayfalar otomatik olarak gösteriliyor."
+    },
+    "pageItem": "Sayfa bağlantısı",
+    "urlItem": "Dış bağlantı",
+    "moveUp": "{position}. öğeyi yukarı taşı",
+    "moveDown": "{position}. öğeyi aşağı taşı",
+    "remove": "{position}. öğeyi kaldır",
+    "page": "Sayfa",
+    "choosePage": "Sayfa seçin",
+    "draftPage": "{title} (taslak)",
+    "url": "Adres",
+    "urlHelp": "Yalnızca https:// ile başlayan adresler.",
+    "label": "Etiket",
+    "labelOptional": "Etiket (isteğe bağlı; boşsa sayfa başlığı)",
+    "addPage": "Sayfa ekle",
+    "addUrl": "Dış bağlantı ekle",
+    "save": "Menüyü kaydet",
+    "saving": "Kaydediliyor…",
+    "reload": "Güncel menüyü aç",
+    "conflict": "Bu menü siz düzenlerken değişti. Güncel menüyü açıp değişikliklerinizi yeniden uygulayın.",
+    "tooMany": "Bir menüde en fazla 50 öğe olabilir.",
+    "saveFailed": "Menü kaydedilemedi. Bağlantıları kontrol edip tekrar deneyin.",
+    "errors": {
+      "pageMissing": "Bir sayfa seçin.",
+      "urlMissing": "Bir adres girin.",
+      "urlInvalid": "Adres https:// ile başlamalı ve boşluk içermemeli.",
+      "labelRequired": "Dış bağlantılar için etiket gerekli.",
+      "labelTooLong": "Etiket en fazla 80 karakter olabilir."
+    }
+  }
+}

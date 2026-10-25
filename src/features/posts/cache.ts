@@ -40,6 +40,9 @@
 // draft or published, changes only its working copy, so a save never touches
 // public caches; publish, republish, discard, and unpublish do. Member
 // previews (the working copy) are force-dynamic and never cached.
+//
+// Static pages and the header/footer menus (Phase 28) have their own tag and
+// invalidation map: src/features/pages/cache.ts.
 
 import { localizedRoutePattern } from "@/lib/localized-paths";
 

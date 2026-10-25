@@ -8,6 +8,9 @@ import { getTranslations } from "next-intl/server";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Toaster } from "@/components/ui/sonner";
 import { AccountNavLink } from "@/features/account/components/account-nav-link";
+import { SiteFooterLinks } from "@/features/pages/components/site-footer-links";
+import { SiteHeaderNav } from "@/features/pages/components/site-header-nav";
+import { getSiteNavigation } from "@/features/pages/data";
 import { HeaderSearchSlot } from "@/features/search/components/header-search-slot";
 import { SearchForm } from "@/features/search/components/search-form";
 import { feedAlternateTypes, feedPath } from "@/features/seo/feed";
@@ -75,6 +78,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
   if (!isInterfaceLocale(locale)) notFound();
 
   const t = await getTranslations("common.layout");
+  // Header menu and footer links (Phase 28), cached under publicPagesCacheTag.
+  const navigation = await getSiteNavigation();
 
   return (
     <html lang={locale} className="h-full antialiased">
@@ -92,6 +97,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
                 <BookOpen aria-hidden="true" className="size-5" />
                 {siteName}
               </Link>
+              <SiteHeaderNav links={navigation.header} label={t("headerNav")} />
               {/* Static GET form: public pages stay prerendered. Hidden on
                   /search, which has its own form. */}
               <HeaderSearchSlot>
@@ -112,6 +118,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
           </main>
           <footer className="mt-16 border-t">
             <div className="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-6 py-6 text-sm text-muted-foreground">
+              <SiteFooterLinks links={navigation.footer} label={t("footerNav")} />
               <p>{t("tagline")}</p>
               <p className="flex items-center gap-2">
                 <span>{t("themeNote")}</span>

@@ -33,6 +33,22 @@ describe("buildSitemap", () => {
     expect(urls.some((url) => /\/(admin|login|auth)(\/|$)|preview/.test(url))).toBe(false);
   });
 
+  it("lists published static pages at /pages/[slug]", () => {
+    const withPages = buildSitemap({
+      siteUrl,
+      posts: [publishedPost],
+      archives,
+      pages: [
+        { id: "p1", title: "Gizlilik", slug: "gizlilik", kind: "privacy", updatedAt: "2026-01-05T09:00:00Z" },
+      ],
+    });
+
+    expect(withPages.at(-1)).toEqual({
+      url: "https://example.test/pages/gizlilik",
+      lastModified: "2026-01-05T09:00:00Z",
+    });
+  });
+
   it("returns nothing without a site origin", () => {
     expect(buildSitemap({ siteUrl: null, posts: [publishedPost], archives })).toEqual([]);
   });

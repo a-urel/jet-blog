@@ -2,7 +2,7 @@
 //
 //   SMOKE_BASE_URL=http://localhost:3000 npm run test:smoke
 //
-// Anonymous HTTP checks only: public pages render, unknown and draft URLs
+// Anonymous HTTP checks only: public pages (and a published static page) render, unknown and draft URLs
 // return 404, listing pages paginate (page 1 has one URL, invalid and
 // out-of-range pages return 404), admin and reader routes redirect to sign-in,
 // discovery files and the Atom feed exist, search answers dynamically with
@@ -138,6 +138,7 @@ for (const path of [
   "/posts/smoke-missing-post",
   "/tags/smoke-missing-tag",
   "/tags/smoke-missing-tag/page/2",
+  "/pages/smoke-missing-page",
   "/page/0",
   "/page/02",
   "/page/not-a-number",
@@ -211,6 +212,28 @@ const sitemapXml = await sitemap.text();
 check(sitemap.status === 200, `/sitemap.xml: expected 200, got ${sitemap.status}`);
 check(!sitemapXml.includes("/admin"), "/sitemap.xml: lists an admin URL");
 
+// Static pages (Phase 28): follow the first /pages/ link of the header menu
+// or footer, if any page is published. It renders with a last-updated date,
+// is its own canonical URL, and is listed in the sitemap.
+const staticPagePath = homeHtml.match(/href="(\/pages\/[a-z0-9-]+)"/)?.[1];
+
+if (staticPagePath) {
+  const staticPage = await get(staticPagePath);
+  const staticPageHtml = await staticPage.text();
+
+  check(staticPage.status === 200, `${staticPagePath}: expected 200, got ${staticPage.status}`);
+  check(/<time dateTime="[^"]+"/i.test(staticPageHtml), `${staticPagePath}: no last-updated date`);
+  checkSecurityHeaders(staticPagePath, staticPage);
+
+  if (/<link rel="canonical" href="https?:/.test(staticPageHtml)) {
+    check(
+      canonicalOf(staticPageHtml) === staticPagePath,
+      `${staticPagePath}: canonical is ${canonicalOf(staticPageHtml)}`,
+    );
+    check(sitemapXml.includes(`${staticPagePath}<`), `/sitemap.xml: ${staticPagePath} is missing`);
+  }
+}
+
 // The Atom feed exists only with a configured site origin (absolute URLs);
 // without one it answers 404 and no discovery link is rendered.
 const feedLink = homeHtml.match(
@@ -234,6 +257,7 @@ if (feedLink) {
     "/feed.xml: not an Atom feed",
   );
   check(!/\/(admin|login|auth)[/"<]|preview/.test(feedXml), "/feed.xml: links a private URL");
+  check(!feedXml.includes("/pages/"), "/feed.xml: lists a static page");
   check(
     !(feed.headers.get("cache-control") ?? "").includes("private"),
     "/feed.xml: feed is not publicly cacheable",

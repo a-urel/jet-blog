@@ -10,6 +10,7 @@ import { BookmarkProvider } from "@/features/bookmarks/components/bookmark-provi
 import { BookmarkToggle } from "@/features/bookmarks/components/bookmark-toggle";
 import { CommentSection } from "@/features/comments/components/comment-section";
 import { listVisibleComments } from "@/features/comments/data";
+import { findLegalPage } from "@/features/pages/data";
 import { PostBody } from "@/features/posts/components/post-body";
 import { PostCover } from "@/features/posts/components/post-cover";
 import { PostMeta } from "@/features/posts/components/post-meta";
@@ -64,7 +65,12 @@ export default async function PostPage({ params }: PageProps<"/[locale]/posts/[s
 
   const { post } = lookup;
   const t = await getTranslations("posts.post");
-  const comments = await listVisibleComments(post.id);
+  const [comments, privacyPage] = await Promise.all([
+    listVisibleComments(post.id),
+    // The comment form's privacy notice; page changes regenerate this route
+    // through the root layout (src/features/pages/cache.ts).
+    findLegalPage("privacy"),
+  ]);
   const siteUrl = getConfiguredSiteUrl();
   const shareUrl = absoluteSiteUrl(postPath(post.slug), siteUrl);
   const jsonLd = buildArticleJsonLd(post, { siteUrl, siteName: getSiteName() });
@@ -128,7 +134,7 @@ export default async function PostPage({ params }: PageProps<"/[locale]/posts/[s
         {shareUrl ? <ShareControls url={shareUrl} title={post.title} /> : null}
       </footer>
       <div className="mt-10">
-        <CommentSection postId={post.id} comments={comments} />
+        <CommentSection postId={post.id} comments={comments} privacyPage={privacyPage} />
       </div>
     </article>
   );

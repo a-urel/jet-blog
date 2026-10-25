@@ -9,7 +9,9 @@
     "tagline": "Thinking together, writing together.",
     "themeNote": "The appearance follows your system theme.",
     "feed": "Atom feed",
-    "admin": "Administration"
+    "admin": "Administration",
+    "headerNav": "Site menu",
+    "footerNav": "Footer links"
   },
   "languageSwitcher": {
     "label": "Interface language",

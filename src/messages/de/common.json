@@ -9,7 +9,9 @@
     "tagline": "Gemeinsam denken, gemeinsam schreiben.",
     "themeNote": "Die Darstellung folgt Ihrem Systemdesign.",
     "feed": "Atom-Feed",
-    "admin": "Verwaltung"
+    "admin": "Verwaltung",
+    "headerNav": "Seitenmenü",
+    "footerNav": "Fußzeilenlinks"
   },
   "languageSwitcher": {
     "label": "Sprache der Oberfläche",

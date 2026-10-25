@@ -1,0 +1,9 @@
+{
+  "page": {
+    "lastUpdated": "Son güncelleme: <date></date>"
+  },
+  "notice": {
+    "signUp": "Hesap oluşturduğunuzda kişisel verileriniz <link>{title}</link> sayfasında açıklandığı şekilde işlenir.",
+    "comment": "Yorumunuz görünen adınızla yayımlanır. Kişisel verilerin işlenmesi: <link>{title}</link>."
+  }
+}

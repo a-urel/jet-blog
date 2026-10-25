@@ -1331,6 +1331,105 @@ Sonner component (`src/components/ui/sonner.tsx`, `sonner` 2.0.8, added with
 - **Strings.** Toast text comes from the existing next-intl catalogs; Phase
   23 adds `common.layout.notifications` and `comments.itemActions.deleted`.
 
+## Static pages and navigation (Phase 28)
+
+Admin-managed pages (About, contact, legal texts such as the KVKK
+"aydınlatma metni", privacy/GDPR notice, terms, imprint, cookie policy) and
+the header and footer menus. Decisions (user, 2026-10-25): one deployment per
+customer (single tenant), one version of each page (the text is not
+translated per interface language), several pages, legal texts first.
+
+- **Separate resource.** `pages` (migration
+  `20261026100000_pages_navigation.sql`) has its own UUID id, title, mutable
+  slug, optional meta description, `kind` (`privacy`, `terms`, `imprint`,
+  `cookies`, `other`), Tiptap JSON body with `content_version`, status
+  (`draft`/`published`), `published_at`, `created_at`, `updated_at`, and a
+  `revision`. No category, tags, credits, cover, language, comments, or
+  bookmarks. Pages never appear in post listings, archives, feeds, or search
+  (those read `published_posts`); they do appear in the sitemap.
+- **Same body rules as posts.** The `pages_body_valid` CHECK and the RPCs use
+  `post_body_error`/`assert_post_body`, so the editor
+  (`PostBodyEditor`), the read-only renderer (`PostBody`), and the database
+  share one node allowlist. Images in a page body keep their media: a
+  `before delete` trigger on `media` refuses (`23503`) while any page
+  references it, for every delete path, without redefining `delete_media`.
+- **One copy, no snapshot.** Unlike posts since Phase 26, pages keep a single
+  copy: only editors and admins write pages (no author review step) and legal
+  texts change rarely and deliberately, so a save of a published page is
+  public at once. The edit form says so for a published page, and the public
+  page shows the change as its "last updated" date (`updated_at`, formatted in
+  the publication time zone). Revisit with a snapshot if pages ever need
+  review before going live.
+- **Roles (D1 fit).** Editors and admins create, edit, publish, unpublish,
+  and delete pages and edit the menus (`require_page_editor()`); authors and
+  readers have no page access; anonymous visitors and readers read published
+  pages only (RLS `pages_select_published_or_editor`; `created_by` is not
+  granted to client roles). Every write is a security-definer RPC
+  (`create_page`, `update_page`, `publish_page`, `unpublish_page`,
+  `delete_page`, `save_navigation`) with a revision compare-and-swap (`40001`
+  on a stale form) and a per-actor rate limit (`page.write` 120/hour,
+  `navigation.write` 30/10 min). Only drafts can be deleted, and not while a
+  menu links them.
+- **Legal kinds.** At most one published page per legal kind (partial unique
+  index `pages_published_kind_key`); publishing a second privacy page, or
+  retyping a published page into a taken kind, answers "a published page of
+  this type already exists". Drafts of the same kind may coexist, so a
+  replacement can be prepared and swapped (unpublish old, publish new).
+- **Slugs.** Public URL `/pages/[slug]` (prefixed, so page slugs never
+  collide with other routes). Changing the slug of a published page records
+  `page_slug_redirects` (one-hop, by page id, hidden while the page is
+  unpublished), and the route answers 308 to the current slug.
+- **Navigation.** `navigation_menus` (`header`, `footer`, each with a
+  revision) and `navigation_items` (ordered; a page reference by id, rendered
+  with its current slug and title unless a label is set, or an `https://` URL
+  with a required label, checked by a CHECK constraint, the RPC, and again
+  when rendering). Items that link a draft page are hidden from the public by
+  RLS. While the footer menu is empty, the footer lists the published legal
+  pages automatically (privacy, terms, imprint, cookies). Header and footer
+  links are server-rendered in the root layout
+  (`src/features/pages/components/site-header-nav.tsx`,
+  `site-footer-links.tsx`); a menu read failure renders empty menus instead
+  of failing every page.
+- **Legal hooks.** The published privacy page is linked from the reader
+  sign-up form and the comment form (`LegalNotice`) and from the footer. The
+  notice is informational, not a consent checkbox: KVKK article 10 and GDPR
+  articles 13/14 require informing people, and processing that an account or
+  a comment needs rests on the service the person asks for, not on consent. A
+  checkbox would suggest consent is the legal basis and is not added. Without
+  a published privacy page nothing is shown.
+- **Admin.** `/admin/pages` (list), `/admin/pages/new`, `/admin/pages/[id]`
+  (form, publish/unpublish/delete behind AlertDialogs, toasts on success,
+  inline errors, conflict notice with "open current version"), and
+  `/admin/navigation` (both menus: add page or external link, reorder,
+  remove, save). Strings live in the `pages` (public) and `adminPages`
+  catalogs in tr, en, and de.
+- **Caching.** See `src/features/pages/cache.ts` (next to
+  `src/features/posts/cache.ts`). Page reads use `publicPagesCacheTag`.
+  Publishing, unpublishing, or saving a published page expires the tag and
+  revalidates the root layout pattern `/[locale]` as a layout (header and
+  footer are on every page, every locale) plus `sitemap.xml`; a menu save
+  does the same without the sitemap; draft saves and deletes touch no public
+  cache. `/pages/[slug]` is SSG/ISR (`revalidate = 300` fallback).
+- **Samples.** The seed adds an About page, a published sample privacy/KVKK
+  page, sample terms, and a draft imprint, plus a header link to About. Every
+  legal sample says "ÖRNEK METİN — hukuki tavsiye değildir"; replace it with
+  text reviewed for your deployment before launch.
+
+### Cookies and consent banners
+
+The application sets only strictly necessary cookies: the Supabase Auth
+session cookies (sign-in) and `locale` (the interface language the visitor
+chose). No analytics, advertising, or third-party cookies are set; YouTube
+embeds use `youtube-nocookie.com` and load only with the post. Strictly
+necessary cookies are exempt from consent under the ePrivacy rules that GDPR
+deployments follow, and the KVKK guidance on cookies takes the same line, so
+there is no cookie banner. Describe these cookies in the privacy or cookie
+page. A banner (with prior consent and an equally easy "reject") becomes
+necessary as soon as a deployment adds non-essential cookies or similar
+storage: analytics (including self-hosted analytics that set identifiers),
+marketing pixels, embedded third-party widgets that set cookies, or A/B
+testing.
+
 ## Structure and sample content
 
 ```text
@@ -2198,6 +2297,8 @@ Phase 21 opened post languages to any BCP 47 tag, and Phase 22 added the
 Turkish, English, and German interface (cookie-selected, locale-free URLs).
 Phase 24 replaced inline success messages with Sonner toasts.
 Phase 25 added square avatar cropping before upload.
+Phase 28 added admin-managed static pages (legal texts first) and the header
+and footer menus.
 Phase 26 separated a published post's working copy from its published
 snapshot (republish, discard, immutable published versions).
 All planned phases (1–26) are implemented; see ROADMAP.md for the open

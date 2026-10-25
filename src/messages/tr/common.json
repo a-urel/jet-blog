@@ -9,7 +9,9 @@
     "tagline": "Birlikte düşünmek, birlikte yazmak.",
     "themeNote": "Görünüm sistem temanızı izler.",
     "feed": "Atom akışı",
-    "admin": "Yönetim"
+    "admin": "Yönetim",
+    "headerNav": "Site menüsü",
+    "footerNav": "Alt bilgi bağlantıları"
   },
   "languageSwitcher": {
     "label": "Arayüz dili",

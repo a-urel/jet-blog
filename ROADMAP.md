@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-25 (Phase 26: published snapshots, on `claude/phase26-published-snapshot`; Phases 23–25 merged into main)
+Last updated: 2026-10-26 (Phase 28: static pages and navigation, on `claude/phase28-pages-5537c7`, not merged; Phase 27 site settings on its own branch)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–26, complete)
+## Current baseline (Phases 1–26 and 28, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -232,6 +232,16 @@ does not add requirements on its own.
   row (publisher, time, full snapshot). A slug change redirects on republish.
   Migration `20261025100000_published_snapshots.sql` backfills version 1 for
   posts published at upgrade time.
+- Phase 28 static pages and navigation: `pages` (separate from posts, one
+  copy, Tiptap body with the post allowlist, `kind` with at most one
+  published page per legal kind, slug redirects, revision compare-and-swap),
+  `navigation_menus`/`navigation_items` (header and footer, page references
+  or https URLs, items to drafts hidden by RLS). Editors and admins manage
+  both through RPCs; public `/pages/[slug]` (SSG/ISR, "last updated" date,
+  sitemap); footer lists published legal pages while no footer menu exists;
+  the privacy page is linked from the sign-up and comment forms. No cookie
+  banner (strictly necessary cookies only; README explains when one is
+  needed).
 - 681 unit tests and 531 local-Supabase RLS tests as of Phase 21 (including the language parity suite, the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
@@ -294,6 +304,38 @@ fall back to the link and `beforeunload` guards). The search function is
 server-only, but plain Data API reads of published rows stay public by design.
 
 ## Where to resume (session handoff)
+
+Phase 28 (static pages and navigation,
+`20261026100000_pages_navigation.sql`) was developed on
+`claude/phase28-pages-5537c7` against the worktree's own local stack; not
+committed or merged. Phase 27 (site settings) is finished on
+`worktree-phase27-site-settings` and touches the same files in a few places:
+the root layout (Phase 28 adds only `getSiteNavigation()`, `<SiteHeaderNav>`
+after the brand link, and `<SiteFooterLinks>` at the start of the footer),
+the admin nav (Pages and Menus entries after Comments), `catalogs.ts` (new
+`pages` and `adminPages` namespaces), `common.layout` (`headerNav`,
+`footerNav`), `sitemap.ts`/`buildSitemap` (optional `pages` input), a pointer
+comment in `posts/cache.ts`, and the seed (appended block). After merging,
+`buildPageMetadata` (`src/features/pages/metadata.ts`) should take the site
+settings like `buildPostMetadata(post, site)` does on that branch.
+
+- Last verified (Phase 28, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (792 tests, including `src/features/pages`),
+  `npm run test:rls` (569 tests, including `pages.rls.test.ts`, before and
+  after a clean `supabase db reset`), `npm run build` (`/pages/[slug]` SSG
+  per locale, sitemap ISR), and `npm run test:smoke` on `next start` (follows
+  a `/pages/` link, checks the last-updated date, canonical, sitemap entry,
+  404 for an unknown page, and no page in the feed). The migration was
+  applied with `supabase migration up --local` on a stack with the Phase 26
+  seed data. Browser journey as a synthetic editor: created a privacy draft
+  (anonymous 404), publishing it was refused while the sample privacy page
+  was live ("a published page of this type already exists"), unpublished the
+  sample and published the new page; the footer on cached pages (all three
+  locales), the sign-up notice, the comment-form notice, and the sitemap
+  showed the new page; renaming its slug made the old URL answer 308; an
+  `http://` menu link was refused inline, and an `https://` header link
+  appeared in the header of every locale after saving. Synthetic users were
+  removed and the stack reset.
 
 Phase 26 (published snapshots, `20261025100000_published_snapshots.sql`) was
 developed on `claude/phase26-published-snapshot` against the worktree's own
@@ -760,6 +802,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 24 | Toast notifications | Sonner toasts for transient successes, inline errors, one live region | Phases 12, 13, 18, 22 | Done |
 | 25 | Avatar cropping | Client-side square crop dialog before avatar uploads, fixed 512×512 output | Phases 18, 22 | Done |
 | 26 | Published snapshots | Private working copy for live posts, republish/discard, immutable published versions | Phases 8, 10, 19, D3 revision | Done |
+| 28 | Static pages and navigation | Admin-managed pages (legal texts), header/footer menus, privacy links in sign-up and comment forms | Phases 5, 9, 10, 22, 24 | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -2114,6 +2157,44 @@ by the migration have no publisher; republishing a slug change while
 unpublished still records nothing (unchanged); the change flag compares whole
 documents, so it does not say which field changed.
 
+### Phase 28 — Static pages and navigation
+
+Goal: a white-label deployment can publish its own About, contact, and legal
+pages (KVKK, GDPR/privacy, terms, imprint) and edit the header and footer
+menus without code changes.
+
+Status: complete on 2026-10-26, on `claude/phase28-pages-5537c7` (not
+merged). Details: README "Static pages and navigation (Phase 28)".
+
+Decisions (user, 2026-10-25): single tenant (one deployment per customer);
+one version per page, not per interface language; several pages, legal texts
+first.
+
+Implementation choices:
+
+- **Single copy, not the Phase 26 snapshot model.** Editors and admins only,
+  no review step, rare deliberate edits; a save of a published page is
+  public at once and the form warns about it. A snapshot would add copies, a
+  republish/discard flow, and UI for little gain.
+- **D1 fit:** admin ⊇ editor manage pages and menus; authors none.
+- **`kind` with a partial unique index** gives "the" privacy page for the
+  footer and the form notices without hardcoded slugs.
+- **Media protection by trigger** on `media` deletes, so `delete_media`
+  (also redefined by Phase 27) stays untouched.
+- **Informational privacy notice, no consent checkbox; no cookie banner**
+  (only strictly necessary cookies). README documents when a banner becomes
+  necessary.
+- **Cache:** own tag `public-pages`; page publication changes and menu saves
+  revalidate the `/[locale]` root layout (every page shows the menus), page
+  changes also the sitemap; post caches are untouched.
+
+Known limits: no page version history or scheduled publication; deleting a
+published page requires unpublishing first; a slug changed while a page is
+unpublished records no redirect (same as posts); an empty footer menu always
+falls back to the legal pages (there is no "no footer links" setting); page
+text has one language, so the `lang` of the page body is the interface's;
+the menu editor has no drag and drop (up/down buttons).
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -2182,7 +2263,7 @@ index type (HNSW or IVFFlat).
 
 ## Next step
 
-Every phase in the table (through Phase 26, published snapshots), both
+Every phase in the table (through Phase 28, static pages and navigation), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), then
 follow the README hosting checklist (bootstrap the first admin with

@@ -1,0 +1,9 @@
+{
+  "page": {
+    "lastUpdated": "Last updated: <date></date>"
+  },
+  "notice": {
+    "signUp": "When you create an account, your personal data is processed as described in <link>{title}</link>.",
+    "comment": "Your comment is published with your display name. How personal data is processed: <link>{title}</link>."
+  }
+}

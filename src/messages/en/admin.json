@@ -16,7 +16,9 @@
       "categories": "Categories",
       "tags": "Tags",
       "authors": "Authors",
-      "members": "Members"
+      "members": "Members",
+      "pages": "Pages",
+      "navigation": "Menus"
     },
     "signOut": "Sign out",
     "backToSite": "Back to site",
