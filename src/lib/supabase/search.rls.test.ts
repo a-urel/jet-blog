@@ -340,12 +340,64 @@ describe("search visibility matrix", () => {
 
   it("keeps the published post readable to anonymous clients for the cards", async () => {
     const { data, error } = await anonymousClient()
+      .from("published_posts")
+      .select("id:post_id")
+      .in("post_id", [fixtures.turkish, fixtures.draft]);
+
+    expect(error).toBeNull();
+    expect((data ?? []).map((row) => row.id)).toEqual([fixtures.turkish]);
+
+    // The working copy itself stays closed to anonymous clients.
+    const workingCopy = await anonymousClient()
       .from("posts")
       .select("id")
       .in("id", [fixtures.turkish, fixtures.draft]);
 
-    expect(error).toBeNull();
-    expect((data ?? []).map((row) => row.id)).toEqual([fixtures.turkish]);
+    expect(workingCopy.error?.code).toBe("42501");
+  });
+
+  it("searches the published snapshot, not unpublished edits", async () => {
+    const values = {
+      slug: `${slugPrefix}-calisma`,
+      title: `Çalışma ${marker} yayını`,
+      excerpt: null,
+      body: doc("Yayındaki metin."),
+      language: "tr",
+    };
+    const postId = await createPublished(values);
+    const editTerm = `düzeltme${marker}`;
+
+    const { data: post } = await service
+      .from("posts")
+      .select("revision")
+      .eq("id", postId)
+      .single();
+    const saved = await clients.editor.rpc("update_post_metadata", {
+      p_post_id: postId,
+      p_expected_revision: post!.revision,
+      p_title: values.title,
+      p_slug: values.slug,
+      p_excerpt: null,
+      p_category_id: fixtures.category,
+      p_tag_ids: [],
+      p_credits: [{ author_id: fixtures.author, sort_order: 0 }],
+      p_body: doc(`Kaydedilmiş ${editTerm} metni.`),
+      p_content_version: 1,
+      p_language: "tr",
+      p_cover_media_id: null,
+      p_cover_alt: null,
+    });
+    expect(saved.error).toBeNull();
+
+    expect(await searchIds(service, editTerm)).toEqual([]);
+
+    const republished = await clients.editor.rpc("republish_post", {
+      p_post_id: postId,
+      p_expected_revision: post!.revision + 1,
+    });
+    expect(republished.error).toBeNull();
+
+    expect(await searchIds(service, editTerm)).toEqual([postId]);
   });
 
   it("still hides the draft from the search after an editor views it", async () => {
@@ -440,9 +492,9 @@ describe("language-specific stemming and folding", () => {
 
   it("indexes a fallback language once, not twice", async () => {
     const { data, error } = await service
-      .from("posts")
+      .from("published_posts")
       .select("search_vector")
-      .eq("id", fixtures.japanese)
+      .eq("post_id", fixtures.japanese)
       .single();
 
     expect(error).toBeNull();

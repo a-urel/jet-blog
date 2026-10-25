@@ -328,11 +328,13 @@ describe("write rate limits", () => {
 describe("final role matrix", () => {
   const roles: Role[] = ["anon", "reader", "author", "editor", "admin"];
 
-  // Rows each role must see. `draft` belongs to the author; `published` is live.
-  const visibility: Record<Role, { draft: boolean; published: boolean }> = {
-    anon: { draft: false, published: true },
-    reader: { draft: false, published: true },
-    author: { draft: true, published: true },
+  // Working-copy rows each role must see. `draft` belongs to the author;
+  // `published` is live and was written by the editor. Anonymous visitors
+  // have no grant on the working copy at all.
+  const workingCopy: Record<Role, { draft: boolean; published: boolean } | "denied"> = {
+    anon: "denied",
+    reader: { draft: false, published: false },
+    author: { draft: true, published: false },
     editor: { draft: true, published: true },
     admin: { draft: true, published: true },
   };
@@ -343,11 +345,28 @@ describe("final role matrix", () => {
       .select("id")
       .in("id", [fixtures.draft, fixtures.published]);
 
-    expect(error).toBeNull();
-    const ids = new Set((data ?? []).map((row) => row.id as string));
+    const expected = workingCopy[role];
 
-    expect(ids.has(fixtures.draft)).toBe(visibility[role].draft);
-    expect(ids.has(fixtures.published)).toBe(visibility[role].published);
+    if (expected === "denied") {
+      expect(data).toBeNull();
+      expect(error?.code).toBe("42501");
+    } else {
+      expect(error).toBeNull();
+      const ids = new Set((data ?? []).map((row) => row.id as string));
+
+      expect(ids.has(fixtures.draft)).toBe(expected.draft);
+      expect(ids.has(fixtures.published)).toBe(expected.published);
+    }
+  });
+
+  it.each(roles)("%s reads exactly the published snapshot", async (role) => {
+    const { data, error } = await clientFor(role)
+      .from("published_posts")
+      .select("post_id")
+      .in("post_id", [fixtures.draft, fixtures.published]);
+
+    expect(error).toBeNull();
+    expect(data).toEqual([{ post_id: fixtures.published }]);
   });
 
   it.each(roles)("%s has no direct write access to content tables", async (role) => {

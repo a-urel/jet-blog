@@ -1,7 +1,8 @@
 {
   "status": {
     "published": "Yayında",
-    "draft": "Taslak"
+    "draft": "Taslak",
+    "unpublishedChanges": "Yayımlanmamış değişiklikler"
   },
   "shared": {
     "posts": "Yazılar",
@@ -20,7 +21,7 @@
     "newDraft": "Yeni taslak",
     "loadError": "Yazı listesi yüklenemedi. Bağlantıyı ve veritabanı erişimini kontrol edin.",
     "cardTitle": "İçerik listesi",
-    "cardDescription": "Yalnızca erişebildiğiniz yazılar gösterilir. Yazarlar kendi taslaklarını, editörler ve adminler tüm yazıları görür.",
+    "cardDescription": "Yalnızca erişebildiğiniz yazılar gösterilir. Yazarlar kendi yazılarını, editörler ve adminler tüm yazıları görür.",
     "empty": "Henüz erişebildiğiniz bir yazı yok.",
     "createFirst": "İlk taslağı oluştur",
     "columns": {
@@ -49,19 +50,24 @@
       "created": "Taslak oluşturuldu.",
       "updated": "Değişiklikler kaydedildi.",
       "published": "Yazı yayınlandı.",
-      "unpublished": "Yazı yayından kaldırıldı ve taslağa döndü."
+      "unpublished": "Yazı yayından kaldırıldı ve taslağa döndü.",
+      "republished": "Değişiklikler yayımlandı.",
+      "discarded": "Yayımlanmamış değişiklikler atıldı; çalışma kopyası yayındaki sürüme döndü."
     },
     "publicationTitle": "Yayın durumu",
-    "publishedDescription": "Yayında. Kaydedilen değişiklikler hemen genel sayfaya yansır.",
-    "publishedAtDescription": "Yayında · {publishedAt}. Kaydedilen değişiklikler hemen genel sayfaya yansır.",
+    "publishedDescription": "Yayında. Kaydedilen değişiklikler, bir editör ya da admin yeniden yayımlayana kadar yalnızca çalışma kopyasında kalır.",
+    "publishedAtDescription": "Yayında · {publishedAt}. Kaydedilen değişiklikler, bir editör ya da admin yeniden yayımlayana kadar yalnızca çalışma kopyasında kalır.",
     "draftDescription": "Taslak yalnızca editöryal üyelere görünür. Yayınlama, kaydedilmiş son sürümü kullanır; bir kategori ve kapak görseli varsa onun alternatif metnini gerektirir.",
     "openPublicPage": "Genel sayfayı aç",
     "readOnlyTitle": "Salt okunur",
-    "readOnlyDescription": "Yayınlanmış bir yazıyı yalnızca editörler ve adminler düzenleyebilir. Yazar kredisi düzenleme yetkisi vermez.",
+    "readOnlyDescription": "Bu yazıyı yalnızca editörler, adminler ve yazıyı oluşturan yazar düzenleyebilir. Yazar kredisi düzenleme yetkisi vermez.",
     "unsupportedTitle": "İçerik sürümü desteklenmiyor",
     "unsupportedDescription": "Bu yazının gövdesi bu editör sürümünün desteklemediği bir biçimde kaydedilmiş (sürüm {version}). Veri kaybını önlemek için düzenleme kapalı.",
     "formCardTitle": "Yazı bilgileri",
-    "formCardDescription": "Değişiklikleri kaydettiğinizde sürüm numarası artar. Form açıkken başka bir düzenleme yapıldıysa kayıt sessizce üzerine yazmaz."
+    "formCardDescription": "Değişiklikleri kaydettiğinizde sürüm numarası artar. Form açıkken başka bir düzenleme yapıldıysa kayıt sessizce üzerine yazmaz.",
+    "unpublishedChangesDescription": "Çalışma kopyasında henüz herkese açık olmayan kaydedilmiş değişiklikler var. Genel sayfa {updatedAt} tarihli {version}. yayın sürümünü gösteriyor.",
+    "authorUnpublishedChangesDescription": "Kaydettiğiniz değişiklikler henüz herkese açık değil. Bir editör ya da admin yeniden yayımladığında genel sayfa güncellenir; isterseniz değişiklikleri atabilirsiniz.",
+    "formCardPublishedDescription": "Kaydetmek yalnızca çalışma kopyasını günceller ve sürüm numarasını artırır; genel sayfa yeniden yayımlanana kadar değişmez. Form açıkken başka bir düzenleme yapıldıysa kayıt sessizce üzerine yazmaz."
   },
   "preview": {
     "metaTitle": "Yazı önizlemesi",
@@ -72,7 +78,8 @@
     "authors": "Yazarlar",
     "noAuthors": "Yazar eklenmedi.",
     "revisionLine": "Sürüm {revision} · /{slug}",
-    "coverAltMissing": "Kapak görselinin alternatif metni yok; yayınlamadan önce ekleyin."
+    "coverAltMissing": "Kapak görselinin alternatif metni yok; yayınlamadan önce ekleyin.",
+    "workingCopyNotice": "Bu önizleme kaydedilmiş çalışma kopyasını gösterir. Değişiklikleri, bir editör ya da admin yeniden yayımlayana kadar herkese açık değildir."
   },
   "publication": {
     "publish": {
@@ -87,8 +94,20 @@
       "description": "“{title}” taslağa döner; genel sayfa, listeler, arama ve akış onu hemen göstermeyi bırakır. Daha sonra yeniden yayınlayabilirsiniz.",
       "confirm": "Yayından kaldır"
     },
+    "republish": {
+      "trigger": "Değişiklikleri yayımla",
+      "title": "Değişiklikler yayımlansın mı?",
+      "description": "“{title}” çalışma kopyasının kaydedilmiş son hâli genel sayfanın, listelerin, aramanın ve akışların yerini alır. Bağlantı adresi değiştiyse eski adres yeni adrese yönlenir. Kaydedilmemiş değişiklikler yayına girmez.",
+      "confirm": "Yayımla"
+    },
+    "discard": {
+      "trigger": "Değişiklikleri at",
+      "title": "Yayımlanmamış değişiklikler atılsın mı?",
+      "description": "“{title}” çalışma kopyası yayındaki sürüme döner. Kaydedilmiş ama yayımlanmamış bütün değişiklikler kalıcı olarak silinir; genel sayfa değişmez.",
+      "confirm": "Değişiklikleri at"
+    },
     "errors": {
-      "forbidden": "Yazı yayınlama ve yayından kaldırma yalnızca editörlere ve adminlere açıktır.",
+      "forbidden": "Bu işlem için yetkiniz yok. Yazıları yalnızca editörler ve adminler yayımlar, yeniden yayımlar ve yayından kaldırır; değişiklikleri yazıyı düzenleyebilen kişi atabilir.",
       "conflict": "Bu yazı sayfa açıldıktan sonra değişti. Sayfayı yenileyip güncel sürümle tekrar deneyin.",
       "category": "Yayınlamak için önce bir kategori seçip kaydedin.",
       "cover": "Kapak görseli için alternatif metin girip kaydedin veya kapağı kaldırın; yayınlanan kapak, ekran okuyucular için bir açıklama gerektirir.",

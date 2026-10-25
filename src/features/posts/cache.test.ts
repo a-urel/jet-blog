@@ -13,7 +13,8 @@ import {
 const publicChanges: PublicContentChange[] = [
   "post-published",
   "post-unpublished",
-  "published-post-updated",
+  "post-republished",
+  "post-changes-discarded",
   "taxonomy-changed",
   "author-changed",
 ];
@@ -103,8 +104,11 @@ describe("publicCacheInvalidation", () => {
     }
   });
 
-  it("leaves public caches alone for a draft save", () => {
-    expect(publicCacheInvalidation("draft-saved")).toEqual({ tags: [], routes: [] });
+  it("leaves public caches alone for a working-copy save, draft or published", () => {
+    // Public reads come from the published snapshot, which a save never
+    // changes; only publication actions (publish, republish, discard,
+    // unpublish) expire public output.
+    expect(publicCacheInvalidation("working-copy-saved")).toEqual({ tags: [], routes: [] });
   });
 
   it("returns a copy that callers cannot use to change the route list", () => {

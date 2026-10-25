@@ -1,7 +1,8 @@
 {
   "status": {
     "published": "Veröffentlicht",
-    "draft": "Entwurf"
+    "draft": "Entwurf",
+    "unpublishedChanges": "Unveröffentlichte Änderungen"
   },
   "shared": {
     "posts": "Beiträge",
@@ -20,7 +21,7 @@
     "newDraft": "Neuer Entwurf",
     "loadError": "Die Beitragsliste konnte nicht geladen werden. Prüfen Sie die Verbindung und den Datenbankzugriff.",
     "cardTitle": "Inhaltsliste",
-    "cardDescription": "Es werden nur Beiträge angezeigt, auf die Sie zugreifen können. Autorinnen und Autoren sehen ihre eigenen Entwürfe, Redaktion und Admins sehen alle Beiträge.",
+    "cardDescription": "Es werden nur Beiträge angezeigt, auf die Sie zugreifen können. Autorinnen und Autoren sehen ihre eigenen Beiträge, Redaktion und Admins sehen alle Beiträge.",
     "empty": "Es gibt noch keine Beiträge, auf die Sie zugreifen können.",
     "createFirst": "Ersten Entwurf erstellen",
     "columns": {
@@ -49,19 +50,24 @@
       "created": "Entwurf erstellt.",
       "updated": "Änderungen gespeichert.",
       "published": "Beitrag veröffentlicht.",
-      "unpublished": "Veröffentlichung aufgehoben; der Beitrag ist wieder ein Entwurf."
+      "unpublished": "Veröffentlichung aufgehoben; der Beitrag ist wieder ein Entwurf.",
+      "republished": "Änderungen veröffentlicht.",
+      "discarded": "Unveröffentlichte Änderungen verworfen; die Arbeitskopie entspricht wieder der veröffentlichten Version."
     },
     "publicationTitle": "Veröffentlichungsstatus",
-    "publishedDescription": "Veröffentlicht. Gespeicherte Änderungen erscheinen sofort auf der öffentlichen Seite.",
-    "publishedAtDescription": "Veröffentlicht · {publishedAt}. Gespeicherte Änderungen erscheinen sofort auf der öffentlichen Seite.",
+    "publishedDescription": "Veröffentlicht. Gespeicherte Änderungen bleiben in der Arbeitskopie, bis Redaktion oder Admins sie erneut veröffentlichen.",
+    "publishedAtDescription": "Veröffentlicht · {publishedAt}. Gespeicherte Änderungen bleiben in der Arbeitskopie, bis Redaktion oder Admins sie erneut veröffentlichen.",
     "draftDescription": "Ein Entwurf ist nur für Redaktionsmitglieder sichtbar. Beim Veröffentlichen wird die zuletzt gespeicherte Version verwendet; erforderlich sind eine Kategorie und, falls ein Titelbild vorhanden ist, dessen Alternativtext.",
     "openPublicPage": "Öffentliche Seite öffnen",
     "readOnlyTitle": "Schreibgeschützt",
-    "readOnlyDescription": "Einen veröffentlichten Beitrag können nur Redaktion und Admins bearbeiten. Eine Autorennennung berechtigt nicht zum Bearbeiten.",
+    "readOnlyDescription": "Diesen Beitrag können nur Redaktion, Admins und die Person bearbeiten, die ihn angelegt hat. Eine Autorennennung berechtigt nicht zum Bearbeiten.",
     "unsupportedTitle": "Inhaltsversion nicht unterstützt",
     "unsupportedDescription": "Der Text dieses Beitrags wurde in einem Format gespeichert, das diese Editorversion nicht unterstützt (Version {version}). Um Datenverlust zu vermeiden, ist die Bearbeitung deaktiviert.",
     "formCardTitle": "Angaben zum Beitrag",
-    "formCardDescription": "Beim Speichern erhöht sich die Versionsnummer. Wurde der Beitrag bearbeitet, während das Formular geöffnet war, überschreibt das Speichern diese Änderungen nicht stillschweigend."
+    "formCardDescription": "Beim Speichern erhöht sich die Versionsnummer. Wurde der Beitrag bearbeitet, während das Formular geöffnet war, überschreibt das Speichern diese Änderungen nicht stillschweigend.",
+    "unpublishedChangesDescription": "Die Arbeitskopie enthält gespeicherte Änderungen, die noch nicht öffentlich sind. Die öffentliche Seite zeigt die veröffentlichte Version {version} vom {updatedAt}.",
+    "authorUnpublishedChangesDescription": "Ihre gespeicherten Änderungen sind noch nicht öffentlich. Die öffentliche Seite wird aktualisiert, sobald Redaktion oder Admins den Beitrag erneut veröffentlichen; Sie können die Änderungen auch verwerfen.",
+    "formCardPublishedDescription": "Speichern aktualisiert nur die Arbeitskopie und erhöht die Versionsnummer; die öffentliche Seite ändert sich erst beim erneuten Veröffentlichen. Wurde der Beitrag bearbeitet, während das Formular geöffnet war, überschreibt das Speichern diese Änderungen nicht stillschweigend."
   },
   "preview": {
     "metaTitle": "Beitragsvorschau",
@@ -72,7 +78,8 @@
     "authors": "Autoren",
     "noAuthors": "Keine Autoren hinzugefügt.",
     "revisionLine": "Version {revision} · /{slug}",
-    "coverAltMissing": "Das Titelbild hat keinen Alternativtext; fügen Sie ihn vor dem Veröffentlichen hinzu."
+    "coverAltMissing": "Das Titelbild hat keinen Alternativtext; fügen Sie ihn vor dem Veröffentlichen hinzu.",
+    "workingCopyNotice": "Diese Vorschau zeigt die gespeicherte Arbeitskopie. Ihre Änderungen sind erst öffentlich, wenn Redaktion oder Admins den Beitrag erneut veröffentlichen."
   },
   "publication": {
     "publish": {
@@ -87,8 +94,20 @@
       "description": "„{title}“ wird wieder zum Entwurf; öffentliche Seite, Listen, Suche und Feed zeigen ihn sofort nicht mehr an. Sie können ihn später erneut veröffentlichen.",
       "confirm": "Veröffentlichung aufheben"
     },
+    "republish": {
+      "trigger": "Änderungen veröffentlichen",
+      "title": "Änderungen veröffentlichen?",
+      "description": "Die zuletzt gespeicherte Arbeitskopie von „{title}“ ersetzt die öffentliche Seite, Listen, Suche und Feeds. Hat sich die Adresse geändert, leitet die alte Adresse auf die neue weiter. Nicht gespeicherte Änderungen werden nicht veröffentlicht.",
+      "confirm": "Veröffentlichen"
+    },
+    "discard": {
+      "trigger": "Änderungen verwerfen",
+      "title": "Unveröffentlichte Änderungen verwerfen?",
+      "description": "Die Arbeitskopie von „{title}“ kehrt zur veröffentlichten Version zurück. Alle gespeicherten, aber unveröffentlichten Änderungen werden endgültig gelöscht; die öffentliche Seite ändert sich nicht.",
+      "confirm": "Änderungen verwerfen"
+    },
     "errors": {
-      "forbidden": "Nur Redaktion und Admins können Beiträge veröffentlichen und deren Veröffentlichung aufheben.",
+      "forbidden": "Dafür fehlt Ihnen die Berechtigung. Nur Redaktion und Admins veröffentlichen Beiträge, veröffentlichen sie erneut oder heben die Veröffentlichung auf; Änderungen verwerfen kann, wer den Beitrag bearbeiten darf.",
       "conflict": "Dieser Beitrag wurde geändert, nachdem die Seite geöffnet wurde. Laden Sie die Seite neu und versuchen Sie es mit der aktuellen Version erneut.",
       "category": "Wählen Sie vor dem Veröffentlichen eine Kategorie aus und speichern Sie.",
       "cover": "Geben Sie einen Alternativtext für das Titelbild ein und speichern Sie, oder entfernen Sie das Titelbild; ein veröffentlichtes Titelbild benötigt eine Beschreibung für Screenreader.",

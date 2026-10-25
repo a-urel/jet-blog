@@ -169,6 +169,12 @@ beforeAll(async () => {
     published_at: new Date().toISOString(),
     created_by: userIds.editor,
   });
+
+  const { error: syncError } = await service.rpc("sync_published_post", {
+    p_post_id: fixtures.published,
+  });
+
+  if (syncError) throw syncError;
 });
 
 afterAll(async () => {
@@ -393,16 +399,19 @@ describe("self-signed-up reader is denied editorial operations", () => {
     const { data: audit } = await reader.from("editorial_audit_log").select("id");
     expect(audit).toEqual([]);
 
-    const { data: draft } = await reader
+    // The working copy returns no rows to a reader, published posts included.
+    const { data: workingCopy, error: workingCopyError } = await reader
       .from("posts")
       .select("id")
-      .eq("id", fixtures.draft);
-    expect(draft).toEqual([]);
+      .in("id", [fixtures.draft, fixtures.published]);
+    expect(workingCopyError).toBeNull();
+    expect(workingCopy).toEqual([]);
 
+    // Public reads come from the published snapshot.
     const { data: published } = await reader
-      .from("posts")
-      .select("id")
-      .eq("id", fixtures.published);
+      .from("published_posts")
+      .select("id:post_id")
+      .in("post_id", [fixtures.draft, fixtures.published]);
     expect(published).toEqual([{ id: fixtures.published }]);
 
     const { data: media } = await reader.from("media").select("id");
@@ -446,6 +455,10 @@ describe("self-signed-up reader is denied editorial operations", () => {
         p_expected_revision: 1,
       }),
       reader.rpc("unpublish_post", {
+        p_post_id: fixtures.published,
+        p_expected_revision: 1,
+      }),
+      reader.rpc("republish_post", {
         p_post_id: fixtures.published,
         p_expected_revision: 1,
       }),

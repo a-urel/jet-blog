@@ -11,16 +11,15 @@ import type { PostSummary } from "@/features/posts/types";
 // RLS tests. RLS limits the rows to the caller's own bookmarks; the user_id
 // filter matches the (user_id, created_at) index.
 //
-// The post embed is an inner join filtered to published posts, so a post that
-// was unpublished after it was saved drops out of the list entirely. The status
-// filter is required, not defense in depth: editorial members can read drafts
-// through the posts policy.
+// The post embed is an inner join on the published snapshot (published_post
+// is a computed relationship), so a post that was unpublished after it was
+// saved drops out of the list entirely, and a member never sees a working copy
+// here.
 export function selectSavedPosts(client: SupabaseClient, userId: string) {
   return client
     .from("bookmarks")
-    .select(`created_at, post:posts!inner(${publicPostSummaryColumns})`)
+    .select(`created_at, post:published_post!inner(${publicPostSummaryColumns})`)
     .eq("user_id", userId)
-    .eq("post.status", "published")
     .order("created_at", { ascending: false });
 }
 

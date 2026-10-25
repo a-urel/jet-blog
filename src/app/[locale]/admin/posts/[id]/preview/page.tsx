@@ -93,6 +93,10 @@ export default async function PostPreviewPage({
         <p className="rounded-lg border border-amber-600/40 bg-amber-600/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
           {t("preview.draftNotice")}
         </p>
+      ) : post.hasUnpublishedChanges ? (
+        <p className="rounded-lg border border-amber-600/40 bg-amber-600/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+          {t("preview.workingCopyNotice")}
+        </p>
       ) : null}
 
       <article className="mx-auto max-w-3xl space-y-8">

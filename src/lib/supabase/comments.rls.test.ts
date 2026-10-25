@@ -151,6 +151,13 @@ async function insertPost(slug: string, published: boolean) {
   if (error) throw error;
 
   createdPostIds.push(data.id);
+
+  // Public reads and the comment policies use the published snapshot.
+  if (published) {
+    const { error: syncError } = await service.rpc("sync_published_post", { p_post_id: data.id });
+    if (syncError) throw syncError;
+  }
+
   return data.id as string;
 }
 
@@ -684,10 +691,18 @@ describe("publication visibility", () => {
     const id = await seedComment("reader", fixtures.unpublishing);
     expect(await publicIds(fixtures.unpublishing)).toContain(id);
 
-    const { error } = await service
+    // Unpublishing removes the snapshot the comment policies check.
+    const { data: current, error: currentError } = await service
       .from("posts")
-      .update({ status: "draft", published_at: null })
-      .eq("id", fixtures.unpublishing);
+      .select("revision")
+      .eq("id", fixtures.unpublishing)
+      .single();
+    if (currentError) throw currentError;
+
+    const { error } = await clients.editor.rpc("unpublish_post", {
+      p_post_id: fixtures.unpublishing,
+      p_expected_revision: current.revision,
+    });
     if (error) throw error;
 
     expect(await publicIds(fixtures.unpublishing)).toEqual([]);

@@ -5,6 +5,7 @@ import { getLocale } from "next-intl/server";
 import { defaultPostLanguage, isPostLanguage } from "@/features/posts/language";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
+  AdminPostDetail,
   AdminPostDetailResult,
   AdminPostListResult,
   AdminPostListRow,
@@ -38,6 +39,8 @@ type RawPost = {
   language?: string;
   cover_media_id?: string | null;
   cover_alt?: string | null;
+  has_unpublished_changes?: boolean | null;
+  published?: RelatedRecord<{ slug: string; version: number; updated_at: string }>;
   category: RelatedRecord<{ name: string }>;
 };
 
@@ -55,6 +58,15 @@ type RawTagRelation = {
 function firstRelated<T>(value: RelatedRecord<T>): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+function mapPublishedSnapshot(
+  value: RawPost["published"],
+): AdminPostDetail["published"] {
+  const snapshot = firstRelated(value ?? null);
+  return snapshot
+    ? { slug: snapshot.slug, version: snapshot.version, updatedAt: snapshot.updated_at }
+    : null;
 }
 
 function isPostStatus(value: string): value is PostStatus {
@@ -157,7 +169,7 @@ export async function listAdminPosts(): Promise<AdminPostListResult> {
     supabase
       .from("posts")
       .select(
-        "id, title, slug, status, revision, updated_at, created_by, category:categories(name)",
+        "id, title, slug, status, revision, updated_at, created_by, has_unpublished_changes, category:categories(name)",
       )
       .order("updated_at", { ascending: false }),
     supabase
@@ -200,6 +212,7 @@ export async function listAdminPosts(): Promise<AdminPostListResult> {
         return author ? [author.name] : [];
       }),
       createdBy: raw.created_by ?? null,
+      hasUnpublishedChanges: raw.has_unpublished_changes === true,
     });
   }
 
@@ -213,7 +226,7 @@ export async function getAdminPostDetail(
   const postResult = await supabase
     .from("posts")
     .select(
-      "id, title, slug, excerpt, category_id, status, revision, updated_at, published_at, created_by, body, content_version, language, cover_media_id, cover_alt, category:categories(name)",
+      "id, title, slug, excerpt, category_id, status, revision, updated_at, published_at, created_by, body, content_version, language, cover_media_id, cover_alt, has_unpublished_changes, published:published_posts(slug, version, updated_at), category:categories(name)",
     )
     .eq("id", postId)
     .maybeSingle();
@@ -283,6 +296,8 @@ export async function getAdminPostDetail(
       updatedAt: raw.updated_at,
       publishedAt: raw.published_at,
       createdBy: raw.created_by,
+      hasUnpublishedChanges: raw.has_unpublished_changes === true,
+      published: mapPublishedSnapshot(raw.published),
     },
     error: false,
   };

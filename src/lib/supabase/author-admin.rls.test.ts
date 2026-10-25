@@ -143,6 +143,12 @@ async function creditOnPost(
     .from("post_authors")
     .insert({ post_id: data.id, author_id: authorId, sort_order: 0 });
   if (creditError) throw creditError;
+
+  // Public reads come from the published snapshot.
+  if (status === "published") {
+    const { error: syncError } = await service.rpc("sync_published_post", { p_post_id: data.id });
+    if (syncError) throw syncError;
+  }
   return data.id as string;
 }
 

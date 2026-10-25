@@ -1,7 +1,8 @@
 {
   "status": {
     "published": "Published",
-    "draft": "Draft"
+    "draft": "Draft",
+    "unpublishedChanges": "Unpublished changes"
   },
   "shared": {
     "posts": "Posts",
@@ -20,7 +21,7 @@
     "newDraft": "New draft",
     "loadError": "The post list could not be loaded. Check the connection and database access.",
     "cardTitle": "Content list",
-    "cardDescription": "Only posts you can access are shown. Authors see their own drafts; editors and admins see all posts.",
+    "cardDescription": "Only posts you can access are shown. Authors see their own posts; editors and admins see all posts.",
     "empty": "There are no posts you can access yet.",
     "createFirst": "Create the first draft",
     "columns": {
@@ -49,19 +50,24 @@
       "created": "Draft created.",
       "updated": "Changes saved.",
       "published": "Post published.",
-      "unpublished": "Post unpublished and returned to draft."
+      "unpublished": "Post unpublished and returned to draft.",
+      "republished": "Changes published.",
+      "discarded": "Unpublished changes discarded; the working copy is back to the published version."
     },
     "publicationTitle": "Publication status",
-    "publishedDescription": "Published. Saved changes appear on the public page immediately.",
-    "publishedAtDescription": "Published · {publishedAt}. Saved changes appear on the public page immediately.",
+    "publishedDescription": "Published. Saved changes stay in the working copy until an editor or admin republishes them.",
+    "publishedAtDescription": "Published · {publishedAt}. Saved changes stay in the working copy until an editor or admin republishes them.",
     "draftDescription": "A draft is visible only to editorial members. Publishing uses the last saved version and requires a category and, if there is a cover image, its alt text.",
     "openPublicPage": "Open public page",
     "readOnlyTitle": "Read-only",
-    "readOnlyDescription": "Only editors and admins can edit a published post. An author credit does not grant edit permission.",
+    "readOnlyDescription": "Only editors, admins and the author who created this post can edit it. An author credit does not grant edit permission.",
     "unsupportedTitle": "Content version not supported",
     "unsupportedDescription": "This post’s body was saved in a format this editor version does not support (version {version}). Editing is disabled to prevent data loss.",
     "formCardTitle": "Post details",
-    "formCardDescription": "Saving increases the revision number. If someone else edited the post while the form was open, saving will not silently overwrite their changes."
+    "formCardDescription": "Saving increases the revision number. If someone else edited the post while the form was open, saving will not silently overwrite their changes.",
+    "unpublishedChangesDescription": "The working copy has saved changes that are not public yet. The public page shows published version {version} from {updatedAt}.",
+    "authorUnpublishedChangesDescription": "Your saved changes are not public yet. The public page updates when an editor or admin republishes the post; you can also discard the changes.",
+    "formCardPublishedDescription": "Saving updates the working copy only and increases the revision number; the public page does not change until the post is republished. If someone else edited the post while the form was open, saving will not silently overwrite their changes."
   },
   "preview": {
     "metaTitle": "Post preview",
@@ -72,7 +78,8 @@
     "authors": "Authors",
     "noAuthors": "No authors added.",
     "revisionLine": "Revision {revision} · /{slug}",
-    "coverAltMissing": "The cover image has no alt text; add it before publishing."
+    "coverAltMissing": "The cover image has no alt text; add it before publishing.",
+    "workingCopyNotice": "This preview shows the saved working copy. Its changes are not public until an editor or admin republishes the post."
   },
   "publication": {
     "publish": {
@@ -87,8 +94,20 @@
       "description": "“{title}” returns to draft; the public page, listings, search and the feed stop showing it immediately. You can publish it again later.",
       "confirm": "Unpublish"
     },
+    "republish": {
+      "trigger": "Publish changes",
+      "title": "Publish these changes?",
+      "description": "The last saved working copy of “{title}” replaces the public page, listings, search and feeds. If the URL changed, the old address redirects to the new one. Unsaved changes are not published.",
+      "confirm": "Publish"
+    },
+    "discard": {
+      "trigger": "Discard changes",
+      "title": "Discard unpublished changes?",
+      "description": "The working copy of “{title}” goes back to the published version. All saved but unpublished changes are deleted permanently; the public page does not change.",
+      "confirm": "Discard changes"
+    },
     "errors": {
-      "forbidden": "Only editors and admins can publish and unpublish posts.",
+      "forbidden": "You are not allowed to do this. Only editors and admins publish, republish and unpublish posts; changes can be discarded by whoever may edit the post.",
       "conflict": "This post changed after the page was opened. Refresh the page and try again with the current version.",
       "category": "Choose a category and save before publishing.",
       "cover": "Enter alt text for the cover image and save, or remove the cover; a published cover needs a description for screen readers.",

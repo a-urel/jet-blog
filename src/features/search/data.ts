@@ -4,6 +4,7 @@ import type { PostLanguage } from "@/features/posts/language";
 import {
   mapPublicPostSummary,
   publicPostSummaryColumns,
+  publishedPostsTable,
   type RawPublicPost,
 } from "@/features/posts/mapping";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -22,10 +23,10 @@ function searchClient() {
 // One page of published posts matching `query`, in rank order. Only the
 // server may execute search_published_posts (service_role; see migration
 // 20261024200000_search_server_only.sql), so a client cannot skip the per-IP
-// limit the page consumes first. The function filters status = 'published'
-// itself, so the secret key does not widen what it returns. The cards are
-// then read through the anonymous client, so RLS (published only) filters
-// again, and a post unpublished between the two reads drops out of the page.
+// limit the page consumes first. The function reads only the published
+// snapshot, so the secret key does not widen what it returns. The cards are
+// then read from the same snapshot through the anonymous client, and a post
+// unpublished between the two reads drops out of the page.
 export async function searchPublishedPosts(
   query: string,
   page: number,
@@ -49,10 +50,9 @@ export async function searchPublishedPosts(
   if (ids.length === 0) return mapSearchRows(rows, [], page);
 
   const { data: posts, error: postsError } = await supabase
-    .from("posts")
+    .from(publishedPostsTable)
     .select(publicPostSummaryColumns)
-    .eq("status", "published")
-    .in("id", ids);
+    .in("post_id", ids);
 
   if (postsError) throw new Error(`Search results could not be loaded: ${postsError.message}`);
 

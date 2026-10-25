@@ -15,6 +15,7 @@ import {
   mapPublicPost,
   mapPublicPostSummary,
   publicPostColumns,
+  publishedPostsTable,
   type RawPublicPost,
 } from "./mapping";
 import {
@@ -30,10 +31,12 @@ import {
 } from "./queries";
 import type { Post, PostSummary } from "./types";
 
-// Public reads use the anonymous client only: RLS limits every row (posts,
-// credits, tags, redirects) to published content, and no session cookie is
-// read, so the calling pages stay prerenderable. The explicit status filter is
-// defense in depth, not the authorization rule.
+// Public reads use the anonymous client only and read the published snapshot
+// (published_posts, published_post_authors, published_post_tags): edits to a
+// published post's working copy stay invisible until an editor republishes.
+// RLS keeps the working copy (posts, post_authors, post_tags) away from
+// anonymous clients, and no session cookie is read, so the calling pages stay
+// prerenderable.
 //
 // Errors throw instead of returning empty results so a transient failure does
 // not get cached as an empty listing or a 404.
@@ -121,10 +124,7 @@ export const listPublishedPostPage = cache(async (page: number): Promise<PostPag
 export async function listPublishedSlugs(): Promise<string[]> {
   if (!isSupabaseConfigured()) return [];
 
-  const { data, error } = await publicClient()
-    .from("posts")
-    .select("slug")
-    .eq("status", "published");
+  const { data, error } = await publicClient().from(publishedPostsTable).select("slug");
 
   if (error) throw new Error(`Published slugs could not be loaded: ${error.message}`);
 
@@ -138,9 +138,8 @@ export const findPublishedPost = cache(
 
     const supabase = publicClient();
     const { data, error } = await supabase
-      .from("posts")
+      .from(publishedPostsTable)
       .select(publicPostColumns)
-      .eq("status", "published")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -151,13 +150,13 @@ export const findPublishedPost = cache(
       return post ? { kind: "post", post } : { kind: "missing" };
     }
 
-    // An old slug resolves to the post's current slug in one hop. RLS hides
+    // An old slug resolves to the post's current published slug in one hop
+    // (published_post is a computed relationship to the snapshot). RLS hides
     // redirects of unpublished posts, so those URLs return 404.
     const redirect = await supabase
       .from("post_slug_redirects")
-      .select("post:posts!inner(slug, status)")
+      .select("post:published_post!inner(slug)")
       .eq("old_slug", slug)
-      .eq("post.status", "published")
       .maybeSingle();
 
     if (redirect.error) {

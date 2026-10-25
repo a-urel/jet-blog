@@ -42,6 +42,8 @@ export type AdminPostListRow = Readonly<{
   categoryName: string | null;
   authorNames: string[];
   createdBy: string | null;
+  // The working copy of a published post differs from its published snapshot.
+  hasUnpublishedChanges: boolean;
 }>;
 
 export type AdminPostDetail = Readonly<{
@@ -64,6 +66,10 @@ export type AdminPostDetail = Readonly<{
   updatedAt: string;
   publishedAt: string | null;
   createdBy: string | null;
+  hasUnpublishedChanges: boolean;
+  // The published snapshot, while the post is published. Its slug is the
+  // public URL; the working-copy slug above takes over on republish.
+  published: Readonly<{ slug: string; version: number; updatedAt: string }> | null;
 }>;
 
 export type AdminPostListResult = Readonly<{

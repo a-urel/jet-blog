@@ -119,6 +119,11 @@ export default async function AdminPostsPage() {
                           >
                             {t(`status.${post.status}`)}
                           </Badge>
+                          {post.hasUnpublishedChanges ? (
+                            <Badge variant="outline" className="mt-1 block w-fit">
+                              {t("status.unpublishedChanges")}
+                            </Badge>
+                          ) : null}
                         </td>
                         <td className="py-3 pr-4">
                           {post.categoryName ?? (

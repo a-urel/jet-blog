@@ -28,10 +28,14 @@ import {
   listTaxonomyOptions,
 } from "@/features/posts/admin/data";
 import {
+  canDiscardChanges,
   canEditPost,
   canPublishPosts,
 } from "@/features/posts/admin/permissions";
-import { publicationErrorMessageKey } from "@/features/posts/admin/publication";
+import {
+  availablePublicationActions,
+  publicationErrorMessageKey,
+} from "@/features/posts/admin/publication";
 import {
   currentContentVersion,
   validateBodyDocument,
@@ -46,7 +50,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // ?status= values after a successful save or publication change; each has a
 // message under adminPosts.editPage.success.
-const successStatuses = ["created", "updated", "published", "unpublished"] as const;
+const successStatuses = [
+  "created",
+  "updated",
+  "published",
+  "unpublished",
+  "republished",
+  "discarded",
+] as const;
 
 type SuccessStatus = (typeof successStatuses)[number];
 
@@ -107,7 +118,16 @@ export default async function EditPostPage({
     ? t(`publication.errors.${errorMessageKey}`)
     : null;
   const canPublish = canPublishPosts(membership);
-  const publicHref = `/posts/${post.slug}`;
+  const published = post.status === "published";
+  const publicationActions = availablePublicationActions({
+    published,
+    hasUnpublishedChanges: post.hasUnpublishedChanges,
+    canPublish,
+    canDiscard: canDiscardChanges(post, membership, user.id),
+  });
+  // The public page lives at the published slug; a changed working-copy slug
+  // takes over only on republish.
+  const publicHref = `/posts/${post.published?.slug ?? post.slug}`;
   const previewHref = `/admin/posts/${post.id}/preview`;
 
   return (
@@ -127,6 +147,9 @@ export default async function EditPostPage({
               <Badge variant={post.status === "published" ? "default" : "secondary"}>
                 {t(`status.${post.status}`)}
               </Badge>
+              {post.hasUnpublishedChanges ? (
+                <Badge variant="outline">{t("status.unpublishedChanges")}</Badge>
+              ) : null}
             </h1>
             <p className="text-sm text-muted-foreground">
               {t("editPage.revisionLine", {
@@ -155,31 +178,44 @@ export default async function EditPostPage({
         </p>
       ) : null}
 
-      {canPublish ? (
+      {canPublish || (published && editable) ? (
         <Card>
           <CardHeader>
             <CardTitle>{t("editPage.publicationTitle")}</CardTitle>
             <CardDescription>
-              {post.status !== "published"
+              {!published
                 ? t("editPage.draftDescription")
-                : post.publishedAt
-                  ? t("editPage.publishedAtDescription", {
-                      publishedAt: format.dateTime(
-                        new Date(post.publishedAt),
-                        "dateTimeShort",
-                      ),
-                    })
-                  : t("editPage.publishedDescription")}
+                : post.hasUnpublishedChanges && post.published
+                  ? canPublish
+                    ? t("editPage.unpublishedChangesDescription", {
+                        version: String(post.published.version),
+                        updatedAt: format.dateTime(
+                          new Date(post.published.updatedAt),
+                          "dateTimeShort",
+                        ),
+                      })
+                    : t("editPage.authorUnpublishedChangesDescription")
+                  : post.publishedAt
+                    ? t("editPage.publishedAtDescription", {
+                        publishedAt: format.dateTime(
+                          new Date(post.publishedAt),
+                          "dateTimeShort",
+                        ),
+                      })
+                    : t("editPage.publishedDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <PublicationControl
-              postId={post.id}
-              revision={post.revision}
-              published={post.status === "published"}
-              title={post.title}
-            />
-            {post.status === "published" ? (
+            {publicationActions.map((action) => (
+              <PublicationControl
+                key={action}
+                action={action}
+                postId={post.id}
+                revision={post.revision}
+                title={post.title}
+              />
+            ))}
+            {published ? (
               <Button asChild variant="ghost">
                 <Link href={publicHref}>
                   <ExternalLink aria-hidden="true" />
@@ -246,11 +282,17 @@ export default async function EditPostPage({
           <CardHeader>
             <CardTitle>{t("editPage.formCardTitle")}</CardTitle>
             <CardDescription>
-              {t("editPage.formCardDescription")}
+              {published
+                ? t("editPage.formCardPublishedDescription")
+                : t("editPage.formCardDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Keyed by revision: discarding changes reloads this route with
+                new values, and the form's uncontrolled fields and client state
+                would otherwise keep the discarded ones. */}
             <PostForm
+              key={post.revision}
               mode="edit"
               postId={post.id}
               revision={post.revision}
