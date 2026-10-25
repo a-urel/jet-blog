@@ -1,0 +1,9 @@
+{
+  "page": {
+    "lastUpdated": "Zuletzt aktualisiert: <date></date>"
+  },
+  "notice": {
+    "signUp": "Wenn Sie ein Konto erstellen, werden Ihre personenbezogenen Daten wie unter <link>{title}</link> beschrieben verarbeitet.",
+    "comment": "Ihr Kommentar wird mit Ihrem Anzeigenamen veröffentlicht. Verarbeitung personenbezogener Daten: <link>{title}</link>."
+  }
+}

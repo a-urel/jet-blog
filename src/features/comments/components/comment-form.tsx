@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -18,12 +18,14 @@ import { useCommentViewer } from "./comment-viewer-provider";
 
 type CommentFormProps = {
   postId: string;
+  // Server-rendered privacy notice link (Phase 28), shown with the form.
+  notice?: ReactNode;
 };
 
 // Submission refreshes the page through the action's revalidatePath, so the
 // new comment appears in the server-rendered list right away; a toast confirms
 // it. Errors stay inline, tied to the textarea.
-export function CommentForm({ postId }: CommentFormProps) {
+export function CommentForm({ postId, notice }: CommentFormProps) {
   const t = useTranslations("comments");
   const { status, hasDisplayName, markAnonymous } = useCommentViewer();
   const pathname = usePathname();
@@ -142,6 +144,7 @@ export function CommentForm({ postId }: CommentFormProps) {
           })}
         </p>
       </div>
+      {notice}
       {error ? (
         <FormAlert id="comment-form-error" tone="error">
           {error}

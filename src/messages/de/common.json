@@ -7,7 +7,9 @@
     "feed": "Atom-Feed",
     "admin": "Verwaltung",
     "socialLinks": "Social-Media-Links",
-    "website": "Website"
+    "website": "Website",
+    "headerNav": "Seitenmenü",
+    "footerNav": "Fußzeilenlinks"
   },
   "languageSwitcher": {
     "label": "Sprache der Oberfläche",

@@ -7,7 +7,9 @@
     "feed": "Atom akışı",
     "admin": "Yönetim",
     "socialLinks": "Sosyal bağlantılar",
-    "website": "Web sitesi"
+    "website": "Web sitesi",
+    "headerNav": "Site menüsü",
+    "footerNav": "Alt bilgi bağlantıları"
   },
   "languageSwitcher": {
     "label": "Arayüz dili",

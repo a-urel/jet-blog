@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { archivePaths, postPath, type PublicArchives } from "@/features/posts/archives";
 import type { PostSummary } from "@/features/posts/types";
+import { staticPagePath, type PageLink } from "@/features/pages/model";
 
 // Builds sitemap entries from published content only: the inputs come from
 // anonymous, RLS-filtered reads, so drafts, member previews, and redirected
@@ -14,8 +15,10 @@ export function buildSitemap(input: {
   indexing: boolean;
   posts: readonly PostSummary[];
   archives: PublicArchives;
+  // Published static pages (Phase 28); drafts never reach this input.
+  pages?: readonly PageLink[];
 }): MetadataRoute.Sitemap {
-  const { siteUrl, posts, archives } = input;
+  const { siteUrl, posts, archives, pages = [] } = input;
   if (!siteUrl || !input.indexing) return [];
 
   const url = (path: string) => new URL(path, siteUrl).href;
@@ -40,6 +43,7 @@ export function buildSitemap(input: {
       url: url(archivePaths.author(entry.slug)),
       lastModified: entry.lastModified,
     })),
+    ...pages.map((page) => ({ url: url(staticPagePath(page.slug)), lastModified: page.updatedAt })),
   ];
 }
 

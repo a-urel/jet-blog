@@ -1,0 +1,173 @@
+{
+  "list": {
+    "title": "Seiten",
+    "description": "Seiten unabhängig von Beiträgen, etwa Über uns, Kontakt und Rechtstexte (Datenschutz, Nutzungsbedingungen, Impressum). Seiten erscheinen nie in Beitragslisten, Feeds oder der Suche.",
+    "navigation": "Menüs bearbeiten",
+    "newPage": "Neue Seite",
+    "loadError": "Die Seiten konnten nicht geladen werden. Laden Sie die Seite neu und versuchen Sie es erneut.",
+    "cardTitle": "Alle Seiten",
+    "cardDescription": "Entwürfe sind nur für Redakteure und Admins sichtbar.",
+    "empty": "Noch keine Seiten.",
+    "updated": "Aktualisiert {updatedAt}"
+  },
+  "status": {
+    "created": "Seite als Entwurf erstellt.",
+    "updated": "Seite gespeichert.",
+    "published": "Seite veröffentlicht.",
+    "unpublished": "Veröffentlichung der Seite aufgehoben.",
+    "deleted": "Entwurfsseite gelöscht."
+  },
+  "statusLabel": {
+    "draft": "Entwurf",
+    "published": "Veröffentlicht"
+  },
+  "kinds": {
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "imprint": "Impressum",
+    "cookies": "Cookies",
+    "other": "Sonstige"
+  },
+  "newPage": {
+    "title": "Neue Seite",
+    "cardTitle": "Seitenangaben",
+    "cardDescription": "Die Seite wird als Entwurf gespeichert und bleibt für Besucher unsichtbar, bis Sie sie veröffentlichen."
+  },
+  "editPage": {
+    "metaTitle": "Seite bearbeiten",
+    "loadErrorTitle": "Seite konnte nicht geladen werden",
+    "loadErrorDescription": "Die Seite ist gerade nicht verfügbar. Versuchen Sie es gleich erneut.",
+    "backToPages": "Zurück zu den Seiten",
+    "revisionLine": "Revision {revision} · zuletzt geändert {updatedAt}",
+    "publicationTitle": "Veröffentlichung",
+    "publishedDescription": "Veröffentlicht seit {publishedAt}. Seiten haben nur eine Fassung: gespeicherte Änderungen sind sofort öffentlich.",
+    "draftDescription": "Diese Seite ist ein Entwurf. Nach der Veröffentlichung erscheint sie unter /pages, in der Sitemap und als Rechtstext in der Fußzeile.",
+    "openPublicPage": "Öffentliche Seite öffnen",
+    "formCardTitle": "Inhalt",
+    "formCardDescription": "Änderungen an einem Entwurf sind für Besucher nicht sichtbar.",
+    "formCardPublishedDescription": "Diese Seite ist öffentlich; Änderungen sind sofort nach dem Speichern sichtbar.",
+    "unsupportedTitle": "Nicht unterstützte Inhaltsversion",
+    "unsupportedDescription": "Der Inhalt dieser Seite verwendet Version {version} und kann in diesem Editor nicht geöffnet werden."
+  },
+  "form": {
+    "title": "Titel",
+    "slug": "Slug",
+    "slugHelp": "Leer lassen, um ihn aus dem Titel abzuleiten. Ändert sich der Slug einer veröffentlichten Seite, leitet die alte Adresse auf die neue weiter.",
+    "kind": "Seitentyp",
+    "kindHelp": "Von jedem Rechtstext-Typ kann nur eine Seite veröffentlicht sein. Die Datenschutzseite wird im Registrierungs- und im Kommentarformular verlinkt.",
+    "metaDescription": "Beschreibung für Suchmaschinen",
+    "metaDescriptionHelp": "Optional, höchstens 300 Zeichen. Erscheint in Suchergebnissen und Vorschauen beim Teilen.",
+    "body": "Inhalt",
+    "liveWarning": "Diese Seite ist öffentlich. Beim Speichern sind Ihre Änderungen sofort für Besucher sichtbar, und das Aktualisierungsdatum ändert sich.",
+    "saving": "Wird gespeichert…",
+    "create": "Entwurf erstellen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "openCurrentVersion": "Aktuelle Fassung öffnen"
+  },
+  "stateActions": {
+    "publish": {
+      "trigger": "Veröffentlichen",
+      "title": "Seite veröffentlichen?",
+      "description": "„{title}“ wird öffentlich, in die Sitemap aufgenommen und als Rechtstext in der Fußzeile aufgeführt.",
+      "confirm": "Veröffentlichen"
+    },
+    "unpublish": {
+      "trigger": "Veröffentlichung aufheben",
+      "title": "Veröffentlichung aufheben?",
+      "description": "„{title}“ liefert Besuchern 404 und verschwindet aus Menüs, Fußzeile und Sitemap.",
+      "confirm": "Aufheben"
+    },
+    "delete": {
+      "trigger": "Entwurf löschen",
+      "title": "Entwurf löschen?",
+      "description": "„{title}“ wird endgültig gelöscht. Wenn ein Menü darauf verlinkt, entfernen Sie den Eintrag zuerst.",
+      "confirm": "Löschen"
+    }
+  },
+  "validation": {
+    "titleRequired": "Ein Titel ist erforderlich.",
+    "titleTooLong": "Der Titel darf höchstens 200 Zeichen lang sein.",
+    "slugMissing": "Es konnte kein Slug abgeleitet werden; ergänzen Sie Buchstaben oder Ziffern im Titel oder geben Sie einen Slug ein.",
+    "slugTooLong": "Der Slug darf höchstens 200 Zeichen lang sein.",
+    "slugInvalid": "Der Slug darf nur Kleinbuchstaben, Ziffern und Bindestriche enthalten.",
+    "metaDescriptionTooLong": "Die Beschreibung darf höchstens 300 Zeichen lang sein.",
+    "kindInvalid": "Wählen Sie einen gültigen Seitentyp."
+  },
+  "actionErrors": {
+    "noSession": "Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an.",
+    "formInvalid": "Beheben Sie die Fehler im Formular.",
+    "bodyUnsupported": "Der Inhalt konnte nicht gelesen werden. Laden Sie die Seite neu und versuchen Sie es erneut.",
+    "bodyInvalidField": "Der Inhalt enthält ein nicht unterstütztes Element."
+  },
+  "errors": {
+    "forbidden": "Nur Redakteure und Admins können Seiten verwalten.",
+    "conflict": "Diese Seite wurde während Ihrer Bearbeitung geändert. Öffnen Sie die aktuelle Fassung und übernehmen Sie Ihre Änderungen erneut.",
+    "slug": "Dieser Slug wird bereits von einer anderen Seite verwendet.",
+    "kind": "Es ist bereits eine Seite dieses Typs veröffentlicht. Heben Sie deren Veröffentlichung auf oder ändern Sie ihren Typ.",
+    "body": "Der Inhalt konnte nicht geprüft werden.",
+    "title": "Der Titel ist ungültig.",
+    "metaDescription": "Die Beschreibung darf höchstens 300 Zeichen lang sein.",
+    "state": "Die Seite ist für diese Aktion nicht im passenden Zustand.",
+    "missing": "Seite nicht gefunden.",
+    "linked": "Ein Menü verlinkt diese Seite. Entfernen Sie den Eintrag zuerst.",
+    "rateLimited": "Zu viele Änderungen in kurzer Zeit. Versuchen Sie es später erneut.",
+    "invalidInput": "Die Angaben sind ungültig.",
+    "failed": "Die Aktion konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+  },
+  "denied": {
+    "title": "Kein Zugriff auf die Seitenverwaltung",
+    "description": "Nur Redakteure und Admins können Seiten und Menüs verwalten."
+  },
+  "navigation": {
+    "title": "Menüs",
+    "pages": "Seiten",
+    "intro": "Das Kopfmenü und die Fußzeilenlinks erscheinen auf jeder Seite. Ein Eintrag verlinkt eine Seite oder eine externe Adresse mit https; Einträge zu Entwürfen bleiben bis zur Veröffentlichung verborgen.",
+    "loadError": "Die Menüs konnten nicht geladen werden. Laden Sie die Seite neu und versuchen Sie es erneut.",
+    "saved": {
+      "header": "Kopfmenü gespeichert.",
+      "footer": "Fußzeilenlinks gespeichert."
+    },
+    "menus": {
+      "header": {
+        "title": "Kopfmenü",
+        "description": "Erscheint neben dem Seitennamen."
+      },
+      "footer": {
+        "title": "Fußzeilenlinks",
+        "description": "Bleibt sie leer, werden die veröffentlichten Rechtstexte (Datenschutz, Nutzungsbedingungen, Impressum, Cookies) automatisch aufgeführt."
+      }
+    },
+    "empty": {
+      "header": "Das Kopfmenü hat keine Einträge.",
+      "footer": "Die Fußzeile hat keine Einträge; veröffentlichte Rechtstexte werden automatisch angezeigt."
+    },
+    "pageItem": "Seitenlink",
+    "urlItem": "Externer Link",
+    "moveUp": "Eintrag {position} nach oben",
+    "moveDown": "Eintrag {position} nach unten",
+    "remove": "Eintrag {position} entfernen",
+    "page": "Seite",
+    "choosePage": "Seite auswählen",
+    "draftPage": "{title} (Entwurf)",
+    "url": "Adresse",
+    "urlHelp": "Nur Adressen, die mit https:// beginnen.",
+    "label": "Beschriftung",
+    "labelOptional": "Beschriftung (optional; sonst der Seitentitel)",
+    "addPage": "Seite hinzufügen",
+    "addUrl": "Externen Link hinzufügen",
+    "save": "Menü speichern",
+    "saving": "Wird gespeichert…",
+    "reload": "Aktuelles Menü öffnen",
+    "conflict": "Dieses Menü wurde während Ihrer Bearbeitung geändert. Öffnen Sie das aktuelle Menü und übernehmen Sie Ihre Änderungen erneut.",
+    "tooMany": "Ein Menü kann höchstens 50 Einträge haben.",
+    "saveFailed": "Das Menü konnte nicht gespeichert werden. Prüfen Sie die Links und versuchen Sie es erneut.",
+    "errors": {
+      "pageMissing": "Wählen Sie eine Seite.",
+      "urlMissing": "Geben Sie eine Adresse ein.",
+      "urlInvalid": "Die Adresse muss mit https:// beginnen und darf keine Leerzeichen enthalten.",
+      "labelRequired": "Externe Links brauchen eine Beschriftung.",
+      "labelTooLong": "Die Beschriftung darf höchstens 80 Zeichen lang sein."
+    }
+  }
+}

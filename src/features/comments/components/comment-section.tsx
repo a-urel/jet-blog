@@ -1,6 +1,8 @@
 import { useFormatter, useTranslations } from "next-intl";
 
 import { IdentityAvatar } from "@/features/avatars/components/identity-avatar";
+import { LegalNotice } from "@/features/pages/components/legal-notice";
+import type { PageLink } from "@/features/pages/model";
 import type { PublicComment } from "../queries";
 import { CommentForm } from "./comment-form";
 import { CommentItemActions } from "./comment-item-actions";
@@ -9,13 +11,15 @@ import { CommentViewerProvider } from "./comment-viewer-provider";
 type CommentSectionProps = {
   postId: string;
   comments: PublicComment[];
+  // The published privacy page, linked from the comment form.
+  privacyPage?: PageLink | null;
 };
 
 // Server-rendered part of the post page: the visible comments and their count
 // are in the prerendered HTML. Bodies are plain text rendered as React text
 // (escaped), with line breaks preserved by CSS; no HTML is ever interpreted.
 // Per-visitor controls hydrate inside CommentViewerProvider.
-export function CommentSection({ postId, comments }: CommentSectionProps) {
+export function CommentSection({ postId, comments, privacyPage = null }: CommentSectionProps) {
   const t = useTranslations("comments.section");
   const format = useFormatter();
 
@@ -57,7 +61,10 @@ export function CommentSection({ postId, comments }: CommentSectionProps) {
         ) : (
           <p className="text-sm text-muted-foreground">{t("empty")}</p>
         )}
-        <CommentForm postId={postId} />
+        <CommentForm
+          postId={postId}
+          notice={<LegalNotice context="comment" privacyPage={privacyPage} />}
+        />
       </CommentViewerProvider>
     </section>
   );

@@ -17,7 +17,9 @@
       "tags": "Schlagwörter",
       "authors": "Autoren",
       "members": "Mitglieder",
-      "settings": "Website-Einstellungen"
+      "settings": "Website-Einstellungen",
+      "pages": "Seiten",
+      "navigation": "Menüs"
     },
     "signOut": "Abmelden",
     "backToSite": "Zurück zur Website",

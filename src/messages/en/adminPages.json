@@ -1,0 +1,173 @@
+{
+  "list": {
+    "title": "Pages",
+    "description": "Pages independent of posts, such as About, contact, and legal texts (privacy, terms, imprint). Pages never appear in post listings, feeds, or search.",
+    "navigation": "Edit menus",
+    "newPage": "New page",
+    "loadError": "Pages could not be loaded. Reload the page and try again.",
+    "cardTitle": "All pages",
+    "cardDescription": "Drafts are visible to editors and admins only.",
+    "empty": "No pages yet.",
+    "updated": "Updated {updatedAt}"
+  },
+  "status": {
+    "created": "Page created as a draft.",
+    "updated": "Page saved.",
+    "published": "Page published.",
+    "unpublished": "Page unpublished.",
+    "deleted": "Draft page deleted."
+  },
+  "statusLabel": {
+    "draft": "Draft",
+    "published": "Published"
+  },
+  "kinds": {
+    "privacy": "Privacy",
+    "terms": "Terms of use",
+    "imprint": "Imprint",
+    "cookies": "Cookies",
+    "other": "Other"
+  },
+  "newPage": {
+    "title": "New page",
+    "cardTitle": "Page details",
+    "cardDescription": "The page is saved as a draft and stays invisible to visitors until you publish it."
+  },
+  "editPage": {
+    "metaTitle": "Edit page",
+    "loadErrorTitle": "Page could not be loaded",
+    "loadErrorDescription": "The page is unavailable right now. Try again shortly.",
+    "backToPages": "Back to pages",
+    "revisionLine": "Revision {revision} · last changed {updatedAt}",
+    "publicationTitle": "Publication",
+    "publishedDescription": "Published since {publishedAt}. Pages have a single version: saved changes go live immediately.",
+    "draftDescription": "This page is a draft. Once published it appears under /pages, in the sitemap, and in the footer if it is a legal page.",
+    "openPublicPage": "Open public page",
+    "formCardTitle": "Content",
+    "formCardDescription": "Changes to a draft are not visible to visitors.",
+    "formCardPublishedDescription": "This page is live; changes are visible as soon as you save.",
+    "unsupportedTitle": "Unsupported content version",
+    "unsupportedDescription": "This page's content uses version {version} and cannot be opened in this editor."
+  },
+  "form": {
+    "title": "Title",
+    "slug": "Slug",
+    "slugHelp": "Leave empty to derive it from the title. If a published page's slug changes, the old address redirects to the new one.",
+    "kind": "Page type",
+    "kindHelp": "Only one page of each legal type can be published. The privacy page is linked from the sign-up and comment forms.",
+    "metaDescription": "Search engine description",
+    "metaDescriptionHelp": "Optional, at most 300 characters. Shown in search results and share previews.",
+    "body": "Content",
+    "liveWarning": "This page is live. Saving makes your changes visible to visitors immediately and updates its last-updated date.",
+    "saving": "Saving…",
+    "create": "Create draft",
+    "save": "Save",
+    "cancel": "Cancel",
+    "openCurrentVersion": "Open current version"
+  },
+  "stateActions": {
+    "publish": {
+      "trigger": "Publish",
+      "title": "Publish this page?",
+      "description": "“{title}” will become public, be added to the sitemap, and be listed in the footer if it is a legal page.",
+      "confirm": "Publish"
+    },
+    "unpublish": {
+      "trigger": "Unpublish",
+      "title": "Unpublish this page?",
+      "description": "“{title}” will return 404 to visitors and disappear from menus, the footer, and the sitemap.",
+      "confirm": "Unpublish"
+    },
+    "delete": {
+      "trigger": "Delete draft",
+      "title": "Delete this draft?",
+      "description": "“{title}” will be deleted permanently. If a menu links it, remove it from the menu first.",
+      "confirm": "Delete"
+    }
+  },
+  "validation": {
+    "titleRequired": "A title is required.",
+    "titleTooLong": "The title can be at most 200 characters.",
+    "slugMissing": "No slug could be derived; add letters or digits to the title or enter a slug.",
+    "slugTooLong": "The slug can be at most 200 characters.",
+    "slugInvalid": "The slug may contain only lowercase letters, digits, and hyphens.",
+    "metaDescriptionTooLong": "The description can be at most 300 characters.",
+    "kindInvalid": "Choose a valid page type."
+  },
+  "actionErrors": {
+    "noSession": "Your session has expired. Sign in again.",
+    "formInvalid": "Fix the errors in the form.",
+    "bodyUnsupported": "The content could not be read. Reload the page and try again.",
+    "bodyInvalidField": "The content contains an unsupported element."
+  },
+  "errors": {
+    "forbidden": "Only editors and admins can manage pages.",
+    "conflict": "This page changed while you were editing it. Open the current version and apply your changes again.",
+    "slug": "This slug is already used by another page.",
+    "kind": "A published page of this type already exists. Unpublish it or change its type first.",
+    "body": "The content could not be validated.",
+    "title": "The title is invalid.",
+    "metaDescription": "The description can be at most 300 characters.",
+    "state": "The page is not in a state that allows this action.",
+    "missing": "Page not found.",
+    "linked": "A menu links this page. Remove it from the menu first.",
+    "rateLimited": "Too many changes in a short time. Try again later.",
+    "invalidInput": "The submitted values are invalid.",
+    "failed": "The action could not be completed. Try again."
+  },
+  "denied": {
+    "title": "No access to page management",
+    "description": "Only editors and admins can manage pages and menus."
+  },
+  "navigation": {
+    "title": "Menus",
+    "pages": "Pages",
+    "intro": "The header menu and footer links appear on every page. An item links a page or an external address starting with https; items that link a draft stay hidden until it is published.",
+    "loadError": "Menus could not be loaded. Reload the page and try again.",
+    "saved": {
+      "header": "Header menu saved.",
+      "footer": "Footer links saved."
+    },
+    "menus": {
+      "header": {
+        "title": "Header menu",
+        "description": "Shown next to the site name."
+      },
+      "footer": {
+        "title": "Footer links",
+        "description": "When empty, the published legal pages (privacy, terms, imprint, cookies) are listed automatically."
+      }
+    },
+    "empty": {
+      "header": "The header menu has no items.",
+      "footer": "The footer has no items; published legal pages are shown automatically."
+    },
+    "pageItem": "Page link",
+    "urlItem": "External link",
+    "moveUp": "Move item {position} up",
+    "moveDown": "Move item {position} down",
+    "remove": "Remove item {position}",
+    "page": "Page",
+    "choosePage": "Choose a page",
+    "draftPage": "{title} (draft)",
+    "url": "Address",
+    "urlHelp": "Only addresses starting with https://.",
+    "label": "Label",
+    "labelOptional": "Label (optional; defaults to the page title)",
+    "addPage": "Add page",
+    "addUrl": "Add external link",
+    "save": "Save menu",
+    "saving": "Saving…",
+    "reload": "Open current menu",
+    "conflict": "This menu changed while you were editing it. Open the current menu and apply your changes again.",
+    "tooMany": "A menu can have at most 50 items.",
+    "saveFailed": "The menu could not be saved. Check the links and try again.",
+    "errors": {
+      "pageMissing": "Choose a page.",
+      "urlMissing": "Enter an address.",
+      "urlInvalid": "The address must start with https:// and contain no spaces.",
+      "labelRequired": "External links need a label.",
+      "labelTooLong": "The label can be at most 80 characters."
+    }
+  }
+}

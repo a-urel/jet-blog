@@ -7,7 +7,9 @@
     "feed": "Atom feed",
     "admin": "Administration",
     "socialLinks": "Social links",
-    "website": "Website"
+    "website": "Website",
+    "headerNav": "Site menu",
+    "footerNav": "Footer links"
   },
   "languageSwitcher": {
     "label": "Interface language",

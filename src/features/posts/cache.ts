@@ -43,6 +43,8 @@
 //
 // Site settings (branding, locales, indexing) are a separate cache with a
 // site-wide invalidation: src/features/site-settings/cache.ts.
+// Static pages and the header/footer menus (Phase 28) have their own tag and
+// invalidation map: src/features/pages/cache.ts.
 
 import { localizedRoutePattern } from "@/lib/localized-paths";
 

@@ -17,7 +17,9 @@
       "tags": "Tags",
       "authors": "Authors",
       "members": "Members",
-      "settings": "Site settings"
+      "settings": "Site settings",
+      "pages": "Pages",
+      "navigation": "Menus"
     },
     "signOut": "Sign out",
     "backToSite": "Back to site",
