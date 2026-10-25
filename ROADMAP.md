@@ -76,8 +76,8 @@ does not add requirements on its own.
   loading states for public and admin routes, a static CSP and baseline
   security headers compatible with ISR, YouTube nocookie, and the media origin,
   a secrets review, a Postgres + Storage backup runbook with an exercised local
-  drill (`docs/backup-and-restore.md`), and an anonymous smoke test
-  (`npm run test:smoke`).
+  drill (`docs/backup-and-restore.md`; full drill with Storage ownership on
+  2026-10-25), and an anonymous smoke test (`npm run test:smoke`).
 - Phase 11 reader accounts: public sign-up at `/signup` with required email
   confirmation (display name collected at sign-up), PKCE and `token_hash`
   email callbacks (`/auth/callback`, `/auth/recovery`), password reset at
@@ -1398,6 +1398,29 @@ Implementation notes:
 - `supabase db query` cannot execute a multi-statement dump; local restores use
   `supabase db reset --sql-paths <dump>`.
 
+Backup drill, 2026-10-25 (local, disposable `claude/backup-drill` worktree
+stack, CLI 2.121.0): synthetic state on top of the seed (4 Auth users in all
+roles, 7 posts including a republished post with cover and inline images, a
+live post with unpublished working-copy changes, and a draft; 6
+`post_versions`, 5 `published_posts`, 5 media rows, 4 avatar objects, 3
+comments, 2 bookmarks) was backed up (data dump, Storage objects, Storage
+owners; 3.5 s), the stack destroyed (`supabase stack destroy`, plus deleting
+the upload files it keeps under `supabase/.temp/stack-uploads/<id>`), and
+restored into a fresh stack (about 6 s). Results: 58/61 fingerprint rows
+identical (every `auth` and `public` table; the three Storage bookkeeping
+tables differ only in timestamps and ids, their stable columns match), schema
+and role dumps identical, 9/9 objects matched by SHA-256 via API and public
+URL, 4/4 users signed in with their passwords and a pre-backup refresh token
+still worked, anonymous and reader reads of working copies and versions were
+denied while the public page showed the published snapshot, images and
+avatars returned 200 through `/_next/image`, `npm run test:rls` passed (554),
+and `npm run test:smoke` passed except the known `/search?language=fr_FR`
+check. The drill found that re-uploaded objects lose `owner_id` (the Storage
+API cannot set it), which breaks owner-only avatar and media actions; the new
+`scripts/storage-owners.mjs` (`npm run backup:storage-owners` /
+`restore:storage-owners`) saves and reapplies it. The hosted path remains
+undrilled until D5.
+
 Scope:
 
 - Explicit cache tags and invalidation on publish, update, taxonomy, and slug
@@ -2165,5 +2188,6 @@ administration increments, and the first-admin bootstrap command are done. The r
 follow the README hosting checklist (bootstrap the first admin with
 `npm run admin:bootstrap`, site URL and Auth redirects, reader-account Auth
 settings, production SMTP and `token_hash` templates, HSTS, shared cache
-handler or single instance, hosted backups, and `npm run test:smoke` against
-the deployment).
+handler or single instance, hosted database, Storage, and Storage-owner
+backups with a repeat of the 2026-10-25 drill against the hosted project, and
+`npm run test:smoke` against the deployment).
