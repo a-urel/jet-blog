@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-25 (Phases 23–25: archive feeds, toast notifications, avatar cropping; merged into main)
+Last updated: 2026-10-25 (Phase 26: published snapshots, on `claude/phase26-published-snapshot`; Phases 23–25 merged into main)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -15,7 +15,7 @@ does not add requirements on its own.
 - Scope grows by adding phases, not by widening an active phase.
 - Sizes are relative (S/M/L), not time estimates.
 
-## Current baseline (Phases 1–25, complete)
+## Current baseline (Phases 1–26, complete)
 
 - Next.js 16.4.2 App Router, React 19.3.0, TypeScript, Tailwind 4.3.3,
   shadcn/ui, system-only light/dark theme.
@@ -220,6 +220,18 @@ does not add requirements on its own.
   their first frame), exports a 512×512 WebP (JPEG where WebP encoding is
   unavailable), and sends it through the unchanged upload Server Action and
   server validation. No migration, no new dependency (shadcn `slider` added).
+- Phase 26 published snapshots (D3 revised 2026-10-25): `posts`,
+  `post_authors`, and `post_tags` are a members-only working copy;
+  `published_posts`, `published_post_authors`, and `published_post_tags` hold
+  what readers see and serve every public read (pages, archives, feeds,
+  sitemap, search, saved list). Saves stay private until an editor or admin
+  republishes (`republish_post`, revision compare-and-swap); anyone who may
+  edit a post can discard its unpublished changes (`discard_post_changes`);
+  authors may edit the working copy of their own published posts but never
+  publish. Every publish and republish appends an immutable `post_versions`
+  row (publisher, time, full snapshot). A slug change redirects on republish.
+  Migration `20261025100000_published_snapshots.sql` backfills version 1 for
+  posts published at upgrade time.
 - 681 unit tests and 531 local-Supabase RLS tests as of Phase 21 (including the language parity suite, the feed input
   and XML escaping tests, the comment
   suite and matrix row, the bookmark suite and matrix row, the author and taxonomy
@@ -282,6 +294,32 @@ fall back to the link and `beforeunload` guards). The search function is
 server-only, but plain Data API reads of published rows stay public by design.
 
 ## Where to resume (session handoff)
+
+Phase 26 (published snapshots, `20261025100000_published_snapshots.sql`) was
+developed on `claude/phase26-published-snapshot` against the worktree's own
+local stack; not committed or merged.
+
+- Last verified (Phase 26, on its branch): `npm run lint`, `npm run
+  typecheck`, `npm test` (752 tests), `npm run test:rls` (554 tests,
+  including the new `published-snapshots.rls.test.ts` and the updated
+  suites, before and after a clean `supabase db reset`), and `npm run build`
+  (public routes keep their SSG/ISR markers per locale). Upgrade path: the
+  stack started at Phase 25 with the seed, a published post was renamed (old
+  slug redirecting) before `supabase migration up --local`; the published
+  posts' content, credits, tags, and times were identical in the snapshot
+  afterwards, each had version 1, and the redirect still resolved. Browser
+  journey on `next start` as synthetic members: an editor saved a new title
+  on a live post (badge "Yayımlanmamış değişiklikler", the public page stayed
+  unchanged as an ISR HIT), confirmed "Değişiklikleri yayımla" in the dialog,
+  and the public page showed the new title with "Güncellendi". An author
+  edited an own live post: only "Değişiklikleri at" was offered, direct
+  `republish_post`/`unpublish_post` calls with the author's session returned
+  `42501`, the snapshot kept version 1, and discarding restored the form to
+  the published values (the journey found that the form kept discarded values
+  until it was keyed by revision; fixed). `npm run test:smoke` passed except
+  its `/search?language=fr_FR` check, which still expects the language
+  `<option>` that commit `b2166ed` hid (unrelated to Phase 26). Synthetic
+  users were removed by the reset.
 
 Phases 23 (archive feeds), 24 (toast notifications), and 25 (avatar
 cropping), none with a migration, were developed in parallel and merged into
@@ -613,7 +651,7 @@ widening an active phase silently.
 | --- | --- | --- | --- | --- |
 | D1 | Editorial role set and who may publish | Phase 2 onward, RLS everywhere | `admin` is the highest role and a superset of `editor`. Multiple admins are allowed. Admin manages members, roles, invitations, categories, and tags. Editor creates, edits, and publishes any post and assigns existing taxonomy, but cannot manage categories/tags or invite members. Author creates and edits own drafts but cannot publish. Reader membership is open to everyone; editorial/writer access is invite-only and granted by an admin. Reader accounts are planned (Phases 11–13) but are not editorial roles; see below | **Answered 2026-10-22** |
 | D2 | Workflow states and editing live posts | Phases 3, 8 | `draft` → `published` only; `review`/`archived` later; editors may edit published posts and `updated_at` is shown | **Answered 2026-10-22** |
-| D3 | Concurrency and revisions | Phases 3–5, 8 | One working copy with atomic revision comparison; no published snapshot initially; preview route for members | **Answered 2026-10-22** |
+| D3 | Concurrency and revisions | Phases 3–5, 8, 26 | Working copy with atomic revision comparison and a preview route for members; since 2026-10-25 a separate published snapshot per published post: every reader-visible field waits for an editor/admin republish, authors edit their own live working copy but never publish, every publish/republish stores an immutable version | **Answered 2026-10-22; revised 2026-10-25** (Phase 26) |
 | D4 | Media bucket visibility | Phase 6 | One public bucket, UUID object paths, app-level validation; document that draft media is fetchable by URL | **Answered 2026-10-22; confirmed for launch 2026-10-25** |
 | D5 | Language, brand, domain, hosting | Phases 8–10, launch | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–10 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`; site name from `NEXT_PUBLIC_SITE_NAME`, default "Yazılar"); for Phase 10 the user deferred hosting, has no production domain yet, and keeps the name provisional. Interface language decided 2026-10-24: tr (default), en, de by cookie (Phase 22). Blocks launch only |
 | D6 | Reader accounts, bookmarks, and comments | Phases 11–13 | Private bookmarks only; reader accounts with email + password; post-moderation with reader reports and editor hide/delete; account deletion removes bookmarks and anonymizes comments. No public like counts, OAuth, or magic links initially | **Answered 2026-10-22** |
@@ -641,6 +679,17 @@ domain, brand, and hosting remain open and block the public launch.
   compare-and-swap updates. No published snapshot initially; publishing changes
   status and `published_at`, and later edits change the live content. A
   members-only preview route is planned in Phase 4.
+- **D3 revised (2026-10-25, user):** the "no published snapshot" part is
+  replaced (Phase 26). (1) Everything a reader sees waits for a republish:
+  title, slug, excerpt, body and content version, cover and alt text, SEO
+  fields derived from them, language, category, tags, and ordered credits; a
+  slug change records its redirect on republish. (2) Authors may edit the
+  working copy of their own published posts (the same ownership rule as
+  drafts) but cannot publish; editors and admins republish, enforced in the
+  RPCs. (3) Every publish and republish stores an immutable published version
+  (who, when, full snapshot); a history list and restore come later. The
+  revision compare-and-swap still guards the working copy, and republish is
+  compare-and-swap too.
 - **D4 (2026-10-22):** One public `media` bucket with UUID object paths and
   server-side validation. Draft images are fetchable by anyone who has their
   URL; this is documented and revisited before launch.
@@ -710,6 +759,7 @@ account-attribute decision, not a widening of the editorial role enum.
 | 23 | Archive feeds | Atom feeds per category (with descendants), tag, and author, with discovery links | Phases 17, 22 | Done |
 | 24 | Toast notifications | Sonner toasts for transient successes, inline errors, one live region | Phases 12, 13, 18, 22 | Done |
 | 25 | Avatar cropping | Client-side square crop dialog before avatar uploads, fixed 512×512 output | Phases 18, 22 | Done |
+| 26 | Published snapshots | Private working copy for live posts, republish/discard, immutable published versions | Phases 8, 10, 19, D3 revision | Done |
 
 Phases 11–13 were planned after the editorial MVP launch and do not block
 Phases 1–10. The user asked for Phase 11 before the deferred administration
@@ -952,7 +1002,8 @@ published one. Exit when policies and integrity tests pass on a clean database.
   rule holds for every write path, not only the future UI. The Phase 8 publish
   mutation still returns a clear validation error.
 - **Concurrency (D3):** `posts.revision` starts at 1 and is reserved for the Phase
-  4 compare-and-swap update. No snapshot table or published copy exists.
+  4 compare-and-swap update. No snapshot table or published copy exists (until
+  Phase 26).
 - **Normalization:** category and tag names are whitespace-collapsed and unique
   case-insensitively; slugs are lower-case ASCII kebab-case and globally unique.
   `src/lib/slug.ts` mirrors the database rules, including Turkish transliteration,
@@ -2003,6 +2054,43 @@ to the page after a save (unchanged from Phase 18); no pinch-to-zoom gesture
 (the slider and buttons work on touch); a crop of an image smaller than
 16 px is still rejected by the server.
 
+### Phase 26 — Published snapshots
+
+Goal: edits to a live post stay private until an editor republishes them, and
+every publication leaves an immutable record.
+
+Status: complete on 2026-10-25, on `claude/phase26-published-snapshot` (not
+merged). Details: README "Published snapshots (Phase 26)".
+
+Decisions (user, 2026-10-25): see D3 revised above.
+
+Implementation choices:
+
+- **Snapshot tables instead of published columns.** `published_posts` plus
+  credit and tag tables mirror the working copy, so archive filters, joins,
+  indexes, the search vector, and foreign keys (category, media, authors,
+  tags) keep working, and RLS can open the snapshot while closing the working
+  copy. `post_versions` stores JSON (history must survive later taxonomy or
+  media deletion).
+- **Same row shape for public reads.** `publicPostSummaryColumns` aliases
+  `post_id` as `id` and the snapshot relations as `post_authors`/`post_tags`;
+  the mapping, pages, and SEO code did not change. Bookmarks and redirects use
+  the PostgREST computed relationship `published_post`.
+- **Change detection by content, not counters.** `has_unpublished_changes`
+  compares working and published content documents, so taxonomy deletions
+  that move both copies, and an edit undone by hand, do not show as changes.
+- **Republish does not bump the revision** (the working copy is unchanged);
+  discard does. Republish counts toward `post.publication`.
+- **Discard invalidates public caches** like the other publication actions,
+  by request, although it does not change public output.
+- **Versions do not block media deletion.** The working copy and the current
+  snapshot do.
+
+Known limits: no version history or restore interface; versions backfilled
+by the migration have no publisher; republishing a slug change while
+unpublished still records nothing (unchanged); the change flag compares whole
+documents, so it does not say which field changed.
+
 ## Cross-cutting delivery rules
 
 - Every phase runs `npm run lint`, `npm run typecheck`, tests, and
@@ -2050,9 +2138,10 @@ index type (HNSW or IVFFlat).
   contain sensitive images.
 - SEO canonical and sitemap output cannot be finalized before D5.
 - RLS mistakes are silent; every policy change needs a negative test.
-- The single-working-copy model (D3) makes an edit to a published post live
-  immediately. Phase 8/10 must add the `updated_at` label, cache invalidation, and
-  a recoverable conflict UI before launch.
+- Until Phase 26 the single-working-copy model (D3) made an edit to a published
+  post live immediately. Phase 26 separated the published snapshot; any new
+  reader-visible post field must be added to both copies, the content
+  documents, the snapshot writer, and the discard RPC together.
 - `authors.user_id` is not client-readable. Phase 4 author selection uses the
   public author columns under an editorial-only policy. Future author
   administration must use a server-only path for the account link instead of
@@ -2070,7 +2159,7 @@ index type (HNSW or IVFFlat).
 
 ## Next step
 
-Every phase in the table (through Phase 25, avatar cropping), both
+Every phase in the table (through Phase 26, published snapshots), both
 administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
 (domain, brand, hosting), then
 follow the README hosting checklist (bootstrap the first admin with

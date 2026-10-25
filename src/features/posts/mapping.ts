@@ -33,9 +33,14 @@ export type RawPublicPost = {
   }>;
 };
 
+// Public reads come from the published snapshot (published_posts and its
+// credits and tags), never from the working copy in posts. The aliases keep
+// the row shape of the working-copy tables (id, post_authors, post_tags).
+export const publishedPostsTable = "published_posts";
+
 // Columns the public listing needs. The post page adds the body.
 export const publicPostSummaryColumns =
-  "id, slug, title, excerpt, language, cover_media_id, cover_alt, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors(sort_order, author:authors(id, name, slug, avatar_id)), post_tags(tag:tags(id, name, slug))";
+  "id:post_id, slug, title, excerpt, language, cover_media_id, cover_alt, published_at, updated_at, category:categories(id, name, slug, parent_id), post_authors:published_post_authors(sort_order, author:authors(id, name, slug, avatar_id)), post_tags:published_post_tags(tag:tags(id, name, slug))";
 
 export const publicPostColumns = `${publicPostSummaryColumns}, body, content_version`;
 
@@ -125,8 +130,9 @@ export function mapPublicPost(row: RawPublicPost): Post | null {
   return { ...summary, body: row.body, contentVersion: row.content_version };
 }
 
-// "Güncellendi" is shown only for edits after publication. Publishing itself
-// sets updated_at and published_at to the same transaction time.
+// "Güncellendi" is shown only after a republish. Publishing itself sets
+// updated_at and published_at to the same transaction time; saving the
+// working copy changes neither.
 export function wasUpdatedAfterPublication(
   post: Pick<PostSummary, "publishedAt" | "updatedAt">,
 ): boolean {

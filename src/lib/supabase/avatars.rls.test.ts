@@ -212,6 +212,10 @@ beforeAll(async () => {
     .from("post_authors")
     .insert({ post_id: fixtures.post, author_id: author.id, sort_order: 0 });
   if (creditError) throw creditError;
+
+  // Public reads come from the published snapshot.
+  const { error: syncError } = await service.rpc("sync_published_post", { p_post_id: fixtures.post });
+  if (syncError) throw syncError;
 });
 
 afterAll(async () => {

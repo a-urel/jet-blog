@@ -165,6 +165,12 @@ beforeAll(async () => {
 
   if (published.error) throw published.error;
   fixtures.published = published.data.id;
+
+  const { error: syncError } = await service.rpc("sync_published_post", {
+    p_post_id: fixtures.published,
+  });
+
+  if (syncError) throw syncError;
 });
 
 afterAll(async () => {
@@ -296,20 +302,28 @@ describe("post body storage", () => {
   it("keeps a draft body hidden from anonymous readers", async () => {
     const anon = anonymousClient();
     const { data, error } = await anon
+      .from("published_posts")
+      .select("body")
+      .eq("post_id", fixtures.draft);
+
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
+
+    // The working copy is not readable anonymously at all.
+    const workingCopy = await anon
       .from("posts")
       .select("body")
       .eq("id", fixtures.draft);
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expect(workingCopy.error?.code).toBe("42501");
   });
 
   it("returns a published body to anonymous readers", async () => {
     const anon = anonymousClient();
     const { data, error } = await anon
-      .from("posts")
+      .from("published_posts")
       .select("body, content_version")
-      .eq("id", fixtures.published)
+      .eq("post_id", fixtures.published)
       .single();
 
     expect(error).toBeNull();

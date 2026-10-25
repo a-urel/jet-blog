@@ -139,6 +139,13 @@ async function insertPost(slug: string, title: string, published: boolean) {
   if (error) throw error;
 
   createdPostIds.push(data.id);
+
+  // Public reads and the bookmark policy use the published snapshot.
+  if (published) {
+    const { error: syncError } = await service.rpc("sync_published_post", { p_post_id: data.id });
+    if (syncError) throw syncError;
+  }
+
   return data.id as string;
 }
 
@@ -374,15 +381,28 @@ describe("saved list", () => {
   });
 
   it("drops a post that is unpublished later without leaking its content", async () => {
-    // The editor also saves it: members can read drafts, so the list's own
-    // status filter is what hides it from them.
+    // The editor also saves it: members can read working copies, so the
+    // snapshot embed is what hides it from them.
     expect((await bookmark(clients.editor, fixtures.unpublishing)).error).toBeNull();
 
-    const { error: unpublishError } = await service
+    const { data: current, error: currentError } = await service
       .from("posts")
-      .update({ status: "draft", published_at: null, title: `${unpublishedTitle} taslak` })
-      .eq("id", fixtures.unpublishing);
+      .select("revision")
+      .eq("id", fixtures.unpublishing)
+      .single();
+    if (currentError) throw currentError;
+
+    const { error: unpublishError } = await clients.editor.rpc("unpublish_post", {
+      p_post_id: fixtures.unpublishing,
+      p_expected_revision: current.revision,
+    });
     if (unpublishError) throw unpublishError;
+
+    const { error: renameError } = await service
+      .from("posts")
+      .update({ title: `${unpublishedTitle} taslak` })
+      .eq("id", fixtures.unpublishing);
+    if (renameError) throw renameError;
 
     for (const key of ["reader", "editor"] as const) {
       const { data, error } = await selectSavedPosts(clients[key], userIds[key]);
@@ -397,13 +417,17 @@ describe("saved list", () => {
   });
 
   it("never returns a draft through the embed", async () => {
-    const { data } = await clients.reader
-      .from("bookmarks")
-      .select("post:posts(title)")
-      .eq("post_id", fixtures.unpublishing);
+    // Neither the snapshot nor the private working copy leaks through.
+    for (const embed of ["post:published_post(title)", "post:posts(title)"]) {
+      const { data, error } = await clients.reader
+        .from("bookmarks")
+        .select(embed)
+        .eq("post_id", fixtures.unpublishing);
 
-    expect(data).toEqual([{ post: null }]);
-    expect(JSON.stringify(data)).not.toContain(draftTitle);
+      expect(error).toBeNull();
+      expect(data).toEqual([{ post: null }]);
+      expect(JSON.stringify(data)).not.toContain(unpublishedTitle);
+    }
   });
 });
 

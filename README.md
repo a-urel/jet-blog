@@ -303,16 +303,18 @@ Phase 3 adds the content tables. Public pages read them since Phase 8 (see
   transliteration.
 - Workflow (D2a): `draft` to `published` only. `published_at` exists exactly when
   the post is published. Review and archived states remain later increments.
-- Concurrency (D3): one working copy with an integer `revision`. The Phase 4
-  update RPC compares the submitted revision with the stored one and rejects a
-  stale form instead of overwriting newer changes. There is no published
-  snapshot; an edit to a published post changes public content immediately, and
-  `updated_at` drives the "Güncellendi" label added in Phase 8.
-- RLS: anonymous visitors and signed-in readers see only published posts, their
-  credits, tags, and credited author identities. Editors read every post and
-  relation. Authors read their own drafts and their relations. Categories and
-  tags are public metadata. Clients have no direct write grants; draft-authoring
-  writes go through the centralized Phase 4 RPCs.
+- Concurrency (D3, revised 2026-10-25): an integer `revision` on the working
+  copy. The Phase 4 update RPC compares the submitted revision with the stored
+  one and rejects a stale form instead of overwriting newer changes. Since
+  Phase 26 a published post also has a separate published snapshot, so edits
+  stay private until an editor republishes; see
+  [Published snapshots](#published-snapshots-phase-26).
+- RLS: since Phase 26 anonymous visitors and signed-in readers read only the
+  published snapshot tables and credited author identities; the working copy
+  (`posts`, `post_authors`, `post_tags`) is members-only. Editors read every
+  post and relation. Authors read their own posts and their relations.
+  Categories and tags are public metadata. Clients have no direct write grants;
+  authoring writes go through the centralized RPCs.
 - `authors.user_id` stays internal: clients can select only the public identity
   columns (`id`, `name`, `slug`, `bio`, timestamps). Active editorial members get
   an additional select policy over those columns so they can build author
@@ -334,9 +336,9 @@ Phase 4 adds the editorial metadata surface at `/admin/posts`:
   appear only for rows the member may change; the database repeats the check.
 - `/admin/posts/new` creates a draft with title, slug, excerpt, category, tags,
   and ordered author credits. An empty slug is derived from the title.
-- `/admin/posts/[id]` reopens a post. Authors may edit only drafts they created;
-  editors and admins may edit any draft or published post. A credit grants no
-  edit access, and a published post is read-only for authors.
+- `/admin/posts/[id]` reopens a post. Authors may edit only posts they created
+  (drafts, and since Phase 26 the working copy of their published posts);
+  editors and admins may edit any post. A credit grants no edit access.
 - `/admin/posts/[id]/preview` is a read-only members-only preview. It uses
   `force-dynamic`, sends `noindex`, and is not linked from public routes. A draft
   remains absent from `/posts/[slug]` and public listings.
@@ -639,11 +641,12 @@ until launch; taxonomy and author identity administration follow Phase 8.
   form edits.
 - **"Güncellendi".** Publishing sets `updated_at` and `published_at` to the
   same transaction time, so `PostMeta` shows "Güncellendi" only when
-  `updated_at > published_at`, that is, after an edit to a live post (D3: edits
-  to published posts are public immediately).
+  `updated_at > published_at`. Since Phase 26 these are the snapshot's times,
+  so the label appears after a republish, not after a private save.
 - **Slug redirects.** `public.post_slug_redirects(old_slug, post_id)` records
-  the old slug when a *published* post's slug changes (trigger
-  `posts_maintain_slug_redirects`, so every write path is covered). Redirects
+  the old slug when a *published* post's public slug changes (since Phase 26
+  on republish, trigger `published_posts_maintain_slug_redirects`, so every
+  write path is covered). Redirects
   store the post id, so `/posts/<old>` answers one `308` to the current
   `/posts/<slug>`; chains cannot form. A post may take back its own old slug
   (the redirect is removed); another post cannot claim a slug that still
@@ -683,6 +686,89 @@ after unpublish, and closed direct writes). `mapping.test.ts`,
 `publication.test.ts`, `permissions.test.ts`, and `site-url.test.ts` cover the
 mapping, "Güncellendi" rule, error keys, publish permission, and site URL
 parsing.
+
+## Published snapshots (Phase 26)
+
+Decision D3 was revised on 2026-10-25: a published post keeps a private
+working copy and a separate published snapshot. Everything a reader sees waits
+for an editor or admin to republish: title, slug, excerpt, body (JSONB and
+`content_version`), cover image and alt text, language, category, tags, and
+ordered author credits. Migration:
+`supabase/migrations/20261025100000_published_snapshots.sql`.
+
+- **Tables.** `posts`, `post_authors`, and `post_tags` are the working copy.
+  `published_posts` (one row per published post, keyed by `post_id`),
+  `published_post_authors`, and `published_post_tags` are the snapshot; they
+  exist only while the post is published and carry the search vector, the
+  listing indexes, and the publication times (`published_at` kept across
+  republishes, `updated_at` set by each republish). `post_versions` stores one
+  immutable row per publish and republish: version number, publisher
+  (`published_by`), time, and the full snapshot as JSON. No history list or
+  restore interface yet; the data is kept for a later increment.
+- **RLS.** The working copy is members-only: editors and admins read every
+  post, authors their own. `anon` has no select grant on the working-copy
+  tables; a signed-in reader gets no rows. The snapshot tables are public
+  (they hold published content only). `post_versions` is readable by editors
+  and admins and cannot be changed or deleted by anyone, the secret key
+  included (trigger); only the cascade of a deleted post and the `set null` of
+  a deleted publisher run. An author identity is public only while credited in
+  a snapshot. Comment and bookmark policies check the snapshot.
+- **Mutations.** `update_post_metadata` changes only the working copy (same
+  revision compare-and-swap). An author may now edit the working copy of an
+  own published post; a credit still grants nothing. `publish_post` (draft →
+  published) writes the snapshot and version 1 (or the next number after an
+  unpublish). `republish_post(post_id, expected_revision)` copies the working
+  copy over the snapshot and appends a version; editors and admins only
+  (`42501` for authors), compare-and-swap on the revision (`40001`), published
+  posts only (`55000`), the publish checks (category, body, cover alt), and the
+  `post.publication` rate limit. The revision is compared but not bumped.
+  `discard_post_changes(post_id, expected_revision)` resets the working copy to
+  the snapshot for whoever may edit the post and bumps the revision.
+  `unpublish_post` deletes the snapshot; versions stay. The change flag is the
+  computed field `has_unpublished_changes` on `posts` (working and published
+  content documents compared as JSON).
+- **Slugs.** A working-copy slug change is private. On republish the
+  snapshot's slug changes and the old public slug starts redirecting. A
+  working copy cannot take a slug that is another post's published slug or
+  redirect (`23505`), so a republish cannot collide.
+- **Public reads.** Pages, archives, feeds, the sitemap, search
+  (`search_published_posts` reads `published_posts`), JSON-LD/Open Graph,
+  bylines, the saved list, and comment invalidation read the snapshot only.
+  `publicPostSummaryColumns` aliases `post_id` as `id` and the snapshot
+  relations as `post_authors`/`post_tags`, so the mapping is unchanged.
+  Bookmarks and slug redirects reach the snapshot through the PostgREST
+  computed relationship `published_post`.
+- **Admin.** The post list and page show an "unpublished changes" badge. The
+  publication card offers "Değişiklikleri yayımla" (republish, editors and
+  admins) and "Değişiklikleri at" (discard, anyone who may edit the post),
+  each behind the existing `AlertDialog` confirmation, next to Unpublish. An
+  author editing an own live post sees that changes wait for an editor. The
+  member preview shows the working copy; "Genel sayfayı aç" links the
+  published slug.
+- **Caching.** `features/posts/cache.ts`: a save (`working-copy-saved`) never
+  expires public caches; publish, republish (`post-republished`), discard
+  (`post-changes-discarded`), and unpublish expire `public-posts` and every
+  public route pattern.
+- **Taxonomy, authors, media.** Deleting a category moves both copies;
+  deleting a tag detaches it from both; an author credited in either copy
+  cannot be deleted; media used by either copy cannot be deleted. Versions do
+  not block media deletion (history; restoring has to cope with removed media).
+- **Upgrade path.** The migration backfills a snapshot and version 1
+  (publisher unknown, `null`) for every post published at upgrade time, with
+  its current content and times, through `sync_published_post(post_id)`
+  (service-role only). The seed calls the same function after inserting its
+  published samples. Verified on a stack at Phase 25 with the seed plus a
+  published post renamed before the upgrade: content, credits, tags, times,
+  and the redirect were identical afterwards.
+
+Tests: `published-snapshots.rls.test.ts` covers anonymous, reader, author,
+other author, editor, and admin access (working copy closed to anonymous
+callers and readers, saved edits absent from pages, archives, author lookup,
+and search, own-author edits of a live post, denied republish and unpublish,
+stale republish, republish of a draft, slug reservation, version 2 with the
+redirect, immutable editor-only versions, closed snapshot writes, discard with
+revision checks, unpublish keeping versions, and the backfill function). The
+existing suites read public content from the snapshot.
 
 ## SEO, sharing, and archives
 
@@ -1498,14 +1584,15 @@ or creates hosted resources.
 
 - **Cache invalidation map.** `features/posts/cache.ts` names each kind of
   public content change and returns what it expires; Server Actions apply it
-  with `updateTag` before `revalidatePath`. Publish, unpublish, and any save of
-  a published post (title, slug with its redirect, excerpt, body including
-  images and YouTube nodes, category, tags, credits) expire the `public-posts`
+  with `updateTag` before `revalidatePath`. Publish, unpublish, and (since
+  Phase 26) republish and discard of a published post (title, slug with its
+  redirect, excerpt, body including images and YouTube nodes, category, tags,
+  credits) expire the `public-posts`
   Data Cache tag and revalidate `/`, `/posts/[slug]`, `/categories/[slug]`,
   `/tags/[slug]`, `/authors/[slug]`, the later listing pages under
   `.../page/[page]`, `/sitemap.xml`, `/feed.xml`, and the archive feeds. Saving a draft no
-  longer touches public caches (the action reads the saved status; if it
-  cannot, it invalidates). Media upload and deletion change nothing public:
+  longer touches public caches; since Phase 26 neither does saving a
+  published post's working copy. Media upload and deletion change nothing public:
   deletion is refused while a body references the image. Future taxonomy and
   author administration must call the same map with `taxonomy-changed` or
   `author-changed`. One tag is deliberate: every post card embeds taxonomy and
@@ -2100,7 +2187,9 @@ Phase 21 opened post languages to any BCP 47 tag, and Phase 22 added the
 Turkish, English, and German interface (cookie-selected, locale-free URLs).
 Phase 24 replaced inline success messages with Sonner toasts.
 Phase 25 added square avatar cropping before upload.
-All planned phases (1–25) are implemented; see ROADMAP.md for the open
+Phase 26 separated a published post's working copy from its published
+snapshot (republish, discard, immutable published versions).
+All planned phases (1–26) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
 permissions. Launch itself still needs the D5 hosting, domain, and brand

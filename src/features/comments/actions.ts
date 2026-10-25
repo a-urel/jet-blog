@@ -35,10 +35,9 @@ async function publishedPostSlug(
   postId: string,
 ): Promise<string | null> {
   const { data } = await supabase
-    .from("posts")
+    .from("published_posts")
     .select("slug")
-    .eq("id", postId)
-    .eq("status", "published")
+    .eq("post_id", postId)
     .maybeSingle();
 
   return (data?.slug as string | undefined) ?? null;

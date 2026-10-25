@@ -36,8 +36,10 @@
 // regenerated: one published or unpublished post shifts all later pages, and
 // a page that was past the end (cached 404) may now exist, or the reverse.
 //
-// Drafts never reach public reads, so saving a draft changes nothing public.
-// Member previews are force-dynamic and never cached.
+// Public reads come from the published snapshot (Phase 26). Saving a post,
+// draft or published, changes only its working copy, so a save never touches
+// public caches; publish, republish, discard, and unpublish do. Member
+// previews (the working copy) are force-dynamic and never cached.
 
 import { localizedRoutePattern } from "@/lib/localized-paths";
 
@@ -48,12 +50,19 @@ export type PublicContentChange =
   | "post-published"
   // published -> draft
   | "post-unpublished"
-  // Edit of a published post: title, slug (old slug starts redirecting),
-  // excerpt, body (including image and YouTube nodes and their alt text),
-  // category, tags, or author credits.
-  | "published-post-updated"
-  // Save of a post that is not published. No public effect.
-  | "draft-saved"
+  // The working copy of a published post replaces its snapshot: title, slug
+  // (the old slug starts redirecting), excerpt, body (including image and
+  // YouTube nodes and their alt text), cover, language, category, tags, or
+  // author credits.
+  | "post-republished"
+  // The working copy of a published post is reset to its snapshot. Public
+  // output does not change; the invalidation keeps every publication-state
+  // action on one rule, so a snapshot changed by another editor in between
+  // cannot linger in a cache.
+  | "post-changes-discarded"
+  // Save of a working copy (a draft, or a published post's unpublished
+  // changes). No public effect.
+  | "working-copy-saved"
   // Taxonomy administration (/admin/categories, /admin/tags): create, rename,
   // re-slug, move, or delete a category or tag, including the posts a delete
   // moves or detaches. Names and slugs appear in every post card, archive,
@@ -113,11 +122,12 @@ const noInvalidation: CacheInvalidation = { tags: [], routes: [] };
 
 export function publicCacheInvalidation(change: PublicContentChange): CacheInvalidation {
   switch (change) {
-    case "draft-saved":
+    case "working-copy-saved":
       return noInvalidation;
     case "post-published":
     case "post-unpublished":
-    case "published-post-updated":
+    case "post-republished":
+    case "post-changes-discarded":
     case "taxonomy-changed":
     case "author-changed":
       return { tags: [publicPostsCacheTag], routes: publicContentRoutes.map(internalRoute) };

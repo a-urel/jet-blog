@@ -9,6 +9,7 @@ import {
 } from "@/features/posts/content/schema";
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { PublicContentChange } from "../cache";
 import { invalidatePublicContent } from "../invalidate";
 import { canPublishPosts } from "./permissions";
 import { publicationErrorKey } from "./publication";
@@ -378,26 +379,42 @@ async function updatePostMetadata(formData: FormData): Promise<PostFormState> {
     return mapRpcError(t, error);
   }
 
-  // An editor may edit a published post directly (D3), so a save can change
-  // public output. A draft save cannot. If the status cannot be read, assume
-  // the post is public: an extra regeneration is cheaper than a stale page.
-  const { data: saved } = await supabase
-    .from("posts")
-    .select("status")
-    .eq("id", postId)
-    .maybeSingle();
-
+  // A save changes only the working copy, also for a published post: the
+  // public page keeps its snapshot until an editor republishes (Phase 26).
   revalidatePostPaths(postId);
-  invalidatePublicContent(
-    saved?.status === "draft" ? "draft-saved" : "published-post-updated",
-  );
+  invalidatePublicContent("working-copy-saved");
   redirect(`/admin/posts/${postId}?status=updated`);
 }
 
+type PublicationRpc =
+  | "publish_post"
+  | "unpublish_post"
+  | "republish_post"
+  | "discard_post_changes";
+
+const publicationOutcomes: Record<
+  PublicationRpc,
+  {
+    change: PublicContentChange;
+    status: "published" | "unpublished" | "republished" | "discarded";
+    // Editors and admins only (D1). Discarding is an edit, so the RPC checks
+    // the post's edit rule instead.
+    editorsOnly: boolean;
+  }
+> = {
+  publish_post: { change: "post-published", status: "published", editorsOnly: true },
+  unpublish_post: { change: "post-unpublished", status: "unpublished", editorsOnly: true },
+  republish_post: { change: "post-republished", status: "republished", editorsOnly: true },
+  discard_post_changes: {
+    change: "post-changes-discarded",
+    status: "discarded",
+    editorsOnly: false,
+  },
+};
+
 async function changePublication(
   formData: FormData,
-  rpc: "publish_post" | "unpublish_post",
-  successStatus: "published" | "unpublished",
+  rpc: PublicationRpc,
 ): Promise<never> {
   const postId = getStringField(formData, "postId").trim();
   const expectedRevision = Number.parseInt(
@@ -408,12 +425,13 @@ async function changePublication(
   if (!isUuid(postId)) redirect("/admin/posts");
 
   const postPath = `/admin/posts/${postId}`;
+  const outcome = publicationOutcomes[rpc];
   const context = await getEditorialContext();
 
   if (!context.user) redirect("/login");
 
   // The RPC repeats this check; the early return only avoids a round trip.
-  if (!canPublishPosts(context.membership)) {
+  if (outcome.editorsOnly ? !canPublishPosts(context.membership) : !context.membership) {
     redirect(`${postPath}?error=forbidden`);
   }
 
@@ -429,16 +447,24 @@ async function changePublication(
   if (error) redirect(`${postPath}?error=${publicationErrorKey(error)}`);
 
   revalidatePostPaths(postId);
-  invalidatePublicContent(
-    rpc === "publish_post" ? "post-published" : "post-unpublished",
-  );
-  redirect(`${postPath}?status=${successStatus}`);
+  invalidatePublicContent(outcome.change);
+  redirect(`${postPath}?status=${outcome.status}`);
 }
 
 export async function publishPostAction(formData: FormData): Promise<void> {
-  await changePublication(formData, "publish_post", "published");
+  await changePublication(formData, "publish_post");
 }
 
 export async function unpublishPostAction(formData: FormData): Promise<void> {
-  await changePublication(formData, "unpublish_post", "unpublished");
+  await changePublication(formData, "unpublish_post");
+}
+
+// Copies the saved working copy of a published post to the public snapshot.
+export async function republishPostAction(formData: FormData): Promise<void> {
+  await changePublication(formData, "republish_post");
+}
+
+// Resets the working copy of a published post to the public snapshot.
+export async function discardPostChangesAction(formData: FormData): Promise<void> {
+  await changePublication(formData, "discard_post_changes");
 }

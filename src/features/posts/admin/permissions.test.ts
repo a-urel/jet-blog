@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { EditorialMembership } from "@/lib/auth/editorial";
-import { canEditPost, canPublishPosts } from "./permissions";
+import { canDiscardChanges, canEditPost, canPublishPosts } from "./permissions";
 
 const authorA = "11111111-1111-4111-8111-111111111111";
 const authorB = "22222222-2222-4222-8222-222222222222";
@@ -24,15 +24,18 @@ describe("canEditPost", () => {
     ).toBe(true);
   });
 
-  it("lets an author edit only their own draft", () => {
+  it("lets an author edit only their own posts, including the working copy of a published one", () => {
     expect(
       canEditPost({ status: "draft", createdBy: authorA }, author, authorA),
+    ).toBe(true);
+    expect(
+      canEditPost({ status: "published", createdBy: authorA }, author, authorA),
     ).toBe(true);
     expect(
       canEditPost({ status: "draft", createdBy: authorB }, author, authorA),
     ).toBe(false);
     expect(
-      canEditPost({ status: "published", createdBy: authorA }, author, authorA),
+      canEditPost({ status: "published", createdBy: authorB }, author, authorA),
     ).toBe(false);
   });
 
@@ -40,6 +43,30 @@ describe("canEditPost", () => {
     expect(
       canEditPost({ status: "draft", createdBy: authorA }, null, authorA),
     ).toBe(false);
+  });
+});
+
+describe("canDiscardChanges", () => {
+  const changed = { status: "published" as const, hasUnpublishedChanges: true };
+
+  it("needs a published post with unpublished changes", () => {
+    expect(canDiscardChanges({ ...changed, createdBy: authorB }, editor, authorA)).toBe(true);
+    expect(
+      canDiscardChanges(
+        { ...changed, hasUnpublishedChanges: false, createdBy: authorB },
+        editor,
+        authorA,
+      ),
+    ).toBe(false);
+    expect(
+      canDiscardChanges({ ...changed, status: "draft", createdBy: authorB }, admin, authorA),
+    ).toBe(false);
+  });
+
+  it("follows the edit rule: an author discards only on their own post", () => {
+    expect(canDiscardChanges({ ...changed, createdBy: authorA }, author, authorA)).toBe(true);
+    expect(canDiscardChanges({ ...changed, createdBy: authorB }, author, authorA)).toBe(false);
+    expect(canDiscardChanges({ ...changed, createdBy: authorA }, null, authorA)).toBe(false);
   });
 });
 

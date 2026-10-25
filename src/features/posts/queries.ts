@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { publicPostSummaryColumns } from "./mapping";
+import { publicPostSummaryColumns, publishedPostsTable } from "./mapping";
 
 // Public read queries shared by the server data boundary (data.ts) and the
 // RLS tests, which run them with a real anonymous client. They take the client
-// as an argument and stay free of server-only imports. RLS is the
-// authorization rule; the status filter is defense in depth.
+// as an argument and stay free of server-only imports. They read the published
+// snapshot (published_posts and its credits and tags), which holds published
+// posts only; anonymous clients cannot read the working copy in posts at all.
 //
 // Listings count matching rows (count: "exact") so a paginated read knows the
 // page count, and order by published_at with id as a tiebreaker: posts
@@ -14,11 +15,10 @@ import { publicPostSummaryColumns } from "./mapping";
 
 function selectPublishedPosts(client: SupabaseClient, columns: string) {
   return client
-    .from("posts")
+    .from(publishedPostsTable)
     .select(columns, { count: "exact" })
-    .eq("status", "published")
     .order("published_at", { ascending: false })
-    .order("id", { ascending: false });
+    .order("post_id", { ascending: false });
 }
 
 export function selectPublishedPostSummaries(client: SupabaseClient) {
@@ -44,9 +44,8 @@ export function selectPublishedPostCategoryIds(
   categoryIds: string[],
 ) {
   return client
-    .from("posts")
+    .from(publishedPostsTable)
     .select("category_id")
-    .eq("status", "published")
     .in("category_id", categoryIds);
 }
 
@@ -55,7 +54,7 @@ export function selectPublishedPostCategoryIds(
 export function selectPublishedPostsWithTag(client: SupabaseClient, tagId: string) {
   return selectPublishedPosts(
     client,
-    `${publicPostSummaryColumns}, tag_filter:post_tags!inner(tag_id)`,
+    `${publicPostSummaryColumns}, tag_filter:published_post_tags!inner(tag_id)`,
   ).eq("tag_filter.tag_id", tagId);
 }
 
@@ -65,7 +64,7 @@ export function selectPublishedPostsByAuthor(
 ) {
   return selectPublishedPosts(
     client,
-    `${publicPostSummaryColumns}, author_filter:post_authors!inner(author_id)`,
+    `${publicPostSummaryColumns}, author_filter:published_post_authors!inner(author_id)`,
   ).eq("author_filter.author_id", authorId);
 }
 
@@ -87,8 +86,8 @@ export function selectTagBySlug(client: SupabaseClient, slug: string) {
     .maybeSingle();
 }
 
-// RLS exposes an author only while they are credited on a visible post, and
-// never exposes authors.user_id.
+// RLS exposes an author only while they are credited on a published
+// snapshot, and never exposes authors.user_id.
 export function selectAuthorBySlug(client: SupabaseClient, slug: string) {
   return client
     .from("authors")

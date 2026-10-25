@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import trMessages from "@/messages/tr/adminPosts.json";
 
 import {
-  publicationConfirmationKey,
+  availablePublicationActions,
   publicationErrorKey,
   publicationErrorMessageKey,
 } from "./publication";
@@ -78,14 +78,48 @@ describe("publicationErrorMessageKey", () => {
   });
 });
 
-describe("publicationConfirmationKey", () => {
-  it("asks before publishing a draft", () => {
-    expect(publicationConfirmationKey(false)).toBe("publish");
+describe("availablePublicationActions", () => {
+  const editor = { canPublish: true, canDiscard: true };
+  const ownAuthor = { canPublish: false, canDiscard: true };
+
+  it("offers publishing a draft to editors only", () => {
+    expect(
+      availablePublicationActions({ published: false, hasUnpublishedChanges: false, ...editor }),
+    ).toEqual(["publish"]);
+    expect(
+      availablePublicationActions({ published: false, hasUnpublishedChanges: false, ...ownAuthor }),
+    ).toEqual([]);
     expect(trMessages.publication.publish.title).toBe("Yazı yayınlansın mı?");
   });
 
-  it("asks before unpublishing a published post", () => {
-    expect(publicationConfirmationKey(true)).toBe("unpublish");
+  it("offers republish and discard only while a published post has unpublished changes", () => {
+    expect(
+      availablePublicationActions({ published: true, hasUnpublishedChanges: true, ...editor }),
+    ).toEqual(["republish", "discard", "unpublish"]);
+    expect(
+      availablePublicationActions({ published: true, hasUnpublishedChanges: false, ...editor }),
+    ).toEqual(["unpublish"]);
     expect(trMessages.publication.unpublish.trigger).toBe("Yayından kaldır");
+  });
+
+  it("never offers an author republish or unpublish, only discarding own changes", () => {
+    expect(
+      availablePublicationActions({ published: true, hasUnpublishedChanges: true, ...ownAuthor }),
+    ).toEqual(["discard"]);
+    expect(
+      availablePublicationActions({
+        published: true,
+        hasUnpublishedChanges: true,
+        canPublish: false,
+        canDiscard: false,
+      }),
+    ).toEqual([]);
+  });
+
+  it("has confirmation copy for every action", () => {
+    for (const action of ["publish", "unpublish", "republish", "discard"] as const) {
+      const group = trMessages.publication[action];
+      expect(Object.keys(group).sort()).toEqual(["confirm", "description", "title", "trigger"]);
+    }
   });
 });

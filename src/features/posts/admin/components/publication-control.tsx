@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { EyeOff, Send } from "lucide-react";
+import { EyeOff, RefreshCw, Send, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -17,61 +17,87 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  discardPostChangesAction,
   publishPostAction,
+  republishPostAction,
   unpublishPostAction,
 } from "@/features/posts/admin/actions";
-import { publicationConfirmationKey } from "@/features/posts/admin/publication";
+import type { PublicationAction } from "@/features/posts/admin/publication";
+
+const actions = {
+  publish: publishPostAction,
+  unpublish: unpublishPostAction,
+  republish: republishPostAction,
+  discard: discardPostChangesAction,
+} satisfies Record<PublicationAction, (formData: FormData) => Promise<void>>;
+
+const icons = {
+  publish: Send,
+  unpublish: EyeOff,
+  republish: RefreshCw,
+  discard: Undo2,
+} satisfies Record<PublicationAction, unknown>;
+
+// Unpublishing and discarding take something away; the others put it live.
+const destructive: Record<PublicationAction, boolean> = {
+  publish: false,
+  unpublish: true,
+  republish: false,
+  discard: true,
+};
 
 type PublicationControlProps = {
+  action: PublicationAction;
   postId: string;
   revision: number;
-  published: boolean;
   title: string;
 };
 
-// Publish and unpublish behind a confirmation dialog. The form carries the
-// revision the page was rendered with, so the RPC's compare-and-swap still
-// refuses a change made after the page loaded. The dialog content is portaled
-// outside the form, so confirming submits it with requestSubmit() instead of
-// relying on a submit button's form owner.
+// A publication action (publish, unpublish, republish, discard changes) behind
+// a confirmation dialog. The form carries the revision the page was rendered
+// with, so the RPC's compare-and-swap still refuses a change made after the
+// page loaded. The dialog content is portaled outside the form, so confirming
+// submits it with requestSubmit() instead of relying on a submit button's form
+// owner.
 export function PublicationControl({
+  action,
   postId,
   revision,
-  published,
   title,
 }: PublicationControlProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const t = useTranslations("adminPosts");
-  const copy = publicationConfirmationKey(published);
+  const Icon = icons[action];
+  const variant = destructive[action] ? "destructive" : "default";
 
   return (
-    <form
-      ref={formRef}
-      action={published ? unpublishPostAction : publishPostAction}
-    >
+    <form ref={formRef} action={actions[action]}>
       <input type="hidden" name="postId" value={postId} />
       <input type="hidden" name="revision" value={revision} />
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button type="button" variant={published ? "outline" : "default"}>
-            {published ? <EyeOff aria-hidden="true" /> : <Send aria-hidden="true" />}
-            {t(`publication.${copy}.trigger`)}
+          <Button
+            type="button"
+            variant={destructive[action] ? "outline" : "default"}
+          >
+            <Icon aria-hidden="true" />
+            {t(`publication.${action}.trigger`)}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t(`publication.${copy}.title`)}</AlertDialogTitle>
+            <AlertDialogTitle>{t(`publication.${action}.title`)}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t(`publication.${copy}.description`, { title })}
+              {t(`publication.${action}.description`, { title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t("shared.cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              variant={published ? "destructive" : "default"}
+              variant={variant}
               onClick={() => formRef.current?.requestSubmit()}
             >
-              {t(`publication.${copy}.confirm`)}
+              {t(`publication.${action}.confirm`)}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -164,6 +164,12 @@ beforeAll(async () => {
     published_at: new Date().toISOString(),
     created_by: userIds.authorA,
   });
+
+  const { error: syncError } = await service.rpc("sync_published_post", {
+    p_post_id: fixtures.published,
+  });
+
+  if (syncError) throw syncError;
 });
 
 afterAll(async () => {
@@ -446,13 +452,13 @@ describe("draft authoring RPC and RLS", () => {
     expect(nonContiguous.error?.code).toBe("22023");
   });
 
-  it("denies an author editing a published post and allows an editor", async () => {
-    const authorA = await signInAs("authorA");
-    const authorResult = await authorA.rpc("update_post_metadata", {
+  it("lets the owning author and an editor edit a published post's working copy only", async () => {
+    const authorB = await signInAs("authorB");
+    const otherAuthorResult = await authorB.rpc("update_post_metadata", {
       p_post_id: fixtures.published,
       ...bodyFields,
       p_expected_revision: 1,
-      p_title: "Yazar yayını düzenleyemez",
+      p_title: "Başka yazar yayını düzenleyemez",
       p_slug: `${slugPrefix}-yayinda`,
       p_excerpt: null,
       p_category_id: fixtures.category,
@@ -460,13 +466,29 @@ describe("draft authoring RPC and RLS", () => {
       p_credits: [],
     });
 
-    expect(authorResult.error?.code).toBe("42501");
+    expect(otherAuthorResult.error?.code).toBe("42501");
+
+    const authorA = await signInAs("authorA");
+    const authorResult = await authorA.rpc("update_post_metadata", {
+      p_post_id: fixtures.published,
+      ...bodyFields,
+      p_expected_revision: 1,
+      p_title: "Yazar yayının çalışma kopyasını düzenledi",
+      p_slug: `${slugPrefix}-yayinda`,
+      p_excerpt: null,
+      p_category_id: fixtures.category,
+      p_tag_ids: [],
+      p_credits: [],
+    });
+
+    expect(authorResult.error).toBeNull();
+    expect((authorResult.data as { revision: number }[])[0].revision).toBe(2);
 
     const editor = await signInAs("editor");
     const editorResult = await editor.rpc("update_post_metadata", {
       p_post_id: fixtures.published,
       ...bodyFields,
-      p_expected_revision: 1,
+      p_expected_revision: 2,
       p_title: "Editör yayını düzenledi",
       p_slug: `${slugPrefix}-yayinda`,
       p_excerpt: "Yayın özeti.",
@@ -476,12 +498,28 @@ describe("draft authoring RPC and RLS", () => {
     });
 
     expect(editorResult.error).toBeNull();
+
+    // Saving changes the working copy; readers keep the published snapshot.
+    const anon = anonymousClient();
+    const { data: snapshot, error: snapshotError } = await anon
+      .from("published_posts")
+      .select("title, excerpt")
+      .eq("post_id", fixtures.published)
+      .single();
+
+    expect(snapshotError).toBeNull();
+    expect(snapshot).toEqual({ title: `RPC Yayında ${runId}`, excerpt: null });
   });
 
   it("keeps drafts out of public and unrelated author reads", async () => {
     const anon = anonymousClient();
     const anonPosts = await anon.from("posts").select("id").eq("id", fixtures.draftA);
-    expect(anonPosts.data).toEqual([]);
+    expect(anonPosts.error?.code).toBe("42501");
+    const anonSnapshot = await anon
+      .from("published_posts")
+      .select("post_id")
+      .eq("post_id", fixtures.draftA);
+    expect(anonSnapshot.data).toEqual([]);
 
     const reader = await signInAs("reader");
     const readerPosts = await reader

@@ -188,6 +188,13 @@ beforeAll(async () => {
   ]);
 
   if (tagsError) throw tagsError;
+
+  // Public reads come from the published snapshot.
+  const { error: syncError } = await service.rpc("sync_published_post", {
+    p_post_id: fixtures.publishedPost,
+  });
+
+  if (syncError) throw syncError;
 });
 
 afterAll(async () => {
@@ -223,7 +230,9 @@ afterAll(async () => {
 describe("content RLS", () => {
   it("shows anonymous visitors only published posts", async () => {
     const anon = anonymousClient();
-    const { data, error } = await anon.from("posts").select("id, status");
+    const { data, error } = await anon
+      .from("published_posts")
+      .select("id:post_id");
 
     expect(error).toBeNull();
 
@@ -231,19 +240,31 @@ describe("content RLS", () => {
     expect(ids).toContain(fixtures.publishedPost);
     expect(ids).not.toContain(fixtures.draftA);
     expect(ids).not.toContain(fixtures.draftB);
-    expect((data ?? []).every((row) => row.status === "published")).toBe(true);
+  });
+
+  it("denies anonymous visitors the working copy", async () => {
+    const anon = anonymousClient();
+
+    for (const table of ["posts", "post_authors", "post_tags"]) {
+      const { data, error } = await anon.from(table).select("*");
+
+      expect(data).toBeNull();
+      expect(error?.code).toBe("42501");
+    }
   });
 
   it("hides draft credits and tags from anonymous visitors", async () => {
     const anon = anonymousClient();
 
-    const credits = await anon.from("post_authors").select("post_id");
+    const credits = await anon.from("published_post_authors").select("post_id");
+    expect(credits.error).toBeNull();
     const creditPostIds = (credits.data ?? []).map((row) => row.post_id);
     expect(creditPostIds).toContain(fixtures.publishedPost);
     expect(creditPostIds).not.toContain(fixtures.draftA);
     expect(creditPostIds).not.toContain(fixtures.draftB);
 
-    const postTags = await anon.from("post_tags").select("post_id");
+    const postTags = await anon.from("published_post_tags").select("post_id");
+    expect(postTags.error).toBeNull();
     const tagPostIds = (postTags.data ?? []).map((row) => row.post_id);
     expect(tagPostIds).toContain(fixtures.publishedPost);
     expect(tagPostIds).not.toContain(fixtures.draftA);
@@ -285,7 +306,9 @@ describe("content RLS", () => {
 
   it("treats a signed-in reader without a grant like an anonymous visitor", async () => {
     const reader = await signInAs("reader");
-    const { data, error } = await reader.from("posts").select("id");
+    const { data, error } = await reader
+      .from("published_posts")
+      .select("id:post_id");
 
     expect(error).toBeNull();
 
@@ -293,6 +316,18 @@ describe("content RLS", () => {
     expect(ids).toContain(fixtures.publishedPost);
     expect(ids).not.toContain(fixtures.draftA);
     expect(ids).not.toContain(fixtures.draftB);
+
+    // The working copy returns nothing to a reader, published posts included.
+    const posts = await reader.from("posts").select("id");
+    const credits = await reader.from("post_authors").select("post_id");
+    const postTags = await reader.from("post_tags").select("post_id");
+
+    expect(posts.error).toBeNull();
+    expect(posts.data).toEqual([]);
+    expect(credits.error).toBeNull();
+    expect(credits.data).toEqual([]);
+    expect(postTags.error).toBeNull();
+    expect(postTags.data).toEqual([]);
   });
 
   it("lets an author read their own draft and its relations only", async () => {

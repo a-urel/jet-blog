@@ -140,13 +140,22 @@ async function renamePost(client: SupabaseClient, postId: string, slug: string) 
   });
 }
 
+// Copies the working copy to the published snapshot (editors and admins).
+async function republish(client: SupabaseClient, postId: string) {
+  const post = await currentPost(postId);
+
+  return client.rpc("republish_post", {
+    p_post_id: postId,
+    p_expected_revision: post.revision,
+  });
+}
+
 // Mirrors findPublishedPost in src/features/posts/data.ts.
 async function resolvePublicSlug(slug: string) {
   const anon = anonymousClient();
   const direct = await anon
-    .from("posts")
-    .select("id, slug")
-    .eq("status", "published")
+    .from("published_posts")
+    .select("id:post_id, slug")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -155,9 +164,8 @@ async function resolvePublicSlug(slug: string) {
 
   const redirect = await anon
     .from("post_slug_redirects")
-    .select("post:posts!inner(slug, status)")
+    .select("post:published_post!inner(slug)")
     .eq("old_slug", slug)
-    .eq("post.status", "published")
     .maybeSingle();
 
   expect(redirect.error).toBeNull();
@@ -240,15 +248,15 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
   it("keeps drafts and their relations out of public reads", async () => {
     for (const client of [anonymousClient(), clients.reader]) {
       const posts = await client
-        .from("posts")
-        .select("id")
+        .from("published_posts")
+        .select("post_id")
         .like("slug", `${slugPrefix}%`);
       const credits = await client
-        .from("post_authors")
+        .from("published_post_authors")
         .select("post_id")
         .eq("post_id", fixtures.draft);
       const tags = await client
-        .from("post_tags")
+        .from("published_post_tags")
         .select("post_id")
         .eq("post_id", fixtures.draft);
 
@@ -256,6 +264,17 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
       expect(posts.data).toEqual([]);
       expect(credits.data).toEqual([]);
       expect(tags.data).toEqual([]);
+    }
+
+    // The working copy: no grant for anonymous visitors, no rows for readers.
+    const anon = anonymousClient();
+    for (const table of ["posts", "post_authors", "post_tags"]) {
+      const anonRead = await anon.from(table).select("*").limit(1);
+      expect(anonRead.error?.code).toBe("42501");
+
+      const readerRead = await clients.reader.from(table).select("*");
+      expect(readerRead.error).toBeNull();
+      expect(readerRead.data).toEqual([]);
     }
 
     expect(await resolvePublicSlug(`${slugPrefix}-taslak`)).toEqual({
@@ -320,16 +339,24 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
 
     const anon = anonymousClient();
     const publicRow = await anon
-      .from("posts")
-      .select("id, post_authors(author_id), post_tags(tag_id)")
-      .eq("id", fixtures.draft)
+      .from("published_posts")
+      .select(
+        "id:post_id, published_at, updated_at, published_post_authors(author_id), published_post_tags(tag_id)",
+      )
+      .eq("post_id", fixtures.draft)
       .single();
 
     expect(publicRow.error).toBeNull();
-    expect(publicRow.data?.post_authors).toEqual([
+    expect(Date.parse(publicRow.data!.published_at)).toBe(
+      Date.parse(after.published_at!),
+    );
+    expect(Date.parse(publicRow.data!.updated_at)).toBe(
+      Date.parse(after.published_at!),
+    );
+    expect(publicRow.data?.published_post_authors).toEqual([
       { author_id: fixtures.author },
     ]);
-    expect(publicRow.data?.post_tags).toEqual([{ tag_id: fixtures.tag }]);
+    expect(publicRow.data?.published_post_tags).toEqual([{ tag_id: fixtures.tag }]);
 
     const again = await clients.editor.rpc("publish_post", {
       p_post_id: fixtures.draft,
@@ -350,6 +377,21 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
     expect(Date.parse(post.updated_at)).toBeGreaterThan(
       Date.parse(post.published_at!),
     );
+
+    // Readers see the edit time once the change is republished.
+    expect((await republish(clients.editor, fixtures.draft)).error).toBeNull();
+
+    const { data, error: readError } = await anonymousClient()
+      .from("published_posts")
+      .select("published_at, updated_at")
+      .eq("post_id", fixtures.draft)
+      .single();
+
+    expect(readError).toBeNull();
+    expect(Date.parse(data!.published_at)).toBe(Date.parse(post.published_at!));
+    expect(Date.parse(data!.updated_at)).toBeGreaterThan(
+      Date.parse(data!.published_at),
+    );
   });
 
   it("redirects old published slugs to the current slug in one hop", async () => {
@@ -358,7 +400,14 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
     const third = `${slugPrefix}-son`;
 
     expect((await renamePost(clients.editor, fixtures.draft, second)).error).toBeNull();
+
+    // A saved slug change stays private until it is republished.
+    expect(await resolvePublicSlug(first)).toEqual({ kind: "post", slug: first });
+    expect(await resolvePublicSlug(second)).toEqual({ kind: "missing" });
+
+    expect((await republish(clients.editor, fixtures.draft)).error).toBeNull();
     expect((await renamePost(clients.editor, fixtures.draft, third)).error).toBeNull();
+    expect((await republish(clients.editor, fixtures.draft)).error).toBeNull();
 
     expect(await resolvePublicSlug(first)).toEqual({ kind: "redirect", slug: third });
     expect(await resolvePublicSlug(second)).toEqual({ kind: "redirect", slug: third });
@@ -402,6 +451,7 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
       `${slugPrefix}-yeni`,
     );
     expect(reclaimed.error).toBeNull();
+    expect((await republish(clients.editor, fixtures.draft)).error).toBeNull();
     expect(await resolvePublicSlug(`${slugPrefix}-yeni`)).toEqual({
       kind: "post",
       slug: `${slugPrefix}-yeni`,
@@ -427,15 +477,17 @@ describe("publishing RPCs, public reads, and slug redirects", () => {
     expect(data).toEqual([]);
   });
 
-  it("denies unpublishing to authors and readers", async () => {
+  it("denies unpublishing and republishing to authors and readers", async () => {
     const { revision } = await currentPost(fixtures.draft);
 
     for (const key of ["reader", "author"] as const) {
-      const { error } = await clients[key].rpc("unpublish_post", {
-        p_post_id: fixtures.draft,
-        p_expected_revision: revision,
-      });
-      expect(error?.code).toBe("42501");
+      for (const rpc of ["unpublish_post", "republish_post"]) {
+        const { error } = await clients[key].rpc(rpc, {
+          p_post_id: fixtures.draft,
+          p_expected_revision: revision,
+        });
+        expect(error?.code).toBe("42501");
+      }
     }
 
     expect((await currentPost(fixtures.draft)).status).toBe("published");

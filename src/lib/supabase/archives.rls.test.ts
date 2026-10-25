@@ -118,6 +118,12 @@ async function insertPost(
   });
 }
 
+async function postRevision(id: string): Promise<number> {
+  const { data, error } = await service.from("posts").select("revision").eq("id", id).single();
+  if (error) throw error;
+  return data.revision as number;
+}
+
 function slugsOf(rows: unknown[] | null) {
   return ((rows ?? []) as { slug: string }[])
     .map((row) => row.slug)
@@ -248,19 +254,33 @@ beforeAll(async () => {
   ]);
   if (tagError) throw tagError;
 
+  // Public reads come from the published snapshot, built after the credits
+  // and tags exist.
+  for (const id of [ids.inChild, ids.inGrandchild, ids.unpublished, ids.renamed, ...pagePosts.map((post) => post.id)]) {
+    const { error: syncError } = await service.rpc("sync_published_post", { p_post_id: id });
+    if (syncError) throw syncError;
+  }
+
   // Published, then returned to draft: every public trace must disappear.
-  const { error: unpublishError } = await service
-    .from("posts")
-    .update({ status: "draft", published_at: null })
-    .eq("id", ids.unpublished);
+  const { error: unpublishError } = await clients.editor.rpc("unpublish_post", {
+    p_post_id: ids.unpublished,
+    p_expected_revision: await postRevision(ids.unpublished),
+  });
   if (unpublishError) throw unpublishError;
 
-  // A slug change of a published post records a redirect for the old slug.
+  // A slug change of a published post records a redirect for the old slug
+  // once it is republished.
   const { error: renameError } = await service
     .from("posts")
     .update({ slug: slugs.renamedNew })
     .eq("id", ids.renamed);
   if (renameError) throw renameError;
+
+  const { error: republishError } = await clients.editor.rpc("republish_post", {
+    p_post_id: ids.renamed,
+    p_expected_revision: await postRevision(ids.renamed),
+  });
+  if (republishError) throw republishError;
 });
 
 afterAll(async () => {
@@ -301,6 +321,15 @@ describe("category archives", () => {
     expect(await categoryArchiveSlugs(clients.editor, ids.parent)).not.toContain(
       slugs.draftInParent,
     );
+  });
+
+  it("keeps the working copy private from public readers", async () => {
+    const anon = await clients.anon.from("posts").select("slug").like("slug", `${slugPrefix}%`);
+    expect(anon.error?.code).toBe("42501");
+
+    const reader = await clients.reader.from("posts").select("slug").like("slug", `${slugPrefix}%`);
+    expect(reader.error).toBeNull();
+    expect(reader.data).toEqual([]);
   });
 
   it("has no posts for an empty category", async () => {

@@ -414,9 +414,9 @@ describe("publishing with a cover", () => {
     const postId = await createDraftId("author", "published");
 
     const draftRead = await anonymousClient()
-      .from("posts")
-      .select("id")
-      .eq("id", postId);
+      .from("published_posts")
+      .select("post_id")
+      .eq("post_id", postId);
     expect(draftRead.data).toEqual([]);
 
     const { error } = await publish(clients.admin, postId);
@@ -424,7 +424,7 @@ describe("publishing with a cover", () => {
 
     for (const client of [anonymousClient(), clients.reader]) {
       const { data, error: readError } = await selectPublishedPostSummaries(client).eq(
-        "id",
+        "post_id",
         postId,
       );
 

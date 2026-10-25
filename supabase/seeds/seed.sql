@@ -166,3 +166,10 @@ where status = 'published'
   );
 
 alter table public.posts enable trigger posts_set_updated_at;
+
+-- Phase 26: public reads use the published snapshot. Build it (and version 1)
+-- from the working copies above, with their publication times.
+select public.sync_published_post(posts.id)
+from public.posts
+where posts.status = 'published'
+order by posts.published_at, posts.id;

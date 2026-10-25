@@ -67,11 +67,27 @@ export function publicationErrorMessageKey(
     : null;
 }
 
-// Catalog group (adminPosts.publication.publish or .unpublish) for the
-// confirmation dialog in front of publish and unpublish. Both actions change
-// what anonymous readers see at once, so neither runs on the first click.
-export function publicationConfirmationKey(
-  published: boolean,
-): "publish" | "unpublish" {
-  return published ? "unpublish" : "publish";
+// A publication action and its catalog group under adminPosts.publication.
+// Each runs behind a confirmation dialog (PublicationControl).
+export type PublicationAction = "publish" | "unpublish" | "republish" | "discard";
+
+// The actions the post page offers, in display order. A draft can be
+// published. A published post can be republished when its working copy has
+// unpublished changes, those changes can be discarded, and it can be
+// unpublished. Publishing, republishing, and unpublishing need an editor or
+// admin (D1); discarding follows the edit rule (an author on an own post).
+// The RPCs enforce the same rules.
+export function availablePublicationActions(post: {
+  published: boolean;
+  hasUnpublishedChanges: boolean;
+  canPublish: boolean;
+  canDiscard: boolean;
+}): PublicationAction[] {
+  if (!post.published) return post.canPublish ? ["publish"] : [];
+
+  const actions: PublicationAction[] = [];
+  if (post.canPublish && post.hasUnpublishedChanges) actions.push("republish");
+  if (post.canDiscard && post.hasUnpublishedChanges) actions.push("discard");
+  if (post.canPublish) actions.push("unpublish");
+  return actions;
 }
