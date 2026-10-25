@@ -281,8 +281,11 @@ check(shortSearch.html.includes("en az 2 karakter"), "/search?q=a: too-short sta
 const invalidLanguage = await get("/search?q=smoke&language=fr_FR");
 const invalidLanguageHtml = await invalidLanguage.text();
 check(invalidLanguage.status === 200, `/search?language=fr_FR: expected 200, got ${invalidLanguage.status}`);
+// The filter has no control on the page, so check the result line: a filtered
+// search names the language in parentheses, an unfiltered one does not.
 check(
-  /<option(?=[^>]*value="")[^>]*selected/.test(invalidLanguageHtml),
+  /için (?:sonuç bulunamadı|\d+ sonuç)/.test(invalidLanguageHtml) &&
+    !/için (?:sonuç bulunamadı|\d+ sonuç) \(/.test(invalidLanguageHtml),
   "/search?language=fr_FR: the invalid filter is not reset to all languages",
 );
 
