@@ -287,8 +287,8 @@ the generated site-wide social image is not declared without
 `NEXT_PUBLIC_SITE_URL` (an uploaded default image from the site settings is);
 Open Graph image URLs point at the original upload on the media
 origin (no 1200×630 rendition) and omit width/height, because readers cannot
-read media rows. The origin is provisional (D5), so canonical/sitemap URLs
-point at whatever `NEXT_PUBLIC_SITE_URL` holds. Site settings (Phase 27):
+read media rows. Canonical and sitemap URLs use each deployment's
+`NEXT_PUBLIC_SITE_URL` (D5: the repository fixes no domain). Site settings (Phase 27):
 a new default or enabled locale reaches the proxy within its 30-second
 per-instance cache; logos render as plain `<img>` with a fixed height
 (their dimensions are not public); the accent color is mixed toward black or
@@ -300,8 +300,10 @@ category ids of all posts in its subtree (fine at the current size; revisit
 with a slimmer query or sitemap index if the post count grows large).
 Draft media is fetchable by URL (D4, confirmed 2026-10-25). Cache
 invalidation stays route-wide by design (Phase 10 documents why per-post tags
-would not save regenerations). Hosting, domain, and brand (D5) are still open,
-so no hosted backup schedule, HSTS, or multi-instance cache handler exists yet. A slug
+would not save regenerations). The repository ships no hosted deployment
+(D5): backup schedules, HSTS, and caching belong to each deployment; the
+README "Deploying to Vercel" guide covers the reference host, where no custom
+cache handler is needed. A slug
 changed while a post is unpublished records no redirect, so a URL that was
 public before an unpublish/rename/republish cycle returns 404. A deleted tag's
 archive URL returns 404 by decision, as does a deleted author's. A credited
@@ -2085,7 +2087,9 @@ the localized one.
 
 Follow-ups, not requested: localized Auth email templates per reader
 language (needs a stored preference); a no-JavaScript switcher; edge cache
-configuration once hosting (D5) is chosen.
+configuration for hosts other than Vercel (on Vercel the Proxy runs before
+the cache, so each locale is cached under its rewritten path; see the README
+"Deploying to Vercel").
 
 ### Phase 23 — Archive feeds
 
@@ -2191,8 +2195,8 @@ to the page after a save (unchanged from Phase 18); no pinch-to-zoom gesture
 Goal: edits to a live post stay private until an editor republishes them, and
 every publication leaves an immutable record.
 
-Status: complete on 2026-10-25, on `claude/phase26-published-snapshot` (not
-merged). Details: README "Published snapshots (Phase 26)".
+Status: complete on 2026-10-25, on `claude/phase26-published-snapshot`;
+merged into main on 2026-10-25. Details: README "Published snapshots (Phase 26)".
 
 Decisions (user, 2026-10-25): see D3 revised above.
 
@@ -2229,8 +2233,8 @@ Goal: each deployment sets its own brand, colors, social links, interface
 locales, and search visibility from the administration, without code or
 environment changes.
 
-Status: complete on 2026-10-25, on `worktree-phase27-site-settings` (not
-merged). Details: README "Site settings (Phase 27)".
+Status: complete on 2026-10-25, on `worktree-phase27-site-settings`;
+merged into main on 2026-10-26. Details: README "Site settings (Phase 27)".
 
 Decisions (user, 2026-10-25): single-tenant white-label (each customer runs
 its own deployment and Supabase project); branding text has one value for
@@ -2273,8 +2277,8 @@ Goal: a white-label deployment can publish its own About, contact, and legal
 pages (KVKK, GDPR/privacy, terms, imprint) and edit the header and footer
 menus without code changes.
 
-Status: complete on 2026-10-26, on `claude/phase28-pages-5537c7` (not
-merged). Details: README "Static pages and navigation (Phase 28)".
+Status: complete on 2026-10-26, on `claude/phase28-pages-5537c7`;
+merged into main on 2026-10-26. Details: README "Static pages and navigation (Phase 28)".
 
 Decisions (user, 2026-10-25): single tenant (one deployment per customer);
 one version per page, not per interface language; several pages, legal texts
@@ -2357,7 +2361,9 @@ index type (HNSW or IVFFlat).
   because a StarterKit change can add nodes or attributes outside the allowlist.
 - Public media is a deliberate tradeoff; revisit before launch if drafts may
   contain sensitive images.
-- SEO canonical and sitemap output cannot be finalized before D5.
+- Canonical, sitemap, feed, and invitation URLs follow
+  `NEXT_PUBLIC_SITE_URL`; a deployment that changes its origin must update it,
+  the Supabase Auth URLs, and redeploy (README "Deploying to Vercel").
 - RLS mistakes are silent; every policy change needs a negative test.
 - Until Phase 26 the single-working-copy model (D3) made an edit to a published
   post live immediately. Phase 26 separated the published snapshot; any new
@@ -2371,8 +2377,9 @@ index type (HNSW or IVFFlat).
   (Auth flows and, since Phase 19, search, which since Phase 20 has no direct
   Data API path) use the first `X-Forwarded-For`
   entry, which is only trustworthy behind a proxy that overwrites it; without
-  one a client can rotate the header and is effectively unlimited. Confirm
-  with the host (D5) and add CAPTCHA if abuse appears.
+  one a client can rotate the header and is effectively unlimited. Vercel
+  overwrites the header (D5 reference host); other hosts must do the same.
+  Add CAPTCHA if abuse appears.
 - Reader-generated content adds spam, moderation load, abuse handling, and
   account-deletion obligations. Phases 11–13 must ship with rate limits,
   reporting, and the documented deletion policy. Post-moderation only works with
