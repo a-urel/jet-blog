@@ -6,13 +6,14 @@ import { getTranslations } from "next-intl/server";
 import { getEditorialContext } from "@/lib/auth/editorial";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { mediaBucket } from "./url";
-import { maxMediaBytes, validateMediaUpload } from "./validation";
+import { maxMediaBytes, normalizeMediaFileName, validateMediaUpload } from "./validation";
 import { revalidateLocalizedPath } from "@/lib/revalidate";
 
 export type UploadedMedia = {
   id: string;
   width: number;
   height: number;
+  originalName: string | null;
 };
 
 export type UploadMediaResult =
@@ -64,6 +65,7 @@ export async function uploadMediaAction(
 
   const { info } = validation;
   const mediaId = crypto.randomUUID();
+  const originalName = normalizeMediaFileName(file.name);
   const supabase = await createServerSupabaseClient();
   const storage = supabase.storage.from(mediaBucket);
 
@@ -82,6 +84,7 @@ export async function uploadMediaAction(
     p_media_id: mediaId,
     p_width: info.width,
     p_height: info.height,
+    p_original_name: originalName,
   });
 
   if (error) {
@@ -93,7 +96,7 @@ export async function uploadMediaAction(
 
   return {
     ok: true,
-    media: { id: mediaId, width: info.width, height: info.height },
+    media: { id: mediaId, width: info.width, height: info.height, originalName },
   };
 }
 

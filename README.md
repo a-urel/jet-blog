@@ -539,12 +539,25 @@ Storage bucket with UUID object paths and server-side validation.
   alt text (or an explicit "decorative" flag), and an optional caption.
   `features/media/actions.ts` `uploadMediaAction` checks membership, reads the
   bytes, and identifies the format from the file signature
-  (`features/media/validation.ts`); the declared type and file name are ignored,
-  so SVG, HTML, and renamed files are rejected. It uploads with the user's
+  (`features/media/validation.ts`); the declared type and file name are ignored
+  for validation, so SVG, HTML, and renamed files are rejected. It uploads with the user's
   session so Storage policies apply, then calls `register_media`, which re-reads
   type and size from Storage metadata and requires the caller to own the object.
   If registration fails, the object is removed. The Server Action body limit is
   raised to 6 MB in `next.config.ts` for this upload.
+- **File names and library search.** Since
+  `20261114120000_media_original_name.sql`, `public.media.original_name` keeps
+  the uploaded file's name as a label: `normalizeMediaFileName` reduces it to the
+  last path segment, NFC, without control characters, at most 200 characters
+  with the extension kept, and `register_media` takes it as an optional fourth
+  argument (a CHECK constraint bounds it; earlier rows stay null). The name never
+  becomes a Storage path or URL and is rendered as text. The shared library
+  dialog (site settings images and post cover, `features/media/components/
+  media-library-dialog.tsx`) searches it client-side over the loaded library
+  (`listMedia`, newest 200): case- and accent-insensitive, Turkish dotted and
+  dotless i folded, hyphens, underscores, and dots read as spaces, every word
+  required. Escape clears an active search before it closes the dialog.
+  `/admin/media` shows the name above the media id.
 - **Storage policies.** Inserts into the `media` bucket require an active
   editorial member, a lowercase UUID path (no folders or extensions), and fewer
   than 20 uploads by that member in the last ten minutes

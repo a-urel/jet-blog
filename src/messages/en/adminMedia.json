@@ -51,6 +51,14 @@
     "unsuitableNote": "Dimmed images cannot be used: {reason}",
     "empty": "The library has no images yet.",
     "emptyAction": "Upload a new image",
-    "error": "The media library could not be loaded."
+    "error": "The media library could not be loaded.",
+    "search": "Search by file name",
+    "searchPlaceholder": "Search by file name",
+    "clearSearch": "Clear search",
+    "countMatching": "{count, plural, one {# image matches} other {# images match}} (of {total})",
+    "noMatches": "No images match “{query}”.",
+    "itemNamed": "{name}, {width}×{height} pixels",
+    "itemNamedSelected": "{name}, {width}×{height} pixels, selected",
+    "itemNamedUnsuitable": "{name}, {width}×{height} pixels, not suitable for this field"
   }
 }

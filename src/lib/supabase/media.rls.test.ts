@@ -267,11 +267,12 @@ describe("media registration", () => {
     const mediaId = await uploadAndRegister("author");
     const { data, error } = await clients.author
       .from("media")
-      .select("object_path, mime_type, size_bytes, width, height, uploaded_by")
+      .select("object_path, mime_type, size_bytes, width, height, uploaded_by, original_name")
       .eq("id", mediaId)
       .single();
 
     expect(error).toBeNull();
+    // Without a name (the three-argument call still resolves) the name is null.
     expect(data).toEqual({
       object_path: mediaId,
       mime_type: "image/png",
@@ -279,7 +280,49 @@ describe("media registration", () => {
       width: 3,
       height: 2,
       uploaded_by: userIds.author,
+      original_name: null,
     });
+  });
+
+  it("stores the original file name, trimmed", async () => {
+    const { path, error } = await upload(clients.author);
+    expect(error).toBeNull();
+
+    const registered = await clients.author.rpc("register_media", {
+      p_media_id: path,
+      p_width: 3,
+      p_height: 2,
+      p_original_name: "  Sète kıyısı.png ",
+    });
+    expect(registered.error).toBeNull();
+
+    const { data } = await clients.author
+      .from("media")
+      .select("original_name")
+      .eq("id", path)
+      .single();
+    expect(data?.original_name).toBe("Sète kıyısı.png");
+  });
+
+  it.each([
+    ["a path separator", "folder/photo.png"],
+    ["a backslash", "folder\\photo.png"],
+    ["a control character", "photo\u0007.png"],
+    ["more than 200 characters", `${"a".repeat(197)}.png`],
+  ])("refuses a file name with %s", async (_case, name) => {
+    const { path, error } = await upload(clients.author);
+    expect(error).toBeNull();
+
+    const result = await clients.author.rpc("register_media", {
+      p_media_id: path,
+      p_width: 3,
+      p_height: 2,
+      p_original_name: name,
+    });
+
+    expect(result.error?.code).toBe("22023");
+    const { data } = await clients.author.from("media").select("id").eq("id", path);
+    expect(data).toEqual([]);
   });
 
   it("refuses to register another member's object", async () => {

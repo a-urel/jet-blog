@@ -41,5 +41,5 @@ long side (JPEG, metadata removed); the museum mounts and borders are kept.
 2. Photographs: use only public-domain or CC0 sources whose terms allow
    redistribution in this repository (not Unsplash or Pexels, whose licenses
    forbid redistributing the photos as a collection). Keep files under the
-   4 MiB media limit, name them by a new UUID, add the `seed.sql` row, and
-   credit them here.
+   4 MiB media limit, name them by a new UUID, add the `seed.sql` row (with a
+   searchable `original_name`), and credit them here.

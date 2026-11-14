@@ -125,7 +125,12 @@ export default async function AdminMediaPage({
                       />
                     ) : null}
                     <div className="min-w-0 flex-1 space-y-1 text-sm">
-                      <p className="truncate font-mono text-xs">{item.id}</p>
+                      {item.originalName ? (
+                        <p className="truncate font-medium" title={item.originalName}>
+                          {item.originalName}
+                        </p>
+                      ) : null}
+                      <p className="truncate font-mono text-xs text-muted-foreground">{item.id}</p>
                       <p className="text-muted-foreground">
                         {item.mimeType} · {item.width}×{item.height} ·{" "}
                         {formatSize(item.sizeBytes)} ·{" "}
