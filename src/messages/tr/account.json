@@ -41,7 +41,8 @@
     "title": "Parola ve oturum",
     "description": "Parolanızı değiştirebilir veya bu cihazdaki oturumu kapatabilirsiniz.",
     "change": "Parolayı değiştir",
-    "signOut": "Çıkış yap"
+    "signOut": "Çıkış yap",
+    "signingOut": "Çıkış yapılıyor…"
   },
   "passwordPage": {
     "title": "Parola değiştir",

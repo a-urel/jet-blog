@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bookmark, KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { Bookmark, KeyRound, LoaderCircle, LogOut, ShieldCheck } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -151,10 +152,18 @@ export default async function AccountPage({
             </Link>
           </Button>
           <form action={signOutAction}>
-            <Button type="submit" variant="outline">
+            <PendingSubmitButton
+              variant="outline"
+              pendingChildren={
+                <>
+                  <LoaderCircle aria-hidden="true" className="animate-spin" />
+                  {t("password.signingOut")}
+                </>
+              }
+            >
               <LogOut aria-hidden="true" />
               {t("password.signOut")}
-            </Button>
+            </PendingSubmitButton>
           </form>
         </CardContent>
       </Card>

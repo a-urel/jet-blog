@@ -22,6 +22,7 @@
       "navigation": "Menüs"
     },
     "signOut": "Abmelden",
+    "signingOut": "Wird abgemeldet…",
     "backToSite": "Zurück zur Website",
     "deniedTitle": "Kein Zugriff auf die Verwaltung",
     "deniedDescription": "Dieser Bereich steht nur eingeladenen Redaktionsmitgliedern offen. Leserkonten haben keinen Zugriff auf die Verwaltung; redaktioneller Zugriff wird nur durch die Einladung eines Admins gewährt."

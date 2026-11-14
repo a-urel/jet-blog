@@ -22,6 +22,7 @@
       "navigation": "Menus"
     },
     "signOut": "Sign out",
+    "signingOut": "Signing out…",
     "backToSite": "Back to site",
     "deniedTitle": "No administration access",
     "deniedDescription": "This area is open only to invited editorial members. Reader accounts cannot access administration; editorial access is granted only through an admin’s invitation."

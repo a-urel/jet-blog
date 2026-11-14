@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { CircleAlert, Trash2 } from "lucide-react";
+import { CircleAlert, LoaderCircle, Trash2 } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
 
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { QueryStatusToast } from "@/components/status/query-status";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -132,10 +132,19 @@ export default async function AdminMediaPage({
                     {canDelete ? (
                       <form action={deleteMediaAction}>
                         <input type="hidden" name="mediaId" value={item.id} />
-                        <Button type="submit" variant="outline" size="sm">
+                        <PendingSubmitButton
+                          variant="outline"
+                          size="sm"
+                          pendingChildren={
+                            <>
+                              <LoaderCircle aria-hidden="true" className="animate-spin" />
+                              {tForm("deleting")}
+                            </>
+                          }
+                        >
                           <Trash2 aria-hidden="true" />
                           {tForm("delete")}
-                        </Button>
+                        </PendingSubmitButton>
                       </form>
                     ) : null}
                   </li>

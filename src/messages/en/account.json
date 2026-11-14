@@ -41,7 +41,8 @@
     "title": "Password and session",
     "description": "You can change your password or sign out on this device.",
     "change": "Change password",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "signingOut": "Signing out…"
   },
   "passwordPage": {
     "title": "Change password",

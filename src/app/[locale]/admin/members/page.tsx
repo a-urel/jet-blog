@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 
 import { QueryStatusToast } from "@/components/status/query-status";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import {
   Card,
   CardContent,
@@ -297,9 +297,13 @@ export default async function AdminMembersPage({
                                   </NativeSelectOption>
                                 ))}
                               </NativeSelect>
-                              <Button type="submit" size="sm" variant="outline">
+                              <PendingSubmitButton
+                                size="sm"
+                                variant="outline"
+                                pendingChildren={tAdmin("form.saving")}
+                              >
                                 {tAdmin("form.save")}
-                              </Button>
+                              </PendingSubmitButton>
                             </form>
                           )}
                         </td>
@@ -329,13 +333,13 @@ export default async function AdminMembersPage({
                                 name="active"
                                 value={isDeactivated ? "true" : "false"}
                               />
-                              <Button
-                                type="submit"
+                              <PendingSubmitButton
                                 size="sm"
                                 variant={isDeactivated ? "outline" : "destructive"}
+                                pendingChildren={tAdmin("form.saving")}
                               >
                                 {isDeactivated ? t("list.activate") : t("list.deactivate")}
-                              </Button>
+                              </PendingSubmitButton>
                             </form>
                           )}
                         </td>
