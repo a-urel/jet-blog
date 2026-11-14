@@ -25,6 +25,8 @@ type PostCoverFieldProps = {
   altError?: string;
   onCoverChange: (mediaId: string) => void;
   onAltChange: (alt: string) => void;
+  // Adds an upload to the library shared with the body editor.
+  onMediaUploaded: (media: CoverMediaOption) => void;
 };
 
 // Cover image for the post header, listing cards, and social previews. The
@@ -41,11 +43,11 @@ export function PostCoverField({
   altError,
   onCoverChange,
   onAltChange,
+  onMediaUploaded,
 }: PostCoverFieldProps) {
   const t = useTranslations("adminEditor");
   const id = useId();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [library, setLibrary] = useState(media);
   const [panel, setPanel] = useState<"closed" | "upload">("closed");
   const [libraryOpen, setLibraryOpen] = useState(false);
   const libraryButtonRef = useRef<HTMLButtonElement>(null);
@@ -98,7 +100,7 @@ export function PostCoverField({
       }
 
       const uploaded = result.media;
-      setLibrary((current) => [uploaded, ...current]);
+      onMediaUploaded(uploaded);
       choose(uploaded.id);
     });
   }
@@ -226,7 +228,7 @@ export function PostCoverField({
         onOpenChange={setLibraryOpen}
         fieldLabel={t("cover.label")}
         description={t("cover.help")}
-        items={library}
+        items={media}
         error={mediaError}
         selectedId={coverMediaId}
         onSelect={choose}

@@ -44,7 +44,13 @@
     "altRequired": "Geben Sie einen Alternativtext ein oder markieren Sie das Bild als dekorativ.",
     "apply": "Übernehmen",
     "uploadAndInsert": "Hochladen und einfügen",
-    "remove": "Bild entfernen"
+    "remove": "Bild entfernen",
+    "chooseFromLibrary": "Aus der Bibliothek wählen",
+    "changeLibraryChoice": "Ändern",
+    "clearLibraryChoice": "Bibliotheksauswahl entfernen",
+    "insert": "Einfügen",
+    "libraryImage": "Bibliotheksbild",
+    "libraryFieldLabel": "Bild im Text"
   },
   "video": {
     "url": "YouTube-Link",

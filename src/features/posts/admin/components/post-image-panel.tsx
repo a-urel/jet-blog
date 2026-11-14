@@ -1,8 +1,9 @@
 "use client";
 
 import { useId, useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import type { Editor } from "@tiptap/react";
-import { Trash2 } from "lucide-react";
+import { Images, Trash2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadMediaAction } from "@/features/media/actions";
+import {
+  MediaLibraryDialog,
+  type MediaLibraryItem,
+} from "@/features/media/components/media-library-dialog";
+import { mediaPublicUrl } from "@/features/media/url";
 import { allowedMediaTypes, maxMediaBytes } from "@/features/media/validation";
 import { insertBlockNode } from "@/features/posts/content/insert-block";
 import {
@@ -18,18 +24,28 @@ import {
   type ImageAttrs,
 } from "@/features/posts/content/schema";
 
+// The shared media library, when the page loaded it.
+export type EditorMediaLibrary = Readonly<{
+  items: readonly MediaLibraryItem[];
+  error: boolean;
+  onUploaded: (media: MediaLibraryItem) => void;
+}>;
+
 type PostImagePanelProps = {
   editor: Editor;
   // Attributes of the selected image when editing; null when inserting.
   selected: ImageAttrs | null;
   onClose: () => void;
+  library?: EditorMediaLibrary;
 };
 
-// Inserts an uploaded image or edits the alt text and caption of the selected
-// one. Alt text belongs to this occurrence, so the same media can carry a
-// different description in another post.
-export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProps) {
+// Inserts an image, uploaded or chosen from the media library, or edits the
+// alt text and caption of the selected one. Alt text belongs to this
+// occurrence, so the same media can carry a different description in another
+// post. A library image is inserted without uploading anything.
+export function PostImagePanel({ editor, selected, onClose, library }: PostImagePanelProps) {
   const t = useTranslations("adminEditor");
+  const tLibrary = useTranslations("adminMedia.library");
   const id = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const [alt, setAlt] = useState(selected?.alt ?? "");
@@ -37,6 +53,35 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
   const [decorative, setDecorative] = useState(selected?.decorative === true);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [libraryChoice, setLibraryChoice] = useState<MediaLibraryItem | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const libraryButtonRef = useRef<HTMLButtonElement>(null);
+  const libraryChoiceSrc = libraryChoice ? mediaPublicUrl(libraryChoice.id) : null;
+
+  function insertImage(
+    media: MediaLibraryItem,
+    attrs: Pick<ImageAttrs, "alt" | "caption" | "decorative">,
+  ) {
+    editor
+      .chain()
+      .focus()
+      .command(({ tr, state }) => {
+        insertBlockNode(
+          tr,
+          state.schema.nodes.image.create({
+            mediaId: media.id,
+            width: media.width,
+            height: media.height,
+            alt: attrs.alt,
+            caption: attrs.caption ?? null,
+            decorative: attrs.decorative ?? null,
+          }),
+        );
+        return true;
+      })
+      .run();
+    onClose();
+  }
 
   function close() {
     onClose();
@@ -78,6 +123,11 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
       return;
     }
 
+    if (libraryChoice) {
+      insertImage(libraryChoice, attrs);
+      return;
+    }
+
     const file = fileRef.current?.files?.[0];
 
     if (!file) {
@@ -111,27 +161,8 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
         return;
       }
 
-      const media = result.media;
-
-      editor
-        .chain()
-        .focus()
-        .command(({ tr, state }) => {
-          insertBlockNode(
-            tr,
-            state.schema.nodes.image.create({
-              mediaId: media.id,
-              width: media.width,
-              height: media.height,
-              alt: attrs.alt,
-              caption: attrs.caption ?? null,
-              decorative: attrs.decorative ?? null,
-            }),
-          );
-          return true;
-        })
-        .run();
-      onClose();
+      library?.onUploaded(result.media);
+      insertImage(result.media, attrs);
     });
   }
 
@@ -146,6 +177,9 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
     <div
       className="space-y-3 border-b px-3 py-3"
       onKeyDown={(event) => {
+        // Keys from the library dialog bubble here through the React tree
+        // (it renders in a portal); the dialog handles its own.
+        if (!event.currentTarget.contains(event.target as Node)) return;
         // Enter must not submit the surrounding post form.
         if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
           event.preventDefault();
@@ -157,18 +191,79 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
         }
       }}
     >
-      {selected ? null : (
+      {selected ? null : libraryChoice ? (
+        <div className="flex items-center gap-3 rounded-lg border p-2">
+          <span className="relative block h-14 w-20 shrink-0 overflow-hidden rounded-md border bg-neutral-50">
+            {libraryChoiceSrc ? (
+              <Image
+                src={libraryChoiceSrc}
+                alt=""
+                fill
+                sizes="5rem"
+                className="object-contain p-1"
+              />
+            ) : null}
+          </span>
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="truncate font-medium">
+              {libraryChoice.originalName ?? t("image.libraryImage")}
+            </p>
+            <p className="text-xs tabular-nums text-muted-foreground">
+              {tLibrary("dimensions", {
+                width: String(libraryChoice.width),
+                height: String(libraryChoice.height),
+              })}
+            </p>
+          </div>
+          <Button
+            ref={libraryButtonRef}
+            type="button"
+            size="sm"
+            variant="outline"
+            aria-haspopup="dialog"
+            onClick={() => setLibraryOpen(true)}
+          >
+            {t("image.changeLibraryChoice")}
+          </Button>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            aria-label={t("image.clearLibraryChoice")}
+            onClick={() => setLibraryChoice(null)}
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </div>
+      ) : (
         <div className="space-y-1.5">
           <Label htmlFor={`${id}-file`}>{t("upload.file")}</Label>
-          <Input
-            ref={fileRef}
-            id={`${id}-file`}
-            type="file"
-            accept={allowedMediaTypes.join(",")}
-            autoFocus
-            disabled={pending}
-            aria-describedby={`${id}-file-help`}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              ref={fileRef}
+              id={`${id}-file`}
+              type="file"
+              accept={allowedMediaTypes.join(",")}
+              autoFocus
+              disabled={pending}
+              aria-describedby={`${id}-file-help`}
+              className="min-w-0 flex-1"
+            />
+            {library ? (
+              <Button
+                ref={libraryButtonRef}
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-haspopup="dialog"
+                disabled={pending}
+                onClick={() => setLibraryOpen(true)}
+              >
+                <Images aria-hidden="true" />
+                {t("image.chooseFromLibrary")}
+              </Button>
+            ) : null}
+          </div>
           <p id={`${id}-file-help`} className="text-xs text-muted-foreground">
             {t("upload.fileHelp")}
           </p>
@@ -227,7 +322,9 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
             ? t("image.apply")
             : pending
               ? t("upload.uploading")
-              : t("image.uploadAndInsert")}
+              : libraryChoice
+                ? t("image.insert")
+                : t("image.uploadAndInsert")}
         </Button>
         {selected ? (
           <Button type="button" size="sm" variant="outline" onClick={remove}>
@@ -239,6 +336,25 @@ export function PostImagePanel({ editor, selected, onClose }: PostImagePanelProp
           {t("cancel")}
         </Button>
       </div>
+
+      {library ? (
+        <MediaLibraryDialog
+          open={libraryOpen}
+          onOpenChange={setLibraryOpen}
+          fieldLabel={t("image.libraryFieldLabel")}
+          items={library.items}
+          error={library.error}
+          selectedId={libraryChoice?.id ?? ""}
+          onSelect={(mediaId) => {
+            const item = library.items.find((candidate) => candidate.id === mediaId);
+            if (item) {
+              setLibraryChoice(item);
+              setError(null);
+            }
+          }}
+          returnFocusRef={libraryButtonRef}
+        />
+      ) : null}
     </div>
   );
 }

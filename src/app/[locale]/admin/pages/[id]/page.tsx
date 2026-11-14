@@ -8,6 +8,7 @@ import { QueryStatusToast } from "@/components/status/query-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { listMedia } from "@/features/media/data";
 import { pageAccessDenial } from "@/features/pages/admin/components/page-admin-guard";
 import { PageForm } from "@/features/pages/admin/components/page-form";
 import { PageStateControl } from "@/features/pages/admin/components/page-state-control";
@@ -36,12 +37,14 @@ export default async function EditStaticPage({
   if (denial) return denial;
 
   const { id } = await params;
-  const [{ page, error }, { status, error: errorValue }, t, format] = await Promise.all([
-    getAdminPage(id),
-    searchParams,
-    getTranslations("adminPages"),
-    getFormatter(),
-  ]);
+  const [{ page, error }, { status, error: errorValue }, t, format, mediaLibrary] =
+    await Promise.all([
+      getAdminPage(id),
+      searchParams,
+      getTranslations("adminPages"),
+      getFormatter(),
+      listMedia(),
+    ]);
 
   if (error) {
     return (
@@ -152,6 +155,13 @@ export default async function EditStaticPage({
               pageId={page.id}
               revision={page.revision}
               published={published}
+              media={mediaLibrary.media.map(({ id, width, height, originalName }) => ({
+                id,
+                width,
+                height,
+                originalName,
+              }))}
+              mediaError={mediaLibrary.error}
               initialValues={{
                 title: page.title,
                 slug: page.slug,

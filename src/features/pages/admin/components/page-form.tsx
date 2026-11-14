@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import type { MediaLibraryItem } from "@/features/media/components/media-library-dialog";
 import { PostBodyEditor } from "@/features/posts/admin/components/post-body-editor";
 import { useUnsavedChangesWarning } from "@/features/posts/admin/components/use-unsaved-changes-warning";
 import {
@@ -30,6 +31,9 @@ type PageFormProps = {
   // A published page has one copy: saving it changes the public page.
   published?: boolean;
   initialValues: PageFormValues;
+  // The media library for "choose from library" in the body editor.
+  media: MediaLibraryItem[];
+  mediaError: boolean;
 };
 
 function FieldError({ id, message }: { id: string; message?: string }) {
@@ -45,7 +49,15 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 // Page editor: the post body editor without author credits, taxonomy, cover,
 // or language. Errors stay inline; a successful save redirects with ?status=
 // and the page shows a toast.
-export function PageForm({ mode, pageId, revision, published = false, initialValues }: PageFormProps) {
+export function PageForm({
+  mode,
+  pageId,
+  revision,
+  published = false,
+  initialValues,
+  media,
+  mediaError,
+}: PageFormProps) {
   const t = useTranslations("adminPages");
   const [state, formAction, pending] = useActionState(
     mode === "create" ? createPageAction : updatePageAction,
@@ -54,6 +66,7 @@ export function PageForm({ mode, pageId, revision, published = false, initialVal
   // Same dirty tracking as the post form: a successful save re-renders with a
   // newer revision, which clears the warning.
   const [editedRevision, setEditedRevision] = useState<number | null>(null);
+  const [library, setLibrary] = useState<MediaLibraryItem[]>(media);
   const dirty = editedRevision !== null && editedRevision === (revision ?? 0);
   useUnsavedChangesWarning(dirty);
 
@@ -182,6 +195,12 @@ export function PageForm({ mode, pageId, revision, published = false, initialVal
           invalid={Boolean(state.fieldErrors.body)}
           describedBy="page-body-error"
           onChange={markDirty}
+          mediaLibrary={{
+            items: library,
+            error: mediaError,
+            onUploaded: (uploaded) =>
+              setLibrary((current) => [uploaded, ...current.filter((item) => item.id !== uploaded.id)]),
+          }}
         />
         <FieldError id="page-body-error" message={state.fieldErrors.body} />
       </div>

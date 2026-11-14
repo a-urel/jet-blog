@@ -536,7 +536,11 @@ Storage bucket with UUID object paths and server-side validation.
   readers and anonymous visitors do not. Clients have no write grants on
   `public.media`.
 - **Upload flow.** The editor's image button opens a panel that asks for a file,
-  alt text (or an explicit "decorative" flag), and an optional caption.
+  alt text (or an explicit "decorative" flag), and an optional caption. In the
+  post and page forms the panel can also pick an existing image from the media
+  library (the shared library dialog); that inserts the node without an
+  upload. The post form keeps one library list for the cover and the body, so
+  an upload in either is offered by both.
   `features/media/actions.ts` `uploadMediaAction` checks membership, reads the
   bytes, and identifies the format from the file signature
   (`features/media/validation.ts`); the declared type and file name are ignored
