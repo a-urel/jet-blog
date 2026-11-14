@@ -13,7 +13,14 @@ import {
 } from "./color";
 import { fallbackSiteSettings, mapSiteSettingsRow, normalizeLocaleConfig } from "./model";
 import { socialLinkEntries, validateSocialUrl } from "./social";
-import { validateSiteSettingsInput, type SiteSettingsFormValues } from "./validation";
+import {
+  isValidShareImageSize,
+  isValidSiteIconSize,
+  shareImageMinSize,
+  siteIconMinSize,
+  validateSiteSettingsInput,
+  type SiteSettingsFormValues,
+} from "./validation";
 
 const darkBackgrounds = [0.145 ** 3, 0.205 ** 3];
 
@@ -205,6 +212,33 @@ describe("validateSiteSettingsInput", () => {
 
     const badDefault = validateSiteSettingsInput(formValues({ defaultLocale: "fr" }));
     expect(badDefault.ok || badDefault.fieldErrors.defaultLocale).toEqual({ key: "invalidLocale" });
+  });
+});
+
+describe("site icon size", () => {
+  it("accepts square images of at least the minimum size", () => {
+    expect(siteIconMinSize).toBe(48);
+    expect(isValidSiteIconSize({ width: 48, height: 48 })).toBe(true);
+    expect(isValidSiteIconSize({ width: 512, height: 512 })).toBe(true);
+  });
+
+  it("rejects non-square or too small images", () => {
+    expect(isValidSiteIconSize({ width: 200, height: 100 })).toBe(false);
+    expect(isValidSiteIconSize({ width: 256, height: 255 })).toBe(false);
+    expect(isValidSiteIconSize({ width: 47, height: 47 })).toBe(false);
+  });
+});
+
+describe("share image size", () => {
+  it("accepts images at least the minimum size on each side", () => {
+    expect(shareImageMinSize).toBe(200);
+    expect(isValidShareImageSize({ width: 200, height: 200 })).toBe(true);
+    expect(isValidShareImageSize({ width: 1200, height: 630 })).toBe(true);
+  });
+
+  it("rejects images too small on either side", () => {
+    expect(isValidShareImageSize({ width: 480, height: 120 })).toBe(false);
+    expect(isValidShareImageSize({ width: 199, height: 400 })).toBe(false);
   });
 });
 
