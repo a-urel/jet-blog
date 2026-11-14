@@ -65,10 +65,6 @@
     "chooseFromLibrary": "Aus Mediathek wählen",
     "uploadNew": "Neues Bild hochladen",
     "remove": "Titelbild entfernen",
-    "libraryError": "Die Mediathek konnte nicht geladen werden. Sie können ein neues Bild hochladen.",
-    "libraryEmpty": "Die Mediathek enthält keine Bilder. Laden Sie ein neues Bild hoch.",
-    "libraryItem": "Bild {position}, {width}×{height}",
-    "libraryItemSelected": "Bild {position}, {width}×{height} (ausgewählt)",
     "uploadAndSet": "Hochladen und als Titelbild verwenden"
   }
 }

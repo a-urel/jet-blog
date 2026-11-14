@@ -118,7 +118,10 @@ export default async function AdminMediaPage({
                         width={item.width}
                         height={item.height}
                         sizes="6rem"
-                        className="h-16 w-24 rounded-md border bg-muted object-cover"
+                        // Whole image on a fixed mid-grey checkerboard, so
+                        // transparent logos for light and dark pages both
+                        // stay visible and nothing is cropped.
+                        className="h-16 w-24 rounded-md border bg-neutral-400 bg-[repeating-conic-gradient(var(--color-neutral-300)_0_25%,transparent_0_50%)] bg-[length:12px_12px] object-contain"
                       />
                     ) : null}
                     <div className="min-w-0 flex-1 space-y-1 text-sm">

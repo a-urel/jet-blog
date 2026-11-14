@@ -65,10 +65,6 @@
     "chooseFromLibrary": "Choose from library",
     "uploadNew": "Upload new image",
     "remove": "Remove cover",
-    "libraryError": "The media library could not be loaded. You can upload a new image.",
-    "libraryEmpty": "There are no images in the library. Upload a new image.",
-    "libraryItem": "Image {position}, {width}×{height}",
-    "libraryItemSelected": "Image {position}, {width}×{height} (selected)",
     "uploadAndSet": "Upload and set as cover"
   }
 }

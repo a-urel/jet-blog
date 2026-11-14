@@ -31,5 +31,26 @@
     "invalidDimensions": "Image dimensions must be between 1 and 10000 pixels.",
     "rejected": "The upload was rejected. Check your permissions or try again in a few minutes (at most 20 images per 10 minutes).",
     "registerFailed": "The image could not be saved. Try again."
+  },
+  "library": {
+    "title": "Choose from library: {field}",
+    "listLabel": "Media library for {field}",
+    "count": "{count, plural, one {# image} other {# images}}",
+    "countSuitable": "{count, plural, one {# image} other {# images}}, {suitable} suitable for this field",
+    "surface": "Preview background",
+    "surfaceLight": "Light",
+    "surfaceDark": "Dark",
+    "sort": "Sort order",
+    "sortNewest": "Newest first",
+    "sortLargest": "Largest first",
+    "dimensions": "{width} × {height} px",
+    "item": "Image {position}, {width}×{height} pixels",
+    "itemSelected": "Image {position}, {width}×{height} pixels, selected",
+    "itemUnsuitable": "Image {position}, {width}×{height} pixels, not suitable for this field",
+    "unsuitable": "Not suitable here",
+    "unsuitableNote": "Dimmed images cannot be used: {reason}",
+    "empty": "The library has no images yet.",
+    "emptyAction": "Upload a new image",
+    "error": "The media library could not be loaded."
   }
 }

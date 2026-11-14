@@ -65,10 +65,6 @@
     "chooseFromLibrary": "Kitaplıktan seç",
     "uploadNew": "Yeni görsel yükle",
     "remove": "Kapağı kaldır",
-    "libraryError": "Medya kitaplığı yüklenemedi. Yeni bir görsel yükleyebilirsiniz.",
-    "libraryEmpty": "Kitaplıkta görsel yok. Yeni bir görsel yükleyin.",
-    "libraryItem": "Görsel {position}, {width}×{height}",
-    "libraryItemSelected": "Görsel {position}, {width}×{height} (seçili)",
     "uploadAndSet": "Yükle ve kapak yap"
   }
 }
