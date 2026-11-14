@@ -9,8 +9,9 @@
 // unattached objects, attach their own uploads), so a restore must put it back.
 // export writes <dir>/owners.json from storage.objects; apply sets owner_id on
 // the restored objects with the same bucket and path. Both run through
-// `supabase db query`: --local for the local stack, otherwise SUPABASE_DB_URL
-// from the environment (never pass the connection string as an argument).
+// `supabase db query`: --local for the local stack (the CLI default target),
+// otherwise SUPABASE_DB_URL from the environment, passed to the CLI as
+// --remote=<url> (never type the connection string on the command line).
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -23,7 +24,8 @@ if (!["export", "apply"].includes(command) || !directory) {
 }
 
 function target() {
-  if (process.argv.includes("--local")) return ["--local"];
+  // CLI 3.x targets the local stack by default; its --local flag is deprecated.
+  if (process.argv.includes("--local")) return [];
 
   const dbUrl = process.env.SUPABASE_DB_URL?.trim();
   if (!dbUrl) {
@@ -31,13 +33,22 @@ function target() {
     process.exit(1);
   }
 
-  return ["--db-url", dbUrl];
+  // CLI 3.x replaced --db-url with --remote=<url>.
+  return [`--remote=${dbUrl}`];
 }
 
-function query(sql) {
+function query(sql, { readOnly = false } = {}) {
   const output = execFileSync(
     "supabase",
-    ["db", "query", ...target(), "--output-format", "json", sql],
+    [
+      "db",
+      "query",
+      ...target(),
+      ...(readOnly ? ["--read-only"] : []),
+      "--output-format",
+      "json",
+      sql,
+    ],
     { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 256 * 1024 * 1024 },
   );
 
@@ -52,6 +63,7 @@ if (command === "export") {
      from storage.objects
      where owner_id is not null
      order by bucket_id, name`,
+    { readOnly: true },
   );
 
   await mkdir(path.dirname(file), { recursive: true });

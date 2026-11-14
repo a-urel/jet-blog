@@ -8,7 +8,7 @@ membership.
 
 - Node.js 22 or newer (Node.js 24 LTS recommended).
 - npm; use the committed `package-lock.json` rather than another package manager.
-- Optional local Supabase: CLI 2.121.0. The experimental native runtime needs
+- Optional local Supabase: CLI 3.1.0. The experimental native runtime needs
   no Docker on Apple silicon with macOS 14+ or supported Linux systems.
   Other platforms need a Docker-compatible container engine.
 
@@ -1623,13 +1623,20 @@ Configuration was generated with the official CLI; no hosted project is linked.
 Without the CLI or a database the public pages build and render empty.
 The config enables the experimental stack backend (`[experimental] stack = true`)
 and leaves endpoint ports unset so another local project can keep its own ports.
-With Supabase CLI 2.121.0 installed, run from the repository root:
+With Supabase CLI 3.1.0 installed, run from the repository root:
 
 ```bash
 supabase start --runtime native
 supabase status
 supabase stop
 ```
+
+`supabase/supabase.lock` is committed: it pins the resolved image and native
+archive of every local service. `supabase start` creates or updates it when it
+is missing or out of date with `supabase/config.toml`; commit those changes
+together with the config change. `supabase start --frozen` fails instead of
+updating it, and that is implied when `CI` is set and the lock exists. Its
+temporary and lease files are ignored in `supabase/.gitignore`.
 
 The native runtime runs services as host processes, not containers. First start
 downloads and verifies the service archives. Postgres starts immediately; other
@@ -1638,7 +1645,10 @@ Use `supabase start --runtime native --eager` after stopping the stack if every
 enabled service must start immediately and remain active.
 
 Use `supabase status` to find this stack's API, Studio, Mailpit, database URLs,
-and local keys; do not assume the standard 54321–54323 ports. Assigned ports
+and local keys; do not assume the standard 54321–54323 ports.
+`supabase status --env --output-format json` (or `--output-format text` for
+dotenv lines) prints them as variables; CLI 3.x rejects the legacy `-o/--output`
+flag on `status`. Assigned ports
 persist across restarts. Endpoints bind to loopback. Local data lives under
 `~/.supabase/stacks/`, and downloaded artifacts under `~/.supabase/cache/stack/`.
 `supabase stop` preserves data; `supabase stack destroy` deletes the selected
@@ -1647,7 +1657,8 @@ switching branches selects a separate local stack.
 
 For Docker instead, use `supabase start --runtime docker` when creating a new
 stack. An existing stack keeps its original runtime; the CLI does not convert its
-data. Native mode and the stack commands are experimental, so keep the CLI version
+data. Without `--runtime`, a new stack picks Docker, then Podman, then native,
+depending on what is available. Native mode and the stack commands are experimental, so keep the CLI version
 consistent and consult the official
 [runtime guide](https://supabase.com/docs/guides/local-development/docker-and-native-runtimes)
 before upgrading.
@@ -1698,7 +1709,7 @@ page will not receive the fragment.
   for supabase-js 2.118.0, [SSR client guidance](https://supabase.com/docs/guides/auth/server-side/creating-a-client)
   for `@supabase/ssr` 0.12.7, [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security),
   [invite users](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail),
-  [changelog](https://supabase.com/changelog), and CLI 2.121.0 help.
+  [changelog](https://supabase.com/changelog), and CLI 3.1.0 help.
 - Tiptap 3.32.0 package metadata (React 19 peer ranges) and the installed
   `@tiptap/react`, `@tiptap/starter-kit`, and `@tiptap/extension-link` type
   definitions for `immediatelyRender`, `useEditorState`, and link
@@ -1730,7 +1741,7 @@ page will not receive the fragment.
   and the [Content Security Policy guide](node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md)
   (nonces force dynamic rendering; static CSP without nonces); Supabase
   [Backup and restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)
-  (checked 2026-10-23) and CLI 2.121.0 `db dump`/`db reset` help.
+  (checked 2026-10-23) and CLI 3.1.0 `db dump`/`db reset`/`db query` help.
 - Phase 11: Supabase [password-based auth](https://supabase.com/docs/guides/auth/passwords)
   (checked 2026-10-23: SSR confirmation and recovery through `token_hash`
   templates and `verifyOtp`), and the installed `@supabase/auth-js` 2.118.0
@@ -1944,8 +1955,15 @@ the limit.
 
    ```bash
    supabase link --project-ref <project-ref>
-   supabase db push
+   supabase db push --remote --dry-run
+   supabase db push --remote
    ```
+
+   Since CLI 3.x, `db push`, `db reset`, `migration up`, `db dump`, and
+   `db query` target the local stack unless `--remote` is passed; plain
+   `supabase db push` no longer reaches the linked project. `--dry-run` lists
+   the migrations first. `supabase link` records the project in
+   `supabase/.link.json`, which is ignored.
 
    Do not load `supabase/seeds/seed.sql` into a hosted project: it holds
    synthetic development content only.

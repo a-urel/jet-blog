@@ -37,8 +37,11 @@ reviewed decision. The restore steps replace data.
 
 ## Tools
 
-- Supabase CLI 2.121.0 (`supabase db dump`, `supabase db reset`,
-  `supabase db query`, `supabase stack destroy`).
+- Supabase CLI 3.1.0 (`supabase db dump`, `supabase db reset`,
+  `supabase db query`, `supabase stack destroy`). These database commands
+  target the local stack by default; `--remote=<db-url>` targets another
+  database (it replaced the deprecated `--db-url`, and `--local` is no longer
+  needed).
 - `scripts/storage-backup.mjs` and `scripts/storage-restore.mjs`
   (`npm run backup:storage -- <dir>`, `npm run restore:storage -- <dir>`).
   They use the Storage API with the secret key, list every bucket (including
@@ -49,7 +52,9 @@ reviewed decision. The restore steps replace data.
   `npm run restore:storage-owners -- <dir>`). `export` writes
   `<dir>/owners.json` (bucket, path, owner) from `storage.objects`; `apply`
   sets `owner_id` on the restored objects and exits non-zero unless every
-  listed object was found. It runs through `supabase db query`.
+  listed object was found. It runs through `supabase db query`; `export` is
+  read-only. If the CLI asks to confirm the `apply` write on a hosted database,
+  export `SUPABASE_YES=1` in the shell for that one command.
 - Credentials: `--local` reads the local stack from `supabase status`. For a
   hosted project set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (Storage
   scripts) and `SUPABASE_DB_URL` (owners script) in the shell environment, not
@@ -62,12 +67,12 @@ umask 077
 BACKUP=~/jet-blog-backups/$(date +%Y%m%d-%H%M)
 mkdir -p "$BACKUP"
 cd <repo>
-supabase db dump --local --data-only --schema auth,public -f "$BACKUP/data.sql"
+supabase db dump --data-only --schema auth,public -f "$BACKUP/data.sql"
 npm run backup:storage -- "$BACKUP/storage" --local
 npm run backup:storage-owners -- "$BACKUP/storage" --local
 # Optional, for comparing after the restore:
-supabase db dump --local -f "$BACKUP/schema.sql"
-supabase db dump --local --role-only -f "$BACKUP/roles.sql"
+supabase db dump -f "$BACKUP/schema.sql"
+supabase db dump --role-only -f "$BACKUP/roles.sql"
 ```
 
 `--schema auth,public` keeps Storage tables out of the dump: buckets come from
@@ -81,15 +86,15 @@ reject or rewrite restored rows. pg_dump warns about circular foreign keys on
 
 ```bash
 # Rebuild the schema from migrations and load the data dump instead of the seed.
-supabase db reset --local --sql-paths "$BACKUP/data.sql"
+supabase db reset --sql-paths "$BACKUP/data.sql"
 npm run restore:storage -- "$BACKUP/storage" --local
 npm run restore:storage-owners -- "$BACKUP/storage" --local
 ```
 
 `supabase db query` cannot run a multi-statement dump and `psql` is not part of
 the native local stack; `db reset --sql-paths` runs the dump through the seed
-runner after the migrations (pass an absolute path or one relative to the
-repository). The owners step must run after the Storage restore. Restart
+runner after the migrations (pass an absolute path or one relative to
+`supabase/`). The owners step must run after the Storage restore. Restart
 `next start` afterwards (or wait for the 5-minute ISR fallback) so cached
 public pages do not show pre-restore content.
 
@@ -118,9 +123,9 @@ dump, because the Storage restore script recreates those rows from the files
 and the owners script puts the owners back.
 
 ```bash
-supabase db dump --db-url "$DB_URL" -f roles.sql --role-only
-supabase db dump --db-url "$DB_URL" -f schema.sql
-supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only \
+supabase db dump --remote="$DB_URL" -f roles.sql --role-only
+supabase db dump --remote="$DB_URL" -f schema.sql
+supabase db dump --remote="$DB_URL" -f data.sql --use-copy --data-only \
   -x "storage.objects" -x "storage.buckets_vectors" -x "storage.vector_indexes"
 SUPABASE_URL=... SUPABASE_SECRET_KEY=... node scripts/storage-backup.mjs storage
 SUPABASE_DB_URL=... node scripts/storage-owners.mjs export storage
@@ -179,7 +184,7 @@ from storage.objects
 order by 1;
 ```
 
-`supabase db query --local -o json -f fingerprint.sql > before.json` runs it.
+`supabase db query --output-format json -f fingerprint.sql > before.json` runs it.
 Every `auth` and `public` row must match. `storage.buckets`,
 `storage.migrations`, and `storage.objects` keep their counts but differ in
 hash (new timestamps, object ids, and versions); the

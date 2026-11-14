@@ -64,7 +64,7 @@ ${body}
 end $$;`;
 
   try {
-    execFileSync("supabase", ["db", "query", "--local", sql], {
+    execFileSync("supabase", ["db", "query", sql], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });

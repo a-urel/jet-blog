@@ -2347,7 +2347,10 @@ index type (HNSW or IVFFlat).
 - Next.js 16 middleware/proxy and caching conventions differ from earlier
   versions; read the bundled docs before each related phase.
 - Local Supabase stack identity is per repository path and branch; switching
-  branches selects another stack. Keep CLI versions consistent.
+  branches selects another stack. Keep the Supabase CLI at 3.1.0, the version
+  that wrote `supabase/supabase.lock`; upgrade it deliberately and commit the
+  regenerated lock. CLI 3.x targets the local database by default, so hosted
+  commands need `--remote` (for example `supabase db push --remote`).
 - Vitest now includes a local-Supabase RLS suite. Every new policy and RPC must
   extend the anonymous/reader/author/editor/admin matrix before it is trusted.
 - Tiptap is pinned at 3.32.0. Upgrades must rerun the editor-schema parity test,
