@@ -2,18 +2,22 @@
 
 import { useId, useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { Check, ImagePlus, Images, Trash2 } from "lucide-react";
+import { ImagePlus, Images, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadMediaAction } from "@/features/media/actions";
+import {
+  MediaLibraryDialog,
+  type MediaLibraryItem,
+} from "@/features/media/components/media-library-dialog";
 import { mediaPublicUrl } from "@/features/media/url";
 import { allowedMediaTypes, maxMediaBytes } from "@/features/media/validation";
 import { cn } from "@/lib/utils";
 
-export type BrandMediaOption = Readonly<{ id: string; width: number; height: number }>;
+export type BrandMediaOption = MediaLibraryItem;
 
 type ImageSize = Readonly<{ width: number; height: number }>;
 
@@ -42,9 +46,10 @@ type BrandMediaFieldProps = {
   onUploaded: (media: BrandMediaOption) => void;
   error?: string;
   // Optional size rule (for example the square icon). Returns the message to
-  // show, or null when the image is acceptable. Checked when a library image
-  // is chosen, when a file is picked, and against the size the server
-  // measured after upload; the save repeats the check on the server.
+  // show, or null when the image is acceptable. Library images that fail it
+  // are shown dimmed with the reason; it is also checked when a file is
+  // picked and against the size the server measured after upload. The save
+  // repeats the check on the server.
   validate?: (size: ImageSize) => string | null;
   // The surface the image is previewed on: a logo for dark backgrounds is
   // shown on a dark surface in both system themes.
@@ -70,9 +75,10 @@ export function BrandMediaField({
   const t = useTranslations("adminSettings.media");
   const id = useId();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [panel, setPanel] = useState<"closed" | "library" | "upload">("closed");
+  const [panel, setPanel] = useState<"closed" | "upload">("closed");
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const libraryButtonRef = useRef<HTMLButtonElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [libraryChoiceError, setLibraryChoiceError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const previewSrc = value ? mediaPublicUrl(value) : null;
   // Fixed dark surface: the preview shows how a dark-background logo looks,
@@ -81,17 +87,7 @@ export function BrandMediaField({
 
   function choose(mediaId: string) {
     onChange(mediaId);
-    setLibraryChoiceError(null);
     setPanel("closed");
-  }
-
-  function chooseFromLibrary(item: BrandMediaOption) {
-    const problem = validate?.(item) ?? null;
-    if (problem) {
-      setLibraryChoiceError(problem);
-      return;
-    }
-    choose(item.id);
   }
 
   // Returns the message for a file that cannot be used here, or null.
@@ -201,10 +197,11 @@ export function BrandMediaField({
           type="button"
           variant="outline"
           size="sm"
-          aria-expanded={panel === "library"}
+          ref={libraryButtonRef}
+          aria-haspopup="dialog"
           onClick={() => {
-            setLibraryChoiceError(null);
-            setPanel(panel === "library" ? "closed" : "library");
+            setPanel("closed");
+            setLibraryOpen(true);
           }}
         >
           <Images aria-hidden="true" />
@@ -227,66 +224,6 @@ export function BrandMediaField({
           </Button>
         ) : null}
       </div>
-
-      {panel === "library" ? (
-        <div className="rounded-lg border p-3">
-          {libraryError ? (
-            <p role="alert" className="text-sm text-destructive">
-              {t("libraryError")}
-            </p>
-          ) : library.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("libraryEmpty")}</p>
-          ) : (
-            <>
-              {libraryChoiceError ? (
-                <p role="alert" className="mb-3 text-sm text-destructive">
-                  {libraryChoiceError}
-                </p>
-              ) : null}
-              <ul
-                aria-labelledby={`${id}-label`}
-                className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4"
-              >
-                {library.map((item, index) => {
-                  const src = mediaPublicUrl(item.id);
-                  const selected = item.id === value;
-                  const labelValues = {
-                    position: index + 1,
-                    width: String(item.width),
-                    height: String(item.height),
-                  };
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => chooseFromLibrary(item)}
-                        aria-pressed={selected}
-                        aria-label={
-                          selected ? t("libraryItemSelected", labelValues) : t("libraryItem", labelValues)
-                        }
-                        className={cn(
-                          "relative block aspect-square w-full overflow-hidden rounded-md border outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                          surfaceClass,
-                          selected && "ring-2 ring-primary",
-                        )}
-                      >
-                        {src ? (
-                          <Image src={src} alt="" fill sizes="8rem" className="object-contain p-1" />
-                        ) : null}
-                        {selected ? (
-                          <span className="absolute top-1 right-1 rounded-full bg-primary p-1 text-primary-foreground">
-                            <Check aria-hidden="true" className="size-3" />
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-        </div>
-      ) : null}
 
       {panel === "upload" ? (
         <div className="space-y-3 rounded-lg border p-3">
@@ -316,6 +253,20 @@ export function BrandMediaField({
           </Button>
         </div>
       ) : null}
+      <MediaLibraryDialog
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        fieldLabel={label}
+        description={hint}
+        items={library}
+        error={libraryError}
+        selectedId={value}
+        onSelect={choose}
+        validate={validate}
+        defaultSurface={surface === "dark" ? "dark" : "light"}
+        onUploadRequest={() => setPanel("upload")}
+        returnFocusRef={libraryButtonRef}
+      />
     </fieldset>
   );
 }

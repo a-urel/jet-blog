@@ -2,18 +2,18 @@
 
 import { useId, useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { Check, ImagePlus, Images, Trash2 } from "lucide-react";
+import { ImagePlus, Images, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadMediaAction } from "@/features/media/actions";
+import { MediaLibraryDialog } from "@/features/media/components/media-library-dialog";
 import { mediaPublicUrl } from "@/features/media/url";
 import { allowedMediaTypes, maxMediaBytes } from "@/features/media/validation";
 import type { CoverMediaOption } from "@/features/posts/admin/types";
 import { maxCoverAltLength } from "@/features/posts/admin/validation";
-import { cn } from "@/lib/utils";
 
 type PostCoverFieldProps = {
   media: CoverMediaOption[];
@@ -46,7 +46,9 @@ export function PostCoverField({
   const id = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const [library, setLibrary] = useState(media);
-  const [panel, setPanel] = useState<"closed" | "library" | "upload">("closed");
+  const [panel, setPanel] = useState<"closed" | "upload">("closed");
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const libraryButtonRef = useRef<HTMLButtonElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const previewSrc = coverMediaId ? mediaPublicUrl(coverMediaId) : null;
@@ -164,8 +166,12 @@ export function PostCoverField({
           type="button"
           variant="outline"
           size="sm"
-          aria-expanded={panel === "library"}
-          onClick={() => setPanel(panel === "library" ? "closed" : "library")}
+          ref={libraryButtonRef}
+          aria-haspopup="dialog"
+          onClick={() => {
+            setPanel("closed");
+            setLibraryOpen(true);
+          }}
         >
           <Images aria-hidden="true" />
           {t("cover.chooseFromLibrary")}
@@ -187,70 +193,6 @@ export function PostCoverField({
           </Button>
         ) : null}
       </div>
-
-      {panel === "library" ? (
-        <div className="rounded-lg border p-3">
-          {mediaError ? (
-            <p role="alert" className="text-sm text-destructive">
-              {t("cover.libraryError")}
-            </p>
-          ) : library.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {t("cover.libraryEmpty")}
-            </p>
-          ) : (
-            <ul
-              aria-labelledby={`${id}-label`}
-              className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3"
-            >
-              {library.map((item, index) => {
-                const src = mediaPublicUrl(item.id);
-                const selected = item.id === coverMediaId;
-                // Dimensions are pixel counts, shown without digit grouping.
-                const labelValues = {
-                  position: index + 1,
-                  width: String(item.width),
-                  height: String(item.height),
-                };
-
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => choose(item.id)}
-                      aria-pressed={selected}
-                      aria-label={
-                        selected
-                          ? t("cover.libraryItemSelected", labelValues)
-                          : t("cover.libraryItem", labelValues)
-                      }
-                      className={cn(
-                        "relative block aspect-video w-full overflow-hidden rounded-md border bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                        selected && "ring-2 ring-primary",
-                      )}
-                    >
-                      {src ? (
-                        <Image
-                          src={src}
-                          alt=""
-                          fill
-                          sizes="12rem"
-                          className="object-cover"
-                        />
-                      ) : null}
-                      {selected ? (
-                        <span className="absolute top-1 right-1 rounded-full bg-primary p-1 text-primary-foreground">
-                          <Check aria-hidden="true" className="size-3" />
-                        </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      ) : null}
 
       {panel === "upload" ? (
         <div className="space-y-3 rounded-lg border p-3">
@@ -278,6 +220,19 @@ export function PostCoverField({
           </Button>
         </div>
       ) : null}
+
+      <MediaLibraryDialog
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        fieldLabel={t("cover.label")}
+        description={t("cover.help")}
+        items={library}
+        error={mediaError}
+        selectedId={coverMediaId}
+        onSelect={choose}
+        onUploadRequest={() => setPanel("upload")}
+        returnFocusRef={libraryButtonRef}
+      />
     </div>
   );
 }

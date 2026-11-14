@@ -31,5 +31,26 @@
     "invalidDimensions": "Die Bildabmessungen müssen zwischen 1 und 10000 Pixeln liegen.",
     "rejected": "Der Upload wurde abgelehnt. Prüfen Sie Ihre Berechtigung oder versuchen Sie es in einigen Minuten erneut (höchstens 20 Bilder pro 10 Minuten).",
     "registerFailed": "Das Bild konnte nicht gespeichert werden. Versuchen Sie es erneut."
+  },
+  "library": {
+    "title": "Aus der Bibliothek wählen: {field}",
+    "listLabel": "Medienbibliothek für {field}",
+    "count": "{count, plural, one {# Bild} other {# Bilder}}",
+    "countSuitable": "{count, plural, one {# Bild} other {# Bilder}}, davon {suitable} für dieses Feld geeignet",
+    "surface": "Vorschauhintergrund",
+    "surfaceLight": "Hell",
+    "surfaceDark": "Dunkel",
+    "sort": "Sortierung",
+    "sortNewest": "Neueste zuerst",
+    "sortLargest": "Größte zuerst",
+    "dimensions": "{width} × {height} px",
+    "item": "Bild {position}, {width}×{height} Pixel",
+    "itemSelected": "Bild {position}, {width}×{height} Pixel, ausgewählt",
+    "itemUnsuitable": "Bild {position}, {width}×{height} Pixel, für dieses Feld nicht geeignet",
+    "unsuitable": "Hier nicht geeignet",
+    "unsuitableNote": "Ausgegraute Bilder sind nicht verwendbar: {reason}",
+    "empty": "Die Bibliothek enthält noch keine Bilder.",
+    "emptyAction": "Neues Bild hochladen",
+    "error": "Die Medienbibliothek konnte nicht geladen werden."
   }
 }
