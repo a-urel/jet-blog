@@ -51,6 +51,14 @@
     "unsuitableNote": "Ausgegraute Bilder sind nicht verwendbar: {reason}",
     "empty": "Die Bibliothek enthält noch keine Bilder.",
     "emptyAction": "Neues Bild hochladen",
-    "error": "Die Medienbibliothek konnte nicht geladen werden."
+    "error": "Die Medienbibliothek konnte nicht geladen werden.",
+    "search": "Nach Dateinamen suchen",
+    "searchPlaceholder": "Nach Dateinamen suchen",
+    "clearSearch": "Suche zurücksetzen",
+    "countMatching": "{count, plural, one {# Bild passt} other {# Bilder passen}} (von {total})",
+    "noMatches": "Keine Bilder passen zu „{query}“.",
+    "itemNamed": "{name}, {width}×{height} Pixel",
+    "itemNamedSelected": "{name}, {width}×{height} Pixel, ausgewählt",
+    "itemNamedUnsuitable": "{name}, {width}×{height} Pixel, für dieses Feld nicht geeignet"
   }
 }

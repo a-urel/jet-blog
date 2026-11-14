@@ -23,6 +23,7 @@ export type CoverMediaOption = Readonly<{
   id: string;
   width: number;
   height: number;
+  originalName?: string | null;
 }>;
 
 export type TaxonomyOptions = Readonly<{

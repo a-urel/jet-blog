@@ -10,6 +10,7 @@ export type MediaListRow = {
   height: number;
   createdAt: string;
   uploadedBy: string | null;
+  originalName: string | null;
 };
 
 // RLS limits rows to active editorial members; the media library is shared.
@@ -20,7 +21,7 @@ export async function listMedia(): Promise<{
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("media")
-    .select("id, mime_type, size_bytes, width, height, created_at, uploaded_by")
+    .select("id, mime_type, size_bytes, width, height, created_at, uploaded_by, original_name")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -35,6 +36,7 @@ export async function listMedia(): Promise<{
       height: row.height,
       createdAt: row.created_at,
       uploadedBy: row.uploaded_by,
+      originalName: row.original_name,
     })),
     error: false,
   };

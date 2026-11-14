@@ -83,7 +83,12 @@ export default async function AdminSettingsPage({
         action={updateSiteSettingsAction}
         revision={site.revision}
         initialValues={formValues(site)}
-        media={library.media.map(({ id, width, height }) => ({ id, width, height }))}
+        media={library.media.map(({ id, width, height, originalName }) => ({
+          id,
+          width,
+          height,
+          originalName,
+        }))}
         mediaError={library.error}
       />
     </div>

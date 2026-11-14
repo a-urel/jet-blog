@@ -178,3 +178,32 @@ export function validateMediaUpload(bytes: Uint8Array): MediaValidation {
 
   return { ok: true, info };
 }
+
+// Longest stored original file name, in code points (the media table CHECK
+// allows the same).
+export const maxMediaFileNameLength = 200;
+
+// Reduces a browser-supplied file name to a display label: the last path
+// segment, NFC, without control characters or slashes, whitespace collapsed,
+// at most maxMediaFileNameLength code points with the extension kept when it
+// is short. Returns null when nothing usable remains. The name is shown and
+// searched only; it never becomes a Storage path.
+export function normalizeMediaFileName(name: string): string | null {
+  const segment = name.split(/[/\\]/).pop() ?? "";
+  const cleaned = segment
+    .normalize("NFC")
+    .replace(/[\p{Cc}\p{Cf}]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return null;
+
+  const chars = Array.from(cleaned);
+  if (chars.length <= maxMediaFileNameLength) return cleaned;
+
+  const dot = cleaned.lastIndexOf(".");
+  const extension = dot > 0 ? Array.from(cleaned.slice(dot)) : [];
+  const keep = extension.length > 0 && extension.length <= 10 ? extension : [];
+  const stem = chars.slice(0, maxMediaFileNameLength - keep.length).join("").trimEnd();
+  return stem + keep.join("");
+}

@@ -51,6 +51,14 @@
     "unsuitableNote": "Soluk görseller kullanılamaz: {reason}",
     "empty": "Kitaplıkta henüz görsel yok.",
     "emptyAction": "Yeni görsel yükle",
-    "error": "Medya kitaplığı yüklenemedi."
+    "error": "Medya kitaplığı yüklenemedi.",
+    "search": "Dosya adına göre ara",
+    "searchPlaceholder": "Dosya adına göre ara",
+    "clearSearch": "Aramayı temizle",
+    "countMatching": "{count, plural, other {# görsel}} eşleşiyor (toplam {total})",
+    "noMatches": "“{query}” ile eşleşen görsel yok.",
+    "itemNamed": "{name}, {width}×{height} piksel",
+    "itemNamedSelected": "{name}, {width}×{height} piksel, seçili",
+    "itemNamedUnsuitable": "{name}, {width}×{height} piksel, bu alana uygun değil"
   }
 }

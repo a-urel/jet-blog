@@ -2,10 +2,16 @@
 
 import { useId, useMemo, useRef, useState, type RefObject } from "react";
 import Image from "next/image";
-import { Check, ImagePlus } from "lucide-react";
+import { Check, ImagePlus, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +23,14 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { mediaPublicUrl } from "@/features/media/url";
 import { cn } from "@/lib/utils";
 
-export type MediaLibraryItem = Readonly<{ id: string; width: number; height: number }>;
+export type MediaLibraryItem = Readonly<{
+  id: string;
+  width: number;
+  height: number;
+  // Original file name (a label; null for images uploaded before names were
+  // stored).
+  originalName?: string | null;
+}>;
 
 export type MediaPreviewSurface = "light" | "dark";
 
@@ -30,19 +43,46 @@ export type MediaLibraryEntry = Readonly<{
   problem: string | null;
 }>;
 
-// Annotates each image with why it cannot be used here (or null) and orders
-// the list. "newest" keeps the given order; "largest" sorts by pixel area,
-// keeping the given order between equal areas.
+// Folds text for file-name search: case- and accent-insensitive (Turkish
+// dotted and dotless i included), with hyphens, underscores, and dots read as
+// spaces, so "geyser road" finds "watkins-geyser-road-1870.jpg".
+export function foldMediaSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[ıİ]/g, "i")
+    .toLowerCase()
+    .replace(/[-_.\s]+/g, " ")
+    .trim();
+}
+
+// True when every word of the query occurs in the file name. An empty query
+// matches everything; an image without a stored name matches only that.
+export function matchesMediaQuery(originalName: string | null | undefined, query: string): boolean {
+  const words = foldMediaSearchText(query).split(" ").filter(Boolean);
+  if (words.length === 0) return true;
+  if (!originalName) return false;
+  const haystack = foldMediaSearchText(originalName);
+  return words.every((word) => haystack.includes(word));
+}
+
+// Annotates each image with why it cannot be used here (or null), keeps the
+// ones whose file name matches the query, and orders the list. "newest"
+// keeps the given order; "largest" sorts by pixel area, keeping the given
+// order between equal areas.
 export function arrangeLibraryItems(
   items: readonly MediaLibraryItem[],
   sort: MediaLibrarySort,
   validate?: (size: MediaLibraryItem) => string | null,
+  query = "",
 ): MediaLibraryEntry[] {
-  const entries = items.map((item, index) => ({
-    item,
-    position: index + 1,
-    problem: validate?.(item) ?? null,
-  }));
+  const entries = items
+    .map((item, index) => ({
+      item,
+      position: index + 1,
+      problem: validate?.(item) ?? null,
+    }))
+    .filter((entry) => matchesMediaQuery(entry.item.originalName, query));
   if (sort === "largest") {
     entries.sort((a, b) => b.item.width * b.item.height - a.item.width * a.item.height);
   }
@@ -96,11 +136,12 @@ export function MediaLibraryDialog({
   const id = useId();
   const [surface, setSurface] = useState<MediaPreviewSurface>(defaultSurface);
   const [sort, setSort] = useState<MediaLibrarySort>("newest");
+  const [query, setQuery] = useState("");
   const listRef = useRef<HTMLUListElement>(null);
 
   const entries = useMemo(
-    () => arrangeLibraryItems(items, sort, validate),
-    [items, sort, validate],
+    () => arrangeLibraryItems(items, sort, validate, query),
+    [items, sort, validate, query],
   );
 
   const suitableCount = entries.filter((entry) => !entry.problem).length;
@@ -131,6 +172,13 @@ export function MediaLibraryDialog({
           if (target) {
             event.preventDefault();
             target.focus();
+          }
+        }}
+        // Escape first clears an active search, then closes the dialog.
+        onEscapeKeyDown={(event) => {
+          if (query) {
+            event.preventDefault();
+            setQuery("");
           }
         }}
         onCloseAutoFocus={(event) => {
@@ -170,11 +218,40 @@ export function MediaLibraryDialog({
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-3">
+              <InputGroup className="w-full">
+                <InputGroupAddon>
+                  <Search aria-hidden="true" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  aria-label={t("search")}
+                  autoComplete="off"
+                  spellCheck={false}
+                  // The clear button below replaces the browser's own.
+                  className="[&::-webkit-search-cancel-button]:appearance-none"
+                />
+                {query ? (
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
+                      aria-label={t("clearSearch")}
+                      onClick={() => setQuery("")}
+                    >
+                      <X aria-hidden="true" />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                ) : null}
+              </InputGroup>
               <div className="space-y-0.5 text-sm">
                 <p className="text-muted-foreground" aria-live="polite">
-                  {validate
-                    ? t("countSuitable", { count: entries.length, suitable: suitableCount })
-                    : t("count", { count: entries.length })}
+                  {query.trim()
+                    ? t("countMatching", { count: entries.length, total: items.length })
+                    : validate
+                      ? t("countSuitable", { count: entries.length, suitable: suitableCount })
+                      : t("count", { count: entries.length })}
                 </p>
                 {sharedProblem ? (
                   <p id={sharedProblemId} className="text-xs text-muted-foreground">
@@ -212,7 +289,18 @@ export function MediaLibraryDialog({
               </div>
             </div>
 
+            {entries.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {t("noMatches", { query: query.trim() })}
+                </p>
+                <Button type="button" size="sm" variant="outline" onClick={() => setQuery("")}>
+                  {t("clearSearch")}
+                </Button>
+              </div>
+            ) : null}
             <ul
+              hidden={entries.length === 0}
               ref={listRef}
               aria-label={t("listLabel", { field: fieldLabel })}
               className="grid min-h-0 grid-cols-2 gap-3 overflow-y-auto p-4 sm:grid-cols-3 md:grid-cols-4"
@@ -227,11 +315,18 @@ export function MediaLibraryDialog({
                   height: String(item.height),
                 };
                 const reasonId = `${id}-reason-${item.id}`;
-                const label = selected
-                  ? t("itemSelected", values)
-                  : problem
-                    ? t("itemUnsuitable", values)
-                    : t("item", values);
+                const name = item.originalName ?? null;
+                const label = name
+                  ? selected
+                    ? t("itemNamedSelected", { ...values, name })
+                    : problem
+                      ? t("itemNamedUnsuitable", { ...values, name })
+                      : t("itemNamed", { ...values, name })
+                  : selected
+                    ? t("itemSelected", values)
+                    : problem
+                      ? t("itemUnsuitable", values)
+                      : t("item", values);
 
                 return (
                   <li key={item.id}>
@@ -272,7 +367,17 @@ export function MediaLibraryDialog({
                           </span>
                         ) : null}
                       </span>
-                      <span className="mt-1.5 block text-xs tabular-nums text-muted-foreground">
+                      {name ? (
+                        <span className="mt-1.5 block truncate text-xs font-medium" title={name}>
+                          {name}
+                        </span>
+                      ) : null}
+                      <span
+                        className={cn(
+                          "block text-xs tabular-nums text-muted-foreground",
+                          name ? "mt-0.5" : "mt-1.5",
+                        )}
+                      >
                         {t("dimensions", { width: values.width, height: values.height })}
                       </span>
                       {problem ? (
