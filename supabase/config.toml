@@ -114,6 +114,19 @@ file_size_limit = "50MiB"
 # allowed_mime_types = ["image/png", "image/jpeg"]
 # objects_path = "./images"
 
+# Uploads the development seed media library (supabase/seeds/media/, files
+# named by media id) on `supabase db reset`, after supabase/seeds/seed.sql
+# inserts the matching rows. The bucket itself is created by the migrations;
+# these settings must mirror them (20261022190000_media.sql,
+# 20261114100000_media_upload_limit.sql), because seeding also applies them to
+# the bucket. Local development only: do not run `supabase seed buckets
+# --remote` or `supabase config push` against a hosted project.
+[storage.buckets.media]
+public = true
+file_size_limit = "4MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+objects_path = "./seeds/media"
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true
