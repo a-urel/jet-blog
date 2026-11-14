@@ -85,16 +85,28 @@ reject or rewrite restored rows. pg_dump warns about circular foreign keys on
 ## Local restore
 
 ```bash
-# Rebuild the schema from migrations and load the data dump instead of the seed.
-supabase db reset --sql-paths "$BACKUP/data.sql"
+# Rebuild the schema from migrations, empty the public tables, and load the
+# data dump instead of the seed.
+supabase db reset --sql-paths restore/before-data.sql --sql-paths "$BACKUP/data.sql"
 npm run restore:storage -- "$BACKUP/storage" --local
 npm run restore:storage-owners -- "$BACKUP/storage" --local
 ```
 
 `supabase db query` cannot run a multi-statement dump and `psql` is not part of
-the native local stack; `db reset --sql-paths` runs the dump through the seed
-runner after the migrations (pass an absolute path or one relative to
-`supabase/`). The owners step must run after the Storage restore. Restart
+the native local stack; `db reset --sql-paths` runs the files through the seed
+runner after the migrations, in the order given (pass absolute paths or paths
+relative to `supabase/`). The owners step must run after the Storage restore.
+
+Some migrations insert rows: `20261026100000_pages_navigation.sql` creates the
+`header` and `footer` rows of `public.navigation_menus`, and the data dump
+contains those rows too. Loading the dump alone fails with `duplicate key
+value violates unique constraint "navigation_menus_pkey"`.
+`supabase/restore/before-data.sql` truncates every table in `public` before
+the dump loads, so the dump's values (including later menu revisions) win and
+a future migration that seeds rows needs no runbook change. The `auth` schema
+is empty after the migrations, and `site_settings` is filled by the seed, not
+by a migration, so neither collides. Never pass `before-data.sql` to a reset
+of a database whose data you want to keep. Restart
 `next start` afterwards (or wait for the 5-minute ISR fallback) so cached
 public pages do not show pre-restore content.
 
@@ -112,7 +124,9 @@ supabase start --runtime native            # fresh stack with the seed
 `stack destroy` prints "Storage upload files will be preserved": the bytes
 stay under `supabase/.temp/stack-uploads/<stack-id>/`. Delete that directory,
 or a drill cannot prove that the bytes came from the backup. The recreated
-stack gets the same id, ports, and local keys, so `.env.local` stays valid.
+stack gets the same id, API URL, and local keys, so `.env.local` stays valid;
+the direct database port and the Studio and mail ports can change (CLI 3.1.0),
+so read them again from `supabase status` instead of reusing old values.
 
 ## Hosted backup and restore (Supabase platform)
 
@@ -222,6 +236,57 @@ snapshot, sign in with an existing account, and run `npm run test:smoke` and
 `npm run test:rls`.
 
 ## Drill log
+
+### 2026-11-14 — full local drill on a disposable worktree stack, CLI 3.1.0 native runtime
+
+Stack: the `claude/intelligent-chatelet-99aae7` worktree's own managed stack
+(the main checkout's stack was not touched). Trigger: on CLI 3.1.0 the
+previous restore command failed with `duplicate key value violates unique
+constraint "navigation_menus_pkey"` because the pages and navigation migration
+(added after the 2026-10-25 drill) seeds the `header` and `footer` menus.
+Synthetic state on top of the seed: 3 Auth users with one password (admin,
+editor, reader; 2 editorial members), the seed's posts and pages plus one
+published page, 3 media rows, a reader profile avatar, site settings edited
+to revision 3 with a logo and an Open Graph image, a header item linking the
+new page and a footer URL item, both menus bumped to revision 5, and a reader
+refresh token saved before the dump. Storage: 4 objects in 2 buckets.
+
+1. Backup (about 3 s): `db dump --data-only --schema auth,public` (37 KB),
+   `storage-backup.mjs` (4 objects, 2 buckets), `storage-owners.mjs export`
+   (4 owners), schema and role dumps.
+2. Old command, same stack: `db reset --sql-paths data.sql` failed with the
+   duplicate key error above (reproduced before the fix).
+3. Destroy: `supabase stack destroy` 0.5 s; no upload files were left under
+   `supabase/.temp/stack-uploads/<id>` this time (the directory was removed
+   anyway). Fresh stack: `supabase start --runtime native` 4.3 s, same stack
+   id, API URL, and keys; the database port changed (30727 to 31834).
+4. Restore (about 7 s): `db reset --sql-paths restore/before-data.sql
+   --sql-paths data.sql` 4.4 s, `storage-restore.mjs` 2.0 s ("Restored 4
+   objects, 0 already present, 0 failed"), `storage-owners.mjs apply` 0.6 s
+   ("Set the owner of 4 of 4 objects").
+5. Results:
+   - Fingerprints: 65 of 68 table rows identical (every `auth` and `public`
+     table); `storage.buckets`, `storage.migrations`, and `storage.objects`
+     matched in count with the expected hash difference; the stable-columns
+     row matched. Both menus came back at revision 5 and site settings at
+     revision 3, so the dump's values replaced the migration's and seed's.
+     Schema and role dumps after the restore were byte-identical to the
+     backup. Both media and avatar consistency queries returned no rows.
+   - Storage: 4/4 objects matched their SHA-256 through the API and 4/4
+     through anonymous public URLs.
+   - Auth: 3/3 users signed in with the original password, a wrong password
+     was rejected (400), and the pre-backup refresh token still refreshed
+     (200).
+   - Visibility: an anonymous read of `posts` was refused (401); anonymous
+     reads of navigation items and site settings returned the restored
+     values.
+   - `npm run test:rls` on the restored stack: 21 files, 580 tests passed
+     (39 s).
+
+Not covered in this drill: `next start` page checks and `npm run test:smoke`
+(the restore path changed only in the database step, and the RLS suite ran
+against the restored stack), a hosted project, large media volumes, and
+point-in-time recovery.
 
 ### 2026-10-25 — full local drill on a disposable worktree stack, CLI 2.121.0 native runtime
 
