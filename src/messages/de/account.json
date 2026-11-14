@@ -41,7 +41,8 @@
     "title": "Passwort und Sitzung",
     "description": "Sie können Ihr Passwort ändern oder sich auf diesem Gerät abmelden.",
     "change": "Passwort ändern",
-    "signOut": "Abmelden"
+    "signOut": "Abmelden",
+    "signingOut": "Wird abgemeldet…"
   },
   "passwordPage": {
     "title": "Passwort ändern",

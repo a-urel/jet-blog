@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,9 +48,13 @@ export function EditorialAccessDenied({
             <Link href="/account">{t("goToAccount")}</Link>
           </Button>
           <form action={signOutAction}>
-            <Button type="submit" variant="outline" className="w-full">
+            <PendingSubmitButton
+              variant="outline"
+              className="w-full"
+              pendingChildren={t("signingOut")}
+            >
               {t("signOut")}
-            </Button>
+            </PendingSubmitButton>
           </form>
         </CardContent>
       </Card>

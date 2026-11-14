@@ -22,6 +22,7 @@
       "navigation": "Menüler"
     },
     "signOut": "Çıkış yap",
+    "signingOut": "Çıkış yapılıyor…",
     "backToSite": "Siteye dön",
     "deniedTitle": "Yönetim erişimi yok",
     "deniedDescription": "Bu alan yalnızca davet edilen editöryal üyelere açıktır. Okur hesapları yönetim alanına erişemez; editöryal erişim yalnızca bir adminin davetiyle verilir."

@@ -8,6 +8,7 @@ import {
   FolderTree,
   Image as ImageIcon,
   LayoutDashboard,
+  LoaderCircle,
   LogOut,
   Menu,
   MessageSquare,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { signOutAction } from "@/features/auth/actions";
@@ -175,10 +177,20 @@ export default async function AdminLayout({
             <div className="space-y-3 border-t pt-4">
               <LanguageSwitcher align="start" locales={site.enabledLocales} />
               <form action={signOutAction}>
-                <Button type="submit" variant="outline" size="sm" className="w-full">
+                <PendingSubmitButton
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  pendingChildren={
+                    <>
+                      <LoaderCircle aria-hidden="true" className="animate-spin" />
+                      {t("shell.signingOut")}
+                    </>
+                  }
+                >
                   <LogOut aria-hidden="true" />
                   {t("shell.signOut")}
-                </Button>
+                </PendingSubmitButton>
               </form>
               <Button asChild variant="ghost" size="sm" className="w-full">
                 <Link href="/">{t("shell.backToSite")}</Link>
