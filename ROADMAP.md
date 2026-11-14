@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-26 (Phases 27 site settings and 28 static pages and navigation, merged into main)
+Last updated: 2026-11-14 (D5 answered; README "Deploying to Vercel" guide added)
 
 `AGENTS.md` is the normative source for architecture, security, and delivery
 rules. This document turns those rules into ordered, reviewable increments. It
@@ -703,12 +703,14 @@ on request. Do not push without an explicit request.
   `supabase/migrations/20261023120000_write_rate_limits.sql`,
   `src/features/posts/cache.ts`, and `docs/backup-and-restore.md`. Earlier
   phases: the other migrations and `*.rls.test.ts` files.
-- Next slice: none planned. Every phase in the table is done; the remaining
-  work is the D5 launch gate.
-- Open gates: D5 now reduces to the domain and hosting (deferred, no
-  production domain); the brand is edited per deployment in the site settings
-  (Phase 27). Launch needs those decisions plus the README hosting checklist. D4 is closed: draft images stay public by
-  URL (confirmed 2026-10-25).
+- Next slice: none planned. Every phase in the table is done and the README
+  has the Vercel deployment guide (2026-11-14); see "Next step" for the
+  optional follow-ups.
+- Open gates: none. D5 was answered on 2026-11-14: the repository is an
+  open-source template that the maintainers do not launch themselves, Vercel is
+  the documented reference host, and each deployment chooses its own domain;
+  the brand is edited per deployment in the site settings (Phase 27). D4 is
+  closed: draft images stay public by URL (confirmed 2026-10-25).
 
 ## Deferred administration follow-ups
 
@@ -746,12 +748,12 @@ widening an active phase silently.
 | D2 | Workflow states and editing live posts | Phases 3, 8 | `draft` → `published` only; `review`/`archived` later; editors may edit published posts and `updated_at` is shown | **Answered 2026-10-22** |
 | D3 | Concurrency and revisions | Phases 3–5, 8, 26 | Working copy with atomic revision comparison and a preview route for members; since 2026-10-25 a separate published snapshot per published post: every reader-visible field waits for an editor/admin republish, authors edit their own live working copy but never publish, every publish/republish stores an immutable version | **Answered 2026-10-22; revised 2026-10-25** (Phase 26) |
 | D4 | Media bucket visibility | Phase 6 | One public bucket, UUID object paths, app-level validation; document that draft media is fetchable by URL | **Answered 2026-10-22; confirmed for launch 2026-10-25** |
-| D5 | Language, brand, domain, hosting | Phases 8–10, launch | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–10 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`); for Phase 10 the user deferred hosting and has no production domain yet. Interface language decided 2026-10-24: tr (default), en, de by cookie (Phase 22). Brand decided 2026-10-25: white-label, edited per deployment in the site settings (Phase 27; `NEXT_PUBLIC_SITE_NAME` is only a fallback). D5 now reduces to domain and hosting. Blocks launch only |
+| D5 | Language, brand, domain, hosting | Phases 8–10, launch | Keep provisional Turkish copy and generic labels; `NEXT_PUBLIC_SITE_URL` already exists for invitation redirects; finalize it for canonical/sitemap and decide hosting before launch | **Provisional 2026-10-23**: accepted for Phases 8–10 (canonical, sitemap, and share URLs from `NEXT_PUBLIC_SITE_URL`); for Phase 10 the user deferred hosting and has no production domain yet. Interface language decided 2026-10-24: tr (default), en, de by cookie (Phase 22). Brand decided 2026-10-25: white-label, edited per deployment in the site settings (Phase 27; `NEXT_PUBLIC_SITE_NAME` is only a fallback). D5 now reduces to domain and hosting. **Answered 2026-11-14**: open-source template with no maintainer-run launch; Vercel is the documented reference host; the domain is chosen per deployment |
 | D6 | Reader accounts, bookmarks, and comments | Phases 11–13 | Private bookmarks only; reader accounts with email + password; post-moderation with reader reports and editor hide/delete; account deletion removes bookmarks and anonymizes comments. No public like counts, OAuth, or magic links initially | **Answered 2026-10-22** |
 
 D1, D2, D3, D4, and D6 were answered on 2026-10-22 and no longer block their
-phases. D5 was accepted provisionally on 2026-10-23 for Phases 8–10; the real
-domain, brand, and hosting remain open and block the public launch.
+phases. D5 was accepted provisionally on 2026-10-23 for Phases 8–10 and
+answered on 2026-11-14 (see below); no gate is open.
 
 ### Answered decisions
 
@@ -791,6 +793,18 @@ domain, brand, and hosting remain open and block the public launch.
   moderated afterward through reader reports plus editor hide/delete. On account
   deletion, bookmarks are removed and comments are anonymized. OAuth, magic
   links, and public likes remain deferred.
+
+- **D5 (2026-11-14, user):** jet-blog ships as an open-source, white-label
+  template; the maintainers do not launch a production site. No production
+  domain is fixed in the repository: each deployment sets its own origin in
+  `NEXT_PUBLIC_SITE_URL` and the Supabase Auth settings, and its own brand in
+  the site settings (Phase 27). Vercel is the documented reference host,
+  because its shared cache lets `updateTag` reach every instance and the
+  platform sets the client IP headers that the rate limits read. The hosted
+  Supabase project should run in the region of the Vercel functions. Other
+  hosts are not ruled out but are not documented; a multi-instance self-hosted
+  deployment still needs a shared cache handler and a proxy that overwrites
+  `X-Forwarded-For`.
 
 ### Reader identity is an account, not an editorial role
 
@@ -2326,6 +2340,10 @@ index type (HNSW or IVFFlat).
 
 ## Risks and watch items
 
+- Vercel Functions reject request bodies above 4.5 MB before the application
+  runs. Since 2026-11-14 the media limit is 4 MiB
+  (`20261114100000_media_upload_limit.sql`); raising it again needs direct
+  uploads to Storage instead of the Server Action.
 - Next.js 16 middleware/proxy and caching conventions differ from earlier
   versions; read the bundled docs before each related phase.
 - Local Supabase stack identity is per repository path and branch; switching
@@ -2360,9 +2378,14 @@ index type (HNSW or IVFFlat).
 ## Next step
 
 Every phase in the table (through Phase 28, static pages and navigation), both
-administration increments, and the first-admin bootstrap command are done. The remaining work is the launch gate: decide D5
-(domain, brand, hosting), then
-follow the README hosting checklist (bootstrap the first admin with
+administration increments, and the first-admin bootstrap command are done, and
+D5 is answered (template only, Vercel as the reference host), and the README
+section "Deploying to Vercel" (2026-11-14) turns the hosting checklist into
+ordered steps, checked against current Vercel and Supabase documentation. It
+has not been exercised against a real deployment. The media upload limit
+was lowered to 4 MiB the same day so uploads fit Vercel's 4.5 MB request body
+limit. Optional follow-up: a test deployment on a `*.vercel.app` URL with a disposable hosted Supabase project to
+exercise the guide. The checklist covers (bootstrap the first admin with
 `npm run admin:bootstrap`, site URL and Auth redirects, reader-account Auth
 settings, production SMTP and `token_hash` templates, HSTS, shared cache
 handler or single instance, hosted database, Storage, and Storage-owner

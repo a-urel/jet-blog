@@ -113,7 +113,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | Project API URL from Supabase's Connect dialog, or the local CLI output. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public publishable API key for that project. |
 | `SUPABASE_SECRET_KEY` | Server-only secret key used by the invitation action and admin client. Required for `/admin/members`. |
-| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical, Open Graph, JSON-LD, share-link, sitemap, robots, and feed URLs. It must match the Supabase Auth site URL and redirect allowlist. Without it the site is `noindex`, `robots.txt` disallows everything, the sitemap is empty, `/feed.xml` and the archive feeds answer 404 with no discovery link, and share controls are hidden. Local default: `http://localhost:3000`. Provisional until D5 picks the real domain. |
+| `NEXT_PUBLIC_SITE_URL` | Public application origin used in invitation redirects and as `metadataBase` for canonical, Open Graph, JSON-LD, share-link, sitemap, robots, and feed URLs. It must match the Supabase Auth site URL and redirect allowlist. Without it the site is `noindex`, `robots.txt` disallows everything, the sitemap is empty, `/feed.xml` and the archive feeds answer 404 with no discovery link, and share controls are hidden. Local default: `http://localhost:3000`. Each deployment sets its own origin; the repository fixes no production domain (D5). |
 | `NEXT_PUBLIC_SITE_NAME` | Optional fallback publication name, used only until an admin saves the site settings (Phase 27, `/admin/settings`), which own the brand. Without it the fallback is the neutral `Blog`. |
 
 Restart the development server after changing these values. `NEXT_PUBLIC_*`
@@ -518,7 +518,8 @@ Storage bucket with UUID object paths and server-side validation.
   and are not listed publicly, but they are not secret once shared. Revisit
   before launch if unpublished images must stay private.
 - **Storage and metadata.** `supabase/migrations/20261022190000_media.sql`
-  creates the bucket (5 MiB limit, JPEG/PNG/WebP/GIF only) and `public.media`
+  creates the bucket (JPEG/PNG/WebP/GIF only; 4 MiB limit since
+  `20261114100000_media_upload_limit.sql`, 5 MiB before) and `public.media`
   with bucket, object path, uploader, MIME type, size, dimensions, and
   timestamps. The object path equals the media id. Members read media rows;
   readers and anonymous visitors do not. Clients have no write grants on
@@ -1737,12 +1738,27 @@ page will not receive the fragment.
   confirmations on), `resetPasswordForEmail`, and `exchangeCodeForSession`
   (`sb_flow_id`); bundled Next.js docs for
   [authentication and Proxy optimistic checks](node_modules/next/dist/docs/01-app/02-guides/authentication.md).
+- Vercel deployment guide (checked 2026-11-14): Vercel
+  [request headers](https://vercel.com/docs/headers/request-headers)
+  (`X-Forwarded-For` is overwritten, client values are not forwarded),
+  [Functions limits](https://vercel.com/docs/functions/limitations) (4.5 MB
+  request body, default region `iad1`),
+  [function regions](https://vercel.com/docs/functions/configuring-functions/region),
+  [encryption and HSTS](https://vercel.com/docs/cdn-security/encryption), and
+  [Next.js on Vercel](https://vercel.com/docs/frameworks/full-stack/nextjs)
+  (Middleware runs before the cache; durable, globally invalidated ISR);
+  Supabase [redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls)
+  (exact paths in production); bundled Next.js docs for
+  [deploying](node_modules/next/dist/docs/01-app/01-getting-started/17-deploying.md)
+  (Vercel is a verified adapter) and
+  [CDN caching](node_modules/next/dist/docs/01-app/02-guides/cdn-caching.md)
+  (Proxy must run before the CDN cache).
 
 ## Launch readiness (Phase 10)
 
-Phase 10 hardens the editorial MVP. Hosting, the production domain, and the
-brand stay open (D5, confirmed provisional on 2026-10-23): nothing here deploys
-or creates hosted resources.
+Phase 10 hardens the editorial MVP. Nothing here deploys or creates hosted
+resources; since D5 (2026-11-14) each deployment chooses its own domain and
+[Deploying to Vercel](#deploying-to-vercel) documents the reference host.
 
 - **Cache invalidation map.** `features/posts/cache.ts` names each kind of
   public content change and returns what it expires; Server Actions apply it
@@ -1831,7 +1847,7 @@ or creates hosted resources.
   `SMOKE_SUPABASE_PUBLISHABLE_KEY` add a check that clients cannot call
   `search_published_posts` directly.
 
-Hosting checklist (open until the domain and hosting of D5 are decided): after the first deploy, create
+Hosting checklist (each deployment chooses its own domain, D5; for the reference host, follow [Deploying to Vercel](#deploying-to-vercel), which orders these steps): after the first deploy, create
 the first admin with `npm run admin:bootstrap` (see
 [Bootstrap the first admin](#bootstrap-the-first-admin)); set `NEXT_PUBLIC_SITE_URL` (and optionally
 the fallback `NEXT_PUBLIC_SITE_NAME`) before the production build, add the origin to the
@@ -1863,6 +1879,177 @@ writes are exempt), and the final anonymous/reader/author/editor/admin matrix:
 post visibility, closed direct writes to content tables, hidden rate-limit
 bookkeeping, draft editing, publishing, and membership reads. Unit tests cover
 the invalidation map, security headers, and the new error keys.
+
+## Deploying to Vercel
+
+jet-blog is a template: the repository fixes no production domain, brand, or
+hosted project (D5). Vercel is the documented reference host. Other hosts can
+work, but they are not documented here; see
+[Other hosts](#other-hosts) for what they must provide. Nothing in this section
+runs automatically, and each step creates resources in your own accounts.
+
+### Why Vercel fits the code
+
+- **Cache invalidation.** Publishing calls `updateTag` and `revalidatePath`
+  (see [Launch readiness](#launch-readiness-phase-10)). Vercel persists ISR
+  output in a shared, durable cache and propagates invalidation globally, so
+  no custom `cacheHandler` is needed.
+- **Interface language and the CDN.** Pages render per locale cookie and
+  `Accept-Language` on locale-free URLs. `src/proxy.ts` rewrites each request
+  to the internal `/<locale>/…` path, and on Vercel the Proxy (Middleware)
+  runs before the cache, so each locale is cached under its own rewritten
+  path. Do not put another caching CDN in front of Vercel: it would key HTML
+  on the public URL alone and serve one language to every reader.
+- **Client IP for rate limits.** The Auth and search limits read the first
+  `X-Forwarded-For` entry (`src/features/auth/rate-limit-subjects.ts`).
+  Vercel overwrites `X-Forwarded-For` with the client address and does not
+  forward client-sent values, so the limits cannot be bypassed by rotating
+  the header. A proxy in front of Vercel would replace that address with its
+  own (Vercel's trusted-proxy option is an Enterprise feature).
+- **HTTPS and HSTS.** Vercel redirects HTTP to HTTPS (308) and sends
+  `Strict-Transport-Security: max-age=63072000` on custom domains (with
+  `includeSubDomains; preload` on `*.vercel.app`). The application sends no
+  HSTS header itself. Add `includeSubDomains` or `preload` only through a
+  custom response header once every subdomain of your domain is HTTPS-only.
+
+### Upload size and the 4.5 MB body limit
+
+Vercel Functions accept request bodies of at most 4.5 MB and answer larger
+ones with `413 FUNCTION_PAYLOAD_TOO_LARGE` before the application runs. Media
+uploads go through a Server Action, so the media limit is 4 MiB
+(`maxMediaBytes`, the bucket, and `register_media`, since migration
+`20261114100000_media_upload_limit.sql`): a file plus multipart overhead stays
+below Vercel's limit, and a larger file gets the application's own size
+message. Avatars are cropped and re-encoded in the browser and stay far below
+the limit.
+
+### Plan and region
+
+- The Hobby plan is for non-commercial personal use; a commercial
+  publication needs Pro or higher. Image Optimization (`next/image` for
+  media, covers, and avatars) and function usage count toward the plan's
+  limits.
+- New Vercel projects run functions in `iad1` (Washington, D.C.). Every page
+  render, Server Action, and Proxy locale lookup talks to Supabase, so put
+  both in the same area: for example Supabase `eu-central-1` (Frankfurt)
+  with the Vercel function region `fra1`. Set the region in the project
+  settings (Settings → Functions → Function Regions); the repository ships no
+  `vercel.json`, so the region stays a per-deployment choice.
+
+### 1. Create and migrate the Supabase project
+
+1. Create a hosted Supabase project in the chosen region.
+2. Link this checkout and apply the migrations. They create every table,
+   function, RLS policy, and the Storage buckets with their policies:
+
+   ```bash
+   supabase link --project-ref <project-ref>
+   supabase db push
+   ```
+
+   Do not load `supabase/seeds/seed.sql` into a hosted project: it holds
+   synthetic development content only.
+3. Do not run `supabase config push`: `supabase/config.toml` describes the
+   local stack (loopback site URL, local redirect URLs) and would overwrite
+   the hosted Auth settings. Configure Auth in the dashboard instead (step 4).
+4. In the dashboard, copy the project URL, the publishable key, and a secret
+   key (API settings) for the environment variables below.
+
+### 2. Create the Vercel project
+
+1. Import the repository in Vercel. The framework preset is Next.js; keep the
+   default `npm run build`, and Vercel installs from `package-lock.json`.
+   Node.js must satisfy `engines.node` (22 or newer).
+2. Set the function region (see [Plan and region](#plan-and-region)).
+3. Decide the origin. Without a domain, the production URL
+   `https://<project>.vercel.app` works as the origin. Changing the origin
+   later means repeating steps 3 and 4 and a redeploy, because canonical URLs,
+   feeds, and invitation links are built from it.
+
+### 3. Environment variables
+
+Add these in Settings → Environment Variables, scoped to **Production**:
+
+| Variable | Value |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Hosted project URL. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Hosted publishable key. |
+| `SUPABASE_SECRET_KEY` | Hosted secret key. Mark it **Sensitive**; never put it in a `NEXT_PUBLIC_*` variable. |
+| `NEXT_PUBLIC_SITE_URL` | The production origin, for example `https://<project>.vercel.app` or your domain, without a trailing path. |
+| `NEXT_PUBLIC_SITE_NAME` | Optional fallback name until the site settings are saved. |
+
+`NEXT_PUBLIC_*` values are inlined at build time: redeploy after changing
+them. `next.config.ts` also reads `NEXT_PUBLIC_SUPABASE_URL` at build time for
+the image allowlist and the CSP.
+
+Leave these variables unset for **Preview** deployments unless you have a
+separate Supabase project for previews. A preview without them builds, renders
+an empty public site, and is `noindex`. A preview that shares production
+variables writes to the production database and sends invitation links with
+the production origin.
+
+### 4. Supabase Auth settings
+
+In the hosted project's Authentication settings:
+
+- **Site URL:** the value of `NEXT_PUBLIC_SITE_URL`.
+- **Redirect URLs:** exact production paths, not a `**` wildcard:
+  `<origin>/auth/callback`, `<origin>/auth/recovery`, and the invitation
+  acceptance URL used by `/admin/members` and `admin:bootstrap`
+  (`<origin>/auth/confirm`).
+- **Reader accounts:** email sign-up with confirm email on, confirm phone
+  on as well (SMS stays disabled; with both on, sign-up does not reveal
+  whether an email is registered), a minimum password length of 8 with the
+  `letters_digits` rule, and rate limits matching `[auth.rate_limit]` in
+  `supabase/config.toml` (see [Reader accounts](#reader-accounts-phase-11)).
+- **SMTP:** a production SMTP provider. The built-in sender is for testing
+  only.
+- **Email templates:** confirmation and recovery templates with the
+  `token_hash` links described in
+  [Reader accounts](#reader-accounts-phase-11).
+
+### 5. First deploy and first admin
+
+1. Deploy (push to the production branch or redeploy in the dashboard).
+2. Create the first admin from your machine. Set the variables in the shell,
+   never as arguments:
+
+   ```bash
+   SUPABASE_URL=<project-url> SUPABASE_SECRET_KEY=<secret-key> NEXT_PUBLIC_SITE_URL=<origin> npm run admin:bootstrap -- --email <you@example.com>
+   ```
+
+   See [Bootstrap the first admin](#bootstrap-the-first-admin).
+3. Accept the invitation, then set the brand, locales, and indexing at
+   `/admin/settings`.
+
+### 6. Verify the deployment
+
+```bash
+SMOKE_BASE_URL=<origin> npm run test:smoke
+```
+
+Then check by hand: a published post appears on the home page within seconds
+of publishing, a second browser language gets its own interface language,
+`/admin` redirects a signed-out visitor to `/login`, and the response headers
+include the CSP and `Strict-Transport-Security`. Schedule database, Storage,
+and Storage-owner backups and repeat the restore drill against the hosted
+project as described in [docs/backup-and-restore.md](./docs/backup-and-restore.md).
+
+### 7. Custom domain (later)
+
+Add the domain in Vercel, then update `NEXT_PUBLIC_SITE_URL`, the Supabase
+Site URL and redirect URLs, and the SMTP sender domain (SPF/DKIM), and
+redeploy. Published URLs change origin, so submit the new sitemap to search
+engines.
+
+### Other hosts
+
+Any host must provide what Vercel provides above: `npm run build` and
+`npm run start` on Node.js 22 or newer; a single instance or a shared
+`cacheHandler` so `updateTag` reaches every instance; the Proxy running before
+any HTML cache, or no HTML caching at the edge; a TLS-terminating proxy that
+overwrites `X-Forwarded-For` and sends HSTS; and a request body limit of at
+least 5 MB for media uploads.
 
 ## Reader accounts (Phase 11)
 
@@ -2369,5 +2556,5 @@ indexing) admin-editable, and Phase 28 added admin-managed static pages
 All planned phases (1–28) are implemented; see ROADMAP.md for the open
 gates. A new body node still changes the TypeScript allowlist, the database mirror, the fixtures, the editor, and the renderer
 together. Author credits must remain separate from edit and publish
-permissions. Launch itself still needs the D5 hosting and domain decisions
-(the brand is now a site setting).
+permissions. jet-blog is a template: each deployment chooses its own domain
+and brand, and Vercel is the documented reference host (D5).
