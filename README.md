@@ -323,9 +323,20 @@ Phase 3 adds the content tables. Public pages read them since Phase 8 (see
   [Author identity administration](#author-identity-administration)).
 
 `supabase db reset` reloads `supabase/seeds/seed.sql`: three synthetic published
-posts, one uncategorized draft, categories, tags, and guest author
-profiles. Seeds never create Auth users or credentials, and they are separate
-from production data.
+posts, one uncategorized draft, categories, tags, guest author profiles, and a
+sample media library. Seeds never create Auth users or credentials, and they
+are separate from production data.
+
+The sample media library has nine images: a wordmark for light and for dark
+backgrounds, a square icon, and a share image (synthetic placeholders made by
+`scripts/generate-seed-media.mjs`), plus five public-domain photographs from
+The Met Open Access (CC0), credited in `supabase/seeds/MEDIA_CREDITS.md`. The
+files live in `supabase/seeds/media/`, named by media id; after `seed.sql`
+inserts the rows, `db reset` uploads them to the `media` bucket through
+`[storage.buckets.media]` in `supabase/config.toml`, whose bucket settings
+mirror the migrations. No seed account owns them (`uploaded_by` is null), so
+editors and admins can delete them. Nothing is assigned to posts or the site
+settings; pick them in the editor or at `/admin/settings`.
 
 ## Draft authoring
 
@@ -1581,10 +1592,13 @@ src/
 supabase/
   config.toml             # Local auth config, reader sign-up, seeds enabled
   migrations/             # Versioned schema, RLS, functions, and triggers
-  seeds/seed.sql          # Synthetic taxonomy and posts, never production data
+  seeds/seed.sql          # Synthetic taxonomy, posts, and media rows, never production data
+  seeds/media/            # Seed media files named by media id, uploaded on db reset
+  seeds/MEDIA_CREDITS.md  # Sources and licenses of the seed media
 scripts/
   admin-bootstrap.mjs     # One-time first-admin grant (npm run admin:bootstrap)
   admin-bootstrap-core.mjs # Bootstrap logic, unit tested with a fake client
+  generate-seed-media.mjs # Renders the synthetic seed brand images
   run-rls-tests.mjs       # Loads local Supabase env and runs integration tests
 vitest.config.mts         # Unit test configuration
 vitest.rls.config.mts     # RLS integration test configuration
@@ -1594,8 +1608,9 @@ Public pages import `features/posts/data.ts`, which reads published rows from
 the database; there is no fixture fallback. The development seed provides three
 published posts with stable UUIDs, ordered author credits, one category (with a
 parent reference), multiple tags, and version-1 bodies, plus one uncategorized
-draft that cannot be published until a category is saved. Seed content is
-synthetic and contains no images or videos.
+draft that cannot be published until a category is saved. Seed posts are
+synthetic and contain no images or videos; the seed media library (above) is
+available to pick in the editor and the site settings.
 
 Route paths and query parameters are English (`/login`, `/admin/members`,
 `/posts/[slug]`, `?status=updated`, `?error=category`) regardless of the
@@ -1689,8 +1704,9 @@ bucket, Storage policies, `public.media`, the media RPCs, and the image node.
 The Phase 7 migration adds the `youtube` node to the body validator. The Phase
 8 migration adds the publish/unpublish RPCs and slug redirects. The Phase 10
 migration adds the write rate limits.
-Seeding is enabled: `supabase/seeds/seed.sql` loads synthetic taxonomy and
-posts, never production data. Create future migrations with
+Seeding is enabled: `supabase/seeds/seed.sql` loads synthetic taxonomy,
+posts, and media rows, and `db reset` uploads `supabase/seeds/media/` to the
+`media` bucket; never production data. Create future migrations with
 `supabase migration new <name>` and keep all related changes in this repository.
 Add optional Edge Functions only when there is a concrete need.
 
@@ -1969,8 +1985,9 @@ the limit.
    the migrations first. `supabase link` records the project in
    `supabase/.link.json`, which is ignored.
 
-   Do not load `supabase/seeds/seed.sql` into a hosted project: it holds
-   synthetic development content only.
+   Do not load `supabase/seeds/seed.sql` into a hosted project or run
+   `supabase seed buckets --remote`: they hold synthetic development content
+   only.
 3. Do not run `supabase config push`: `supabase/config.toml` describes the
    local stack (loopback site URL, local redirect URLs) and would overwrite
    the hosted Auth settings. Configure Auth in the dashboard instead (step 4).

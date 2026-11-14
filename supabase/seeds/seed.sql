@@ -255,3 +255,41 @@ alter table public.pages enable trigger pages_set_updated_at;
 
 insert into public.navigation_items (location, sort_order, page_id)
 values ('header', 0, '7d1f8a52-0c4e-4b8a-9f3e-5a6b7c8d9e01');
+
+-- Media library samples. The files live in supabase/seeds/media/, named by
+-- media id (object_path = id); `supabase db reset` uploads them to the media
+-- bucket after this file runs (config.toml, [storage.buckets.media]). The
+-- brand images are synthetic placeholders made by
+-- scripts/generate-seed-media.mjs; the photographs are public-domain works
+-- from The Metropolitan Museum of Art Open Access (CC0), credited in
+-- supabase/seeds/MEDIA_CREDITS.md. uploaded_by is null: no seed account owns
+-- them, so editors and admins manage them.
+insert into public.media (
+  id,
+  object_path,
+  mime_type,
+  size_bytes,
+  width,
+  height,
+  created_at,
+  updated_at
+)
+values
+  -- Wordmark for light backgrounds.
+  ('57b580eb-d906-4868-8eb0-dd7d26a6a787', '57b580eb-d906-4868-8eb0-dd7d26a6a787', 'image/png', 7444, 627, 158, '2026-10-17 09:08:00+00', '2026-10-17 09:08:00+00'),
+  -- Wordmark for dark backgrounds.
+  ('2bf836d5-1c0e-4dcf-9bee-27bd057cf5b6', '2bf836d5-1c0e-4dcf-9bee-27bd057cf5b6', 'image/png', 7444, 627, 158, '2026-10-17 09:07:00+00', '2026-10-17 09:07:00+00'),
+  -- Square site icon.
+  ('a4730606-98ed-466d-8cbc-ebe59e7d6526', 'a4730606-98ed-466d-8cbc-ebe59e7d6526', 'image/png', 5546, 512, 512, '2026-10-17 09:06:00+00', '2026-10-17 09:06:00+00'),
+  -- Default share image.
+  ('59ee69ca-f91a-45b5-ac1c-01d69bfe1001', '59ee69ca-f91a-45b5-ac1c-01d69bfe1001', 'image/png', 15043, 1200, 630, '2026-10-17 09:05:00+00', '2026-10-17 09:05:00+00'),
+  -- Gustave Le Gray, Mediterranean Sea - Sète, 1857.
+  ('0095e7e5-684b-4df5-b801-bc1fe61e2a21', '0095e7e5-684b-4df5-b801-bc1fe61e2a21', 'image/jpeg', 253302, 1600, 1237, '2026-10-17 09:04:00+00', '2026-10-17 09:04:00+00'),
+  -- William Henry Fox Talbot, Hungerford Suspension Bridge, ca. 1845.
+  ('9459b657-f0f1-45db-b3d2-d86dce803694', '9459b657-f0f1-45db-b3d2-d86dce803694', 'image/jpeg', 280149, 1600, 1269, '2026-10-17 09:03:00+00', '2026-10-17 09:03:00+00'),
+  -- Carleton E. Watkins, Geyser Road, 1868-70.
+  ('ffbbe76d-1672-4b8f-b88d-a9a211c73075', 'ffbbe76d-1672-4b8f-b88d-a9a211c73075', 'image/jpeg', 343966, 1600, 1200, '2026-10-17 09:02:00+00', '2026-10-17 09:02:00+00'),
+  -- Thomas Keith, Trees, 1854-57.
+  ('bc873860-3100-4c0a-bdee-8989d382fbcd', 'bc873860-3100-4c0a-bdee-8989d382fbcd', 'image/jpeg', 327839, 1177, 1600, '2026-10-17 09:01:00+00', '2026-10-17 09:01:00+00'),
+  -- Hill and Adamson, St. Andrews. The Harbor, 1843-47.
+  ('892928c1-4417-476f-8ac3-7a0845061393', '892928c1-4417-476f-8ac3-7a0845061393', 'image/jpeg', 207870, 1600, 1193, '2026-10-17 09:00:00+00', '2026-10-17 09:00:00+00');
