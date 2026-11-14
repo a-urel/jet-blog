@@ -2,9 +2,12 @@
 // the type comes from the file signature and the dimensions from the header.
 // SVG, HTML, and every other format are rejected because they are not in the
 // signature allowlist. The database repeats the type and size limits in
-// `public.register_media`, the media table constraints, and the bucket config.
+// `public.register_media` and the bucket config (the media table CHECK keeps
+// the earlier 5 MiB bound for older rows). 4 MiB keeps an upload, multipart
+// overhead included, below the 4.5 MB request body limit of Vercel Functions
+// (migration 20261114100000_media_upload_limit.sql).
 
-export const maxMediaBytes = 5 * 1024 * 1024;
+export const maxMediaBytes = 4 * 1024 * 1024;
 export const maxMediaDimension = 10_000;
 
 export const allowedMediaTypes = [

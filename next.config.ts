@@ -62,15 +62,16 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: mediaRemotePatterns(),
-    // Uploads are capped at 5 MiB (src/features/media/validation.ts).
+    // New uploads are capped at 4 MiB (src/features/media/validation.ts);
+    // images registered before that change may be up to 5 MiB.
     maximumResponseBody: 6_000_000,
     dangerouslyAllowLocalIP: isLoopbackSupabase(),
   },
   experimental: {
     serverActions: {
-      // Media uploads are sent to a Server Action: 5 MiB plus multipart
+      // Media uploads are sent to a Server Action: 4 MiB plus multipart
       // overhead. Other actions keep small payloads.
-      bodySizeLimit: "6mb",
+      bodySizeLimit: "5mb",
     },
   },
 };

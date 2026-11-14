@@ -74,9 +74,9 @@
     "libraryItem": "Görsel {position}, {width}×{height} piksel",
     "libraryItemSelected": "Görsel {position}, {width}×{height} piksel, seçili",
     "file": "Görsel dosyası",
-    "fileHelp": "JPEG, PNG, WebP veya GIF, en fazla 5 MB. SVG kabul edilmez.",
+    "fileHelp": "JPEG, PNG, WebP veya GIF, en fazla 4 MB. SVG kabul edilmez.",
     "fileRequired": "Bir dosya seçin.",
-    "fileTooLarge": "Dosya 5 MB'tan büyük.",
+    "fileTooLarge": "Dosya 4 MB'tan büyük.",
     "uploadAndSet": "Yükle ve seç",
     "uploading": "Yükleniyor…",
     "failed": "Yükleme tamamlanamadı. Tekrar deneyin."

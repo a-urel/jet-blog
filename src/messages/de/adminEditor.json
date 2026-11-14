@@ -30,9 +30,9 @@
   "loading": "Editor wird geladen…",
   "upload": {
     "file": "Bilddatei",
-    "fileHelp": "JPEG, PNG, WebP oder GIF; höchstens 5 MB. Hochgeladene Dateien werden über eine öffentliche Adresse ausgeliefert.",
+    "fileHelp": "JPEG, PNG, WebP oder GIF; höchstens 4 MB. Hochgeladene Dateien werden über eine öffentliche Adresse ausgeliefert.",
     "fileRequired": "Wählen Sie eine Bilddatei aus.",
-    "fileTooLarge": "Die Datei darf höchstens 5 MB groß sein.",
+    "fileTooLarge": "Die Datei darf höchstens 4 MB groß sein.",
     "failed": "Der Upload konnte nicht abgeschlossen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     "uploading": "Wird hochgeladen…",
     "altPlaceholder": "Was ist auf dem Bild zu sehen?"
