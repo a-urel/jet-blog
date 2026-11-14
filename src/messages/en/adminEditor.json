@@ -44,7 +44,13 @@
     "altRequired": "Enter alt text or mark the image as decorative.",
     "apply": "Apply",
     "uploadAndInsert": "Upload and insert",
-    "remove": "Remove image"
+    "remove": "Remove image",
+    "chooseFromLibrary": "Choose from library",
+    "changeLibraryChoice": "Change",
+    "clearLibraryChoice": "Clear library choice",
+    "insert": "Insert",
+    "libraryImage": "Library image",
+    "libraryFieldLabel": "Body image"
   },
   "video": {
     "url": "YouTube link",

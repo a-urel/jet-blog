@@ -40,7 +40,7 @@ import {
   type YouTubeAttrs,
 } from "@/features/posts/content/schema";
 import { cn } from "@/lib/utils";
-import { PostImagePanel } from "./post-image-panel";
+import { PostImagePanel, type EditorMediaLibrary } from "./post-image-panel";
 import { PostVideoPanel } from "./post-video-panel";
 
 type PostBodyEditorProps = {
@@ -54,6 +54,8 @@ type PostBodyEditorProps = {
   lang?: string;
   // Called on every change to the document, for unsaved-changes tracking.
   onChange?: () => void;
+  // The media library for "choose from library" in the image panel.
+  mediaLibrary?: EditorMediaLibrary;
 };
 
 type ToolbarButtonProps = {
@@ -142,6 +144,7 @@ export function PostBodyEditor({
   describedBy,
   lang,
   onChange,
+  mediaLibrary,
 }: PostBodyEditorProps) {
   const t = useTranslations("adminEditor");
   const [serialized, setSerialized] = useState(() =>
@@ -492,6 +495,7 @@ export function PostBodyEditor({
             editor={editor}
             selected={imagePanel.mode === "edit" ? imagePanel.attrs : null}
             onClose={() => setImagePanel(null)}
+            library={mediaLibrary}
           />
         ) : null}
 

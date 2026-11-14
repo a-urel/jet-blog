@@ -44,7 +44,13 @@
     "altRequired": "Alternatif metin girin veya görseli dekoratif olarak işaretleyin.",
     "apply": "Uygula",
     "uploadAndInsert": "Yükle ve ekle",
-    "remove": "Görseli kaldır"
+    "remove": "Görseli kaldır",
+    "chooseFromLibrary": "Kitaplıktan seç",
+    "changeLibraryChoice": "Değiştir",
+    "clearLibraryChoice": "Kitaplık seçimini kaldır",
+    "insert": "Ekle",
+    "libraryImage": "Kitaplık görseli",
+    "libraryFieldLabel": "Yazı gövdesi görseli"
   },
   "video": {
     "url": "YouTube bağlantısı",

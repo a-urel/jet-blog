@@ -4,6 +4,7 @@ import { FilePlus2 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { listMedia } from "@/features/media/data";
 import { pageAccessDenial } from "@/features/pages/admin/components/page-admin-guard";
 import { PageForm } from "@/features/pages/admin/components/page-form";
 import { emptyBodyDocument } from "@/features/posts/content/schema";
@@ -17,7 +18,7 @@ export default async function NewStaticPage() {
   const denial = await pageAccessDenial();
   if (denial) return denial;
 
-  const t = await getTranslations("adminPages");
+  const [t, mediaLibrary] = await Promise.all([getTranslations("adminPages"), listMedia()]);
 
   return (
     <div className="space-y-6">
@@ -41,6 +42,13 @@ export default async function NewStaticPage() {
         <CardContent>
           <PageForm
             mode="create"
+            media={mediaLibrary.media.map(({ id, width, height, originalName }) => ({
+              id,
+              width,
+              height,
+              originalName,
+            }))}
+            mediaError={mediaLibrary.error}
             initialValues={{ title: "", slug: "", metaDescription: "", kind: "other", body: emptyBodyDocument }}
           />
         </CardContent>

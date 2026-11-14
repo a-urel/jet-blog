@@ -105,6 +105,11 @@ export function PostForm({
   const [language, setLanguage] = useState<PostLanguage>(initialValues.language);
   const [coverMediaId, setCoverMediaId] = useState(initialValues.coverMediaId);
   const [coverAlt, setCoverAlt] = useState(initialValues.coverAlt);
+  // One library for the cover and the body: an upload in either is offered
+  // by both pickers without reloading the page.
+  const [library, setLibrary] = useState<CoverMediaOption[]>(media);
+  const addToLibrary = (uploaded: CoverMediaOption) =>
+    setLibrary((current) => [uploaded, ...current.filter((item) => item.id !== uploaded.id)]);
   const [authorToAdd, setAuthorToAdd] = useState("");
   // The revision the unsaved edits were made against. A successful save
   // re-renders this form with a newer revision, which clears the warning
@@ -292,7 +297,8 @@ export function PostForm({
       </div>
 
       <PostCoverField
-        media={media}
+        media={library}
+        onMediaUploaded={addToLibrary}
         mediaError={mediaError}
         coverMediaId={coverMediaId}
         coverAlt={coverAlt}
@@ -320,6 +326,7 @@ export function PostForm({
           describedBy="post-body-help post-body-error"
           lang={language}
           onChange={markDirty}
+          mediaLibrary={{ items: library, error: mediaError, onUploaded: addToLibrary }}
         />
         <p id="post-body-help" className="text-sm text-muted-foreground">
           {t("form.bodyHelp")}
