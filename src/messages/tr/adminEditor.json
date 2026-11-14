@@ -30,9 +30,9 @@
   "loading": "Editör yükleniyor…",
   "upload": {
     "file": "Görsel dosyası",
-    "fileHelp": "JPEG, PNG, WebP veya GIF; en fazla 5 MB. Yüklenen dosyalar herkese açık bir adresten sunulur.",
+    "fileHelp": "JPEG, PNG, WebP veya GIF; en fazla 4 MB. Yüklenen dosyalar herkese açık bir adresten sunulur.",
     "fileRequired": "Bir görsel dosyası seçin.",
-    "fileTooLarge": "Dosya en fazla 5 MB olabilir.",
+    "fileTooLarge": "Dosya en fazla 4 MB olabilir.",
     "failed": "Yükleme tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin.",
     "uploading": "Yükleniyor…",
     "altPlaceholder": "Görselde ne görünüyor?"

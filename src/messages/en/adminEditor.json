@@ -30,9 +30,9 @@
   "loading": "Loading editor…",
   "upload": {
     "file": "Image file",
-    "fileHelp": "JPEG, PNG, WebP or GIF; at most 5 MB. Uploaded files are served from a public address.",
+    "fileHelp": "JPEG, PNG, WebP or GIF; at most 4 MB. Uploaded files are served from a public address.",
     "fileRequired": "Choose an image file.",
-    "fileTooLarge": "The file can be at most 5 MB.",
+    "fileTooLarge": "The file can be at most 4 MB.",
     "failed": "The upload could not be completed. Check your connection and try again.",
     "uploading": "Uploading…",
     "altPlaceholder": "What does the image show?"

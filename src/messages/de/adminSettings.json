@@ -74,9 +74,9 @@
     "libraryItem": "Bild {position}, {width}×{height} Pixel",
     "libraryItemSelected": "Bild {position}, {width}×{height} Pixel, ausgewählt",
     "file": "Bilddatei",
-    "fileHelp": "JPEG, PNG, WebP oder GIF, höchstens 5 MB. SVG wird nicht akzeptiert.",
+    "fileHelp": "JPEG, PNG, WebP oder GIF, höchstens 4 MB. SVG wird nicht akzeptiert.",
     "fileRequired": "Wählen Sie eine Datei.",
-    "fileTooLarge": "Die Datei ist größer als 5 MB.",
+    "fileTooLarge": "Die Datei ist größer als 4 MB.",
     "uploadAndSet": "Hochladen und auswählen",
     "uploading": "Wird hochgeladen…",
     "failed": "Das Hochladen konnte nicht abgeschlossen werden. Versuchen Sie es erneut."

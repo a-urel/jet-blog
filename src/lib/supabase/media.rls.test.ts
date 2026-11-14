@@ -174,7 +174,7 @@ describe("media bucket", () => {
 
     expect(error).toBeNull();
     expect(data?.public).toBe(true);
-    expect(data?.file_size_limit).toBe(5 * 1024 * 1024);
+    expect(data?.file_size_limit).toBe(4 * 1024 * 1024);
     expect([...(data?.allowed_mime_types ?? [])].sort()).toEqual([
       "image/gif",
       "image/jpeg",
@@ -229,7 +229,7 @@ describe("storage upload policies", () => {
   });
 
   it("rejects files above the bucket size limit", async () => {
-    const bytes = new Uint8Array(5 * 1024 * 1024 + 1);
+    const bytes = new Uint8Array(4 * 1024 * 1024 + 1);
     bytes.set(testImages.png);
     const { error } = await upload(clients.author, crypto.randomUUID(), bytes);
 
