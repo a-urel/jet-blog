@@ -1361,6 +1361,10 @@ providers, scheme, and length, and the locale set (non-empty, no duplicates,
 default enabled). Images come from the media library or a new upload through
 the existing media path (public `media` bucket, signature validation,
 JPEG/PNG/WebP/GIF, no SVG); `delete_media` refuses an image the settings use.
+The form applies the icon and share image size rules as soon as an image is
+picked from the library or chosen for upload (measured in the browser, then
+against the size the server stored), so an unusable file is not uploaded; the
+save repeats the check on the server.
 
 Accent color and readability: the color must read at least 4.5:1 against
 the page and card backgrounds of each theme. Where it does not, that theme

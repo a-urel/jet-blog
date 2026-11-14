@@ -24,6 +24,8 @@ import {
   socialProviders,
 } from "@/features/site-settings/social";
 import {
+  isValidShareImageSize,
+  isValidSiteIconSize,
   siteSettingsLimits,
   type SiteSettingsField,
   type SiteSettingsFormValues,
@@ -127,6 +129,14 @@ function SiteSettingsFields({
     </>
   );
 
+  // Size rules checked as soon as an image is picked; the save repeats them.
+  const imageRules: Partial<
+    Record<keyof typeof images, (size: { width: number; height: number }) => string | null>
+  > = {
+    icon: (size) => (isValidSiteIconSize(size) ? null : t("errors.iconShape")),
+    ogImage: (size) => (isValidShareImageSize(size) ? null : t("errors.ogImageSize")),
+  };
+
   const mediaField = (
     field: keyof typeof images,
     surface: "page" | "dark" = "page",
@@ -141,6 +151,7 @@ function SiteSettingsFields({
       libraryError={mediaError}
       onUploaded={(uploaded) => setLibrary((current) => [uploaded, ...current])}
       error={error(field)}
+      validate={imageRules[field]}
       surface={surface}
     />
   );

@@ -28,6 +28,23 @@ export const siteSettingsLimits = {
 } as const;
 
 export const mediaFields = ["logoLight", "logoDark", "icon", "ogImage"] as const;
+
+// Mirror the image checks in update_site_settings()
+// (supabase/migrations/20261025120000_site_settings.sql), which stays the
+// final authority. The form uses them to refuse an unusable image as soon as
+// it is picked or chosen for upload instead of only on save.
+type ImageSize = Readonly<{ width: number; height: number }>;
+
+export const siteIconMinSize = 48;
+export const shareImageMinSize = 200;
+
+export function isValidSiteIconSize(size: ImageSize): boolean {
+  return size.width === size.height && size.width >= siteIconMinSize;
+}
+
+export function isValidShareImageSize(size: ImageSize): boolean {
+  return size.width >= shareImageMinSize && size.height >= shareImageMinSize;
+}
 export type MediaField = (typeof mediaFields)[number];
 
 export type SiteSettingsField =

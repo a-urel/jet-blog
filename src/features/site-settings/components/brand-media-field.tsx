@@ -15,6 +15,22 @@ import { cn } from "@/lib/utils";
 
 export type BrandMediaOption = Readonly<{ id: string; width: number; height: number }>;
 
+type ImageSize = Readonly<{ width: number; height: number }>;
+
+// Decodes the picked file in the browser to read its pixel size. Returns null
+// when the browser cannot decode it; the server then decides on upload.
+async function readImageSize(file: File): Promise<ImageSize | null> {
+  if (typeof createImageBitmap !== "function") return null;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const size = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+    return size;
+  } catch {
+    return null;
+  }
+}
+
 type BrandMediaFieldProps = {
   name: string;
   label: string;
@@ -25,6 +41,11 @@ type BrandMediaFieldProps = {
   libraryError: boolean;
   onUploaded: (media: BrandMediaOption) => void;
   error?: string;
+  // Optional size rule (for example the square icon). Returns the message to
+  // show, or null when the image is acceptable. Checked when a library image
+  // is chosen, when a file is picked, and against the size the server
+  // measured after upload; the save repeats the check on the server.
+  validate?: (size: ImageSize) => string | null;
   // The surface the image is previewed on: a logo for dark backgrounds is
   // shown on a dark surface in both system themes.
   surface?: "page" | "dark";
@@ -43,6 +64,7 @@ export function BrandMediaField({
   libraryError,
   onUploaded,
   error,
+  validate,
   surface = "page",
 }: BrandMediaFieldProps) {
   const t = useTranslations("adminSettings.media");
@@ -50,6 +72,7 @@ export function BrandMediaField({
   const fileRef = useRef<HTMLInputElement>(null);
   const [panel, setPanel] = useState<"closed" | "library" | "upload">("closed");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [libraryChoiceError, setLibraryChoiceError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const previewSrc = value ? mediaPublicUrl(value) : null;
   // Fixed dark surface: the preview shows how a dark-background logo looks,
@@ -58,7 +81,37 @@ export function BrandMediaField({
 
   function choose(mediaId: string) {
     onChange(mediaId);
+    setLibraryChoiceError(null);
     setPanel("closed");
+  }
+
+  function chooseFromLibrary(item: BrandMediaOption) {
+    const problem = validate?.(item) ?? null;
+    if (problem) {
+      setLibraryChoiceError(problem);
+      return;
+    }
+    choose(item.id);
+  }
+
+  // Returns the message for a file that cannot be used here, or null.
+  async function checkFile(file: File): Promise<string | null> {
+    // The server repeats this check; catching it here avoids a body over the
+    // Server Action limit, which would fail without a message.
+    if (file.size > maxMediaBytes) return t("fileTooLarge");
+    if (!validate) return null;
+    const size = await readImageSize(file);
+    return size ? validate(size) : null;
+  }
+
+  function fileChanged() {
+    setUploadError(null);
+    const file = fileRef.current?.files?.[0];
+    if (!file) return;
+    void checkFile(file).then((problem) => {
+      // Ignore a result for a file that has since been replaced.
+      if (fileRef.current?.files?.[0] === file) setUploadError(problem);
+    });
   }
 
   function upload() {
@@ -69,17 +122,17 @@ export function BrandMediaField({
       setUploadError(t("fileRequired"));
       return;
     }
-    // The server repeats this check; catching it here avoids a body over the
-    // Server Action limit, which would fail without a message.
-    if (file.size > maxMediaBytes) {
-      setUploadError(t("fileTooLarge"));
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("file", file);
 
     startTransition(async () => {
+      const problem = await checkFile(file);
+      if (problem) {
+        setUploadError(problem);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("file", file);
+
       let result: Awaited<ReturnType<typeof uploadMediaAction>>;
       try {
         result = await uploadMediaAction(formData);
@@ -92,6 +145,13 @@ export function BrandMediaField({
         return;
       }
       onUploaded(result.media);
+      // The server measured the stored image; a file the browser could not
+      // decode is checked here. It stays in the library but is not selected.
+      const uploadedProblem = validate?.(result.media) ?? null;
+      if (uploadedProblem) {
+        setUploadError(uploadedProblem);
+        return;
+      }
       choose(result.media.id);
     });
   }
@@ -142,7 +202,10 @@ export function BrandMediaField({
           variant="outline"
           size="sm"
           aria-expanded={panel === "library"}
-          onClick={() => setPanel(panel === "library" ? "closed" : "library")}
+          onClick={() => {
+            setLibraryChoiceError(null);
+            setPanel(panel === "library" ? "closed" : "library");
+          }}
         >
           <Images aria-hidden="true" />
           {t("choose")}
@@ -174,46 +237,53 @@ export function BrandMediaField({
           ) : library.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("libraryEmpty")}</p>
           ) : (
-            <ul
-              aria-labelledby={`${id}-label`}
-              className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4"
-            >
-              {library.map((item, index) => {
-                const src = mediaPublicUrl(item.id);
-                const selected = item.id === value;
-                const labelValues = {
-                  position: index + 1,
-                  width: String(item.width),
-                  height: String(item.height),
-                };
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => choose(item.id)}
-                      aria-pressed={selected}
-                      aria-label={
-                        selected ? t("libraryItemSelected", labelValues) : t("libraryItem", labelValues)
-                      }
-                      className={cn(
-                        "relative block aspect-square w-full overflow-hidden rounded-md border outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                        surfaceClass,
-                        selected && "ring-2 ring-primary",
-                      )}
-                    >
-                      {src ? (
-                        <Image src={src} alt="" fill sizes="8rem" className="object-contain p-1" />
-                      ) : null}
-                      {selected ? (
-                        <span className="absolute top-1 right-1 rounded-full bg-primary p-1 text-primary-foreground">
-                          <Check aria-hidden="true" className="size-3" />
-                        </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              {libraryChoiceError ? (
+                <p role="alert" className="mb-3 text-sm text-destructive">
+                  {libraryChoiceError}
+                </p>
+              ) : null}
+              <ul
+                aria-labelledby={`${id}-label`}
+                className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4"
+              >
+                {library.map((item, index) => {
+                  const src = mediaPublicUrl(item.id);
+                  const selected = item.id === value;
+                  const labelValues = {
+                    position: index + 1,
+                    width: String(item.width),
+                    height: String(item.height),
+                  };
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => chooseFromLibrary(item)}
+                        aria-pressed={selected}
+                        aria-label={
+                          selected ? t("libraryItemSelected", labelValues) : t("libraryItem", labelValues)
+                        }
+                        className={cn(
+                          "relative block aspect-square w-full overflow-hidden rounded-md border outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                          surfaceClass,
+                          selected && "ring-2 ring-primary",
+                        )}
+                      >
+                        {src ? (
+                          <Image src={src} alt="" fill sizes="8rem" className="object-contain p-1" />
+                        ) : null}
+                        {selected ? (
+                          <span className="absolute top-1 right-1 rounded-full bg-primary p-1 text-primary-foreground">
+                            <Check aria-hidden="true" className="size-3" />
+                          </span>
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
         </div>
       ) : null}
@@ -228,6 +298,8 @@ export function BrandMediaField({
               type="file"
               accept={allowedMediaTypes.join(",")}
               disabled={pending}
+              onChange={fileChanged}
+              aria-invalid={uploadError ? true : undefined}
               aria-describedby={`${id}-file-help`}
             />
             <p id={`${id}-file-help`} className="text-xs text-muted-foreground">
