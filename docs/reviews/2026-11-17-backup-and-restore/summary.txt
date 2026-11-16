@@ -1,0 +1,12 @@
+document: docs/backup-and-restore.md
+document-blob: ec8a366ef5e39528309f5da39d9e601dc4b0db1d
+commit: 099f642e60c81f515ae3744827b83a34742fbc16
+date: 2026-11-17
+archive: docs/reviews/2026-11-17-backup-and-restore
+models: codex=gpt-6.1-sol claude=fable
+timeout-per-call: 600s
+codex    skipped:unconfined     0 findings  -
+claude   ok                     6 findings  VERDICT: revise — seed media bucket upload on `db reset` is unaddressed; hosted bucket-source and owner-scope statements need correction.
+findings: 6 total
+hint: codex: not called: 1 env file(s) present (names on the terminal) and codex's file reads are not confined to the repository; remove them, or rerun with --allow-unconfined to accept the risk
+warning: env files: 1, names on the terminal (never opened)
