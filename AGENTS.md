@@ -145,6 +145,10 @@ These are implementation recommendations, not previously approved product requir
 
 Do not implement this entire list in one task. Complete the currently requested slice and leave the repository working.
 
+## Design document review
+
+`/spec-review <doc>` (`.claude/skills/spec-review/SKILL.md`) runs an independent, read-only review of a spec, plan or doc page by up to three CLIs (Codex, Copilot, Claude) through `scripts/ai_review.sh`, then merges, re-verifies and folds the findings back into the document. Each run is archived, never overwritten, in `docs/reviews/<date>-<slug>/`; git-ignored documents are refused. The repository-specific settings are the config block at the top of the script. The script's self-test needs no network and no real CLI: `scripts/ai_review/selftest.sh`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
